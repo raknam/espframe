@@ -36,6 +36,21 @@ globals:
   - id: immich_photo_location
     type: std::string
     initial_value: '""'
+  - id: immich_prefetch_ready
+    type: bool
+    initial_value: 'false'
+  - id: immich_prefetch_asset_id
+    type: std::string
+    initial_value: '""'
+  - id: immich_prefetch_image_url
+    type: std::string
+    initial_value: '""'
+  - id: immich_prefetch_date
+    type: std::string
+    initial_value: '""'
+  - id: immich_prefetch_location
+    type: std::string
+    initial_value: '""'
 
 # --- Backlight ---
 
@@ -60,6 +75,7 @@ online_image:
       x-api-key: ${immich_api_key}
     on_download_finished:
       then:
+        - lambda: 'id(immich_request_inflight) = false;'
         - lvgl.image.update:
             id: slideshow_img
             src: immich_image
@@ -75,9 +91,11 @@ online_image:
         - lvgl.label.update:
             id: status_label
             text: !lambda 'return id(immich_last_asset_id);'
+        - script.execute: immich_prefetch_next
     on_error:
       then:
         - lambda: |-
+            id(immich_request_inflight) = false;
             ESP_LOGE("immich", "Image download/decode failed for URL: %s", id(immich_last_image_url).c_str());
         - lvgl.label.update:
             id: info_label
@@ -190,139 +208,212 @@ script:
                       format: "Previous request still in flight, skipping"
                 else:
                   - lambda: 'id(immich_request_inflight) = true;'
-                  - lvgl.label.update:
-                      id: status_label
-                      text: "Fetching..."
-                  - http_request.post:
-                      id: http_req
-                      url: ${immich_base_url}/api/search/random
-                      capture_response: true
-                      max_response_buffer_size: 12kB
-                      request_headers:
-                        Content-Type: application/json
-                        Accept: application/json
-                        x-api-key: ${immich_api_key}
-                      body: '{"size":1,"type":"IMAGE"}'
-                      on_response:
-                        then:
-                          - lambda: |-
-                              if (response->status_code != 200) {
-                                auto msg = str_sprintf("HTTP %d from Immich", response->status_code);
-                                ESP_LOGW("immich", "%s", msg.c_str());
-                                id(immich_request_inflight) = false;
-                                id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
-                                lv_label_set_text(id(status_label), msg.c_str());
-                                return;
-                              }
+                  - if:
+                      condition:
+                        lambda: 'return id(immich_prefetch_ready);'
+                      then:
+                        - lambda: |-
+                            id(immich_last_asset_id) = id(immich_prefetch_asset_id);
+                            id(immich_last_image_url) = id(immich_prefetch_image_url);
+                            id(immich_photo_date) = id(immich_prefetch_date);
+                            id(immich_photo_location) = id(immich_prefetch_location);
+                            id(immich_prefetch_ready) = false;
+                            ESP_LOGI("immich", "Using prefetched asset: %s", id(immich_last_asset_id).c_str());
+                        - lvgl.label.update:
+                            id: status_label
+                            text: !lambda |-
+                              return std::string("Downloading: ") + id(immich_last_asset_id);
+                        - online_image.set_url:
+                            id: immich_image
+                            url: !lambda 'return id(immich_last_image_url);'
+                      else:
+                        - lvgl.label.update:
+                            id: status_label
+                            text: "Fetching..."
+                        - script.execute: immich_fetch_and_show
 
-                              std::string asset_id;
-                              std::string photo_date;
-                              std::string photo_location;
+  - id: immich_fetch_and_show
+    mode: single
+    then:
+      - http_request.post:
+          id: http_req
+          url: ${immich_base_url}/api/search/random
+          capture_response: true
+          max_response_buffer_size: 12kB
+          request_headers:
+            Content-Type: application/json
+            Accept: application/json
+            x-api-key: ${immich_api_key}
+          body: '{"size":1,"type":"IMAGE"}'
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    auto msg = str_sprintf("HTTP %d from Immich", response->status_code);
+                    ESP_LOGW("immich", "%s", msg.c_str());
+                    id(immich_request_inflight) = false;
+                    id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
+                    lv_label_set_text(id(status_label), msg.c_str());
+                    return;
+                  }
 
-                              auto doc = json::parse_json(body);
-                              JsonObject asset;
+                  std::string asset_id, photo_date, photo_location;
+                  auto doc = json::parse_json(body);
+                  JsonObject asset;
+                  if (!doc.isNull()) {
+                    if (doc.is<JsonArray>()) {
+                      JsonArray arr = doc.as<JsonArray>();
+                      if (arr.size() > 0) asset = arr[0].as<JsonObject>();
+                    } else if (doc.is<JsonObject>()) {
+                      asset = doc.as<JsonObject>();
+                    }
+                  }
+                  if (asset.isNull() || !asset["id"].is<const char *>()) {
+                    ESP_LOGW("immich", "No valid asset in response");
+                    id(immich_request_inflight) = false;
+                    id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
+                    return;
+                  }
+                  asset_id = asset["id"].as<std::string>();
 
-                              if (!doc.isNull()) {
-                                if (doc.is<JsonArray>()) {
-                                  JsonArray arr = doc.as<JsonArray>();
-                                  if (arr.size() > 0) asset = arr[0].as<JsonObject>();
-                                } else if (doc.is<JsonObject>()) {
-                                  asset = doc.as<JsonObject>();
-                                }
-                              }
+                  if (asset["localDateTime"].is<const char *>()) {
+                    std::string raw = asset["localDateTime"].as<std::string>();
+                    if (raw.size() >= 10) {
+                      int year = atoi(raw.substr(0, 4).c_str());
+                      int month = atoi(raw.substr(5, 2).c_str());
+                      int day = atoi(raw.substr(8, 2).c_str());
+                      const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                      if (month >= 1 && month <= 12)
+                        photo_date = str_sprintf("%d %s %d", day, months[month], year);
+                    }
+                  }
 
-                              if (asset.isNull()) {
-                                ESP_LOGW("immich", "No asset in response body");
-                                id(immich_request_inflight) = false;
-                                id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
-                                return;
-                              }
+                  JsonObject exif = asset["exifInfo"].as<JsonObject>();
+                  if (!exif.isNull()) {
+                    std::string city, country;
+                    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
+                    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
+                    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
+                    else if (!city.empty()) photo_location = city;
+                    else if (!country.empty()) photo_location = country;
+                    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
+                      std::string raw = exif["dateTimeOriginal"].as<std::string>();
+                      if (raw.size() >= 10) {
+                        int year = atoi(raw.substr(0, 4).c_str());
+                        int month = atoi(raw.substr(5, 2).c_str());
+                        int day = atoi(raw.substr(8, 2).c_str());
+                        const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                        if (month >= 1 && month <= 12)
+                          photo_date = str_sprintf("%d %s %d", day, months[month], year);
+                      }
+                    }
+                  }
 
-                              if (asset["id"].is<const char *>()) {
-                                asset_id = asset["id"].as<std::string>();
-                              }
+                  id(immich_last_asset_id) = asset_id;
+                  id(immich_photo_date) = photo_date;
+                  id(immich_photo_location) = photo_location;
+                  id(immich_last_image_url) = std::string("${immich_base_url}") +
+                                              "/api/assets/" + asset_id + "/thumbnail?size=preview";
+                  ESP_LOGI("immich", "Asset: %s | Date: %s | Location: %s",
+                           asset_id.c_str(), photo_date.c_str(), photo_location.c_str());
+              - lvgl.label.update:
+                  id: status_label
+                  text: !lambda |-
+                    return std::string("Downloading: ") + id(immich_last_asset_id);
+              - online_image.set_url:
+                  id: immich_image
+                  url: !lambda 'return id(immich_last_image_url);'
+          on_error:
+            then:
+              - lambda: |-
+                  ESP_LOGW("immich", "Request error calling /api/search/random");
+                  id(immich_request_inflight) = false;
+                  id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
+              - lvgl.label.update:
+                  id: status_label
+                  text: !lambda |-
+                    return std::string("Conn error -> ${immich_base_url}");
 
-                              if (asset_id.empty()) {
-                                ESP_LOGW("immich", "No asset id in response");
-                                id(immich_request_inflight) = false;
-                                id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
-                                return;
-                              }
+  - id: immich_prefetch_next
+    mode: single
+    then:
+      - http_request.post:
+          id: http_req
+          url: ${immich_base_url}/api/search/random
+          capture_response: true
+          max_response_buffer_size: 12kB
+          request_headers:
+            Content-Type: application/json
+            Accept: application/json
+            x-api-key: ${immich_api_key}
+          body: '{"size":1,"type":"IMAGE"}'
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("immich", "Prefetch: HTTP %d", response->status_code);
+                    return;
+                  }
+                  auto doc = json::parse_json(body);
+                  JsonObject asset;
+                  if (!doc.isNull()) {
+                    if (doc.is<JsonArray>()) {
+                      JsonArray arr = doc.as<JsonArray>();
+                      if (arr.size() > 0) asset = arr[0].as<JsonObject>();
+                    } else if (doc.is<JsonObject>()) {
+                      asset = doc.as<JsonObject>();
+                    }
+                  }
+                  if (asset.isNull() || !asset["id"].is<const char *>()) {
+                    ESP_LOGW("immich", "Prefetch: no valid asset");
+                    return;
+                  }
+                  std::string asset_id = asset["id"].as<std::string>();
+                  std::string photo_date, photo_location;
 
-                              // Parse date from localDateTime (already in local tz)
-                              if (asset["localDateTime"].is<const char *>()) {
-                                std::string raw = asset["localDateTime"].as<std::string>();
-                                // Format "2024-01-15T14:30:00.000Z" -> "15 Jan 2024"
-                                if (raw.size() >= 10) {
-                                  int year = atoi(raw.substr(0, 4).c_str());
-                                  int month = atoi(raw.substr(5, 2).c_str());
-                                  int day = atoi(raw.substr(8, 2).c_str());
-                                  const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                                  if (month >= 1 && month <= 12) {
-                                    photo_date = str_sprintf("%d %s %d", day, months[month], year);
-                                  }
-                                }
-                              }
+                  if (asset["localDateTime"].is<const char *>()) {
+                    std::string raw = asset["localDateTime"].as<std::string>();
+                    if (raw.size() >= 10) {
+                      int year = atoi(raw.substr(0, 4).c_str());
+                      int month = atoi(raw.substr(5, 2).c_str());
+                      int day = atoi(raw.substr(8, 2).c_str());
+                      const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                      if (month >= 1 && month <= 12)
+                        photo_date = str_sprintf("%d %s %d", day, months[month], year);
+                    }
+                  }
+                  JsonObject exif = asset["exifInfo"].as<JsonObject>();
+                  if (!exif.isNull()) {
+                    std::string city, country;
+                    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
+                    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
+                    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
+                    else if (!city.empty()) photo_location = city;
+                    else if (!country.empty()) photo_location = country;
+                    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
+                      std::string raw = exif["dateTimeOriginal"].as<std::string>();
+                      if (raw.size() >= 10) {
+                        int year = atoi(raw.substr(0, 4).c_str());
+                        int month = atoi(raw.substr(5, 2).c_str());
+                        int day = atoi(raw.substr(8, 2).c_str());
+                        const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                        if (month >= 1 && month <= 12)
+                          photo_date = str_sprintf("%d %s %d", day, months[month], year);
+                      }
+                    }
+                  }
 
-                              // Parse location from exifInfo
-                              JsonObject exif = asset["exifInfo"].as<JsonObject>();
-                              if (!exif.isNull()) {
-                                std::string city, country;
-                                if (exif["city"].is<const char *>())
-                                  city = exif["city"].as<std::string>();
-                                if (exif["country"].is<const char *>())
-                                  country = exif["country"].as<std::string>();
-
-                                if (!city.empty() && !country.empty()) {
-                                  photo_location = city + ", " + country;
-                                } else if (!city.empty()) {
-                                  photo_location = city;
-                                } else if (!country.empty()) {
-                                  photo_location = country;
-                                }
-
-                                // Fall back to exif date if localDateTime was missing
-                                if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
-                                  std::string raw = exif["dateTimeOriginal"].as<std::string>();
-                                  if (raw.size() >= 10) {
-                                    int year = atoi(raw.substr(0, 4).c_str());
-                                    int month = atoi(raw.substr(5, 2).c_str());
-                                    int day = atoi(raw.substr(8, 2).c_str());
-                                    const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                                    if (month >= 1 && month <= 12) {
-                                      photo_date = str_sprintf("%d %s %d", day, months[month], year);
-                                    }
-                                  }
-                                }
-                              }
-
-                              id(immich_last_asset_id) = asset_id;
-                              id(immich_photo_date) = photo_date;
-                              id(immich_photo_location) = photo_location;
-                              id(immich_last_image_url) = std::string("${immich_base_url}") +
-                                                          "/api/assets/" + asset_id +
-                                                          "/thumbnail?size=preview";
-
-                              ESP_LOGI("immich", "Asset: %s | Date: %s | Location: %s",
-                                       asset_id.c_str(), photo_date.c_str(), photo_location.c_str());
-                              ESP_LOGI("immich", "Image URL: %s", id(immich_last_image_url).c_str());
-                          - lvgl.label.update:
-                              id: status_label
-                              text: !lambda |-
-                                return std::string("Downloading: ") + id(immich_last_asset_id);
-                          - online_image.set_url:
-                              id: immich_image
-                              url: !lambda 'return id(immich_last_image_url);'
-                          - lambda: 'id(immich_request_inflight) = false;'
-                      on_error:
-                        then:
-                          - lambda: |-
-                              ESP_LOGW("immich", "Request error calling /api/search/random");
-                              id(immich_request_inflight) = false;
-                              id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
-                          - lvgl.label.update:
-                              id: status_label
-                              text: !lambda |-
-                                return std::string("Conn error -> ${immich_base_url}");
+                  id(immich_prefetch_asset_id) = asset_id;
+                  id(immich_prefetch_image_url) = std::string("${immich_base_url}") +
+                                                  "/api/assets/" + asset_id + "/thumbnail?size=preview";
+                  id(immich_prefetch_date) = photo_date;
+                  id(immich_prefetch_location) = photo_location;
+                  id(immich_prefetch_ready) = true;
+                  ESP_LOGI("immich", "Prefetched: %s", asset_id.c_str());
+          on_error:
+            then:
+              - lambda: 'ESP_LOGW("immich", "Prefetch request failed");'

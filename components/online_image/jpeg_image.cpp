@@ -12,17 +12,27 @@ static const char *const TAG = "online_image.jpeg";
 namespace esphome {
 namespace online_image {
 
-/// Custom error manager that longjmps instead of calling exit()
-struct JpegErrorMgr {
-  jpeg_error_mgr pub;
-  jmp_buf setjmp_buffer;
-  char message[JMSG_LENGTH_MAX];
-};
-
 static void jpeg_error_exit(j_common_ptr cinfo) {
   auto *err = reinterpret_cast<JpegErrorMgr *>(cinfo->err);
   (*(cinfo->err->format_message))(cinfo, err->message);
   longjmp(err->setjmp_buffer, 1);
+}
+
+void JpegDecoder::cleanup_() {
+  if (this->cinfo_) {
+    jpeg_destroy_decompress(this->cinfo_);
+    delete this->cinfo_;
+    this->cinfo_ = nullptr;
+  }
+  if (this->jerr_) {
+    delete this->jerr_;
+    this->jerr_ = nullptr;
+  }
+  if (this->row_buffer_) {
+    free(this->row_buffer_);
+    this->row_buffer_ = nullptr;
+  }
+  this->phase_ = WAITING;
 }
 
 int JpegDecoder::prepare(size_t download_size) {
@@ -36,148 +46,157 @@ int JpegDecoder::prepare(size_t download_size) {
 }
 
 int HOT JpegDecoder::decode(uint8_t *buffer, size_t size) {
-  if (size < this->download_size_) {
-    ESP_LOGV(TAG, "Download not complete. Size: %zu/%zu", size, this->download_size_);
-    return 0;
+  if (this->phase_ == FINISHED) {
+    return size;
   }
 
-  jpeg_decompress_struct cinfo;
-  JpegErrorMgr jerr{};
+  if (this->phase_ == WAITING) {
+    if (size < this->download_size_) {
+      ESP_LOGV(TAG, "Download not complete. Size: %zu/%zu", size, this->download_size_);
+      return 0;
+    }
 
-  cinfo.err = jpeg_std_error(&jerr.pub);
-  jerr.pub.error_exit = jpeg_error_exit;
+    this->cinfo_ = new jpeg_decompress_struct();
+    this->jerr_ = new JpegErrorMgr();
 
-  // Raw pointer for longjmp safety — unique_ptr destructors are skipped by longjmp
-  uint8_t *row_buffer = nullptr;
+    this->cinfo_->err = jpeg_std_error(&this->jerr_->pub);
+    this->jerr_->pub.error_exit = jpeg_error_exit;
 
-  if (setjmp(jerr.setjmp_buffer)) {
-    ESP_LOGE(TAG, "JPEG decode error: %s", jerr.message);
-    free(row_buffer);
-    jpeg_destroy_decompress(&cinfo);
+    if (setjmp(this->jerr_->setjmp_buffer)) {
+      ESP_LOGE(TAG, "JPEG decode error during setup: %s", this->jerr_->message);
+      this->cleanup_();
+      return DECODE_ERROR_UNSUPPORTED_FORMAT;
+    }
+
+    jpeg_create_decompress(this->cinfo_);
+    jpeg_mem_src(this->cinfo_, buffer, size);
+
+    if (jpeg_read_header(this->cinfo_, TRUE) != JPEG_HEADER_OK) {
+      ESP_LOGE(TAG, "Could not read JPEG header");
+      this->cleanup_();
+      return DECODE_ERROR_INVALID_TYPE;
+    }
+
+    int src_w = this->cinfo_->image_width;
+    int src_h = this->cinfo_->image_height;
+    ESP_LOGD(TAG, "JPEG header: %dx%d, components=%d, progressive=%s",
+             src_w, src_h, this->cinfo_->num_components,
+             this->cinfo_->progressive_mode ? "yes" : "no");
+
+    this->cinfo_->out_color_space = JCS_RGB;
+    this->cinfo_->dct_method = JDCT_IFAST;
+
+    int target_w = this->image_->get_fixed_width();
+    int target_h = this->image_->get_fixed_height();
+    if (target_w > 0 && target_h > 0) {
+      constexpr unsigned int denoms[] = {8, 4, 2, 1};
+      for (unsigned int denom : denoms) {
+        this->cinfo_->scale_num = 1;
+        this->cinfo_->scale_denom = denom;
+        jpeg_calc_output_dimensions(this->cinfo_);
+        int idct_w = static_cast<int>(this->cinfo_->output_width);
+        int idct_h = static_cast<int>(this->cinfo_->output_height);
+        double fit = std::min(
+          static_cast<double>(target_w) / idct_w,
+          static_cast<double>(target_h) / idct_h
+        );
+        int need_w = static_cast<int>(idct_w * fit);
+        int need_h = static_cast<int>(idct_h * fit);
+        if (idct_w >= need_w && idct_h >= need_h) break;
+      }
+    } else {
+      jpeg_calc_output_dimensions(this->cinfo_);
+    }
+
+    this->out_w_ = this->cinfo_->output_width;
+    int out_h = this->cinfo_->output_height;
+    if (this->out_w_ != src_w || out_h != src_h) {
+      ESP_LOGD(TAG, "Using IDCT downscale: %dx%d -> %dx%d", src_w, src_h, this->out_w_, out_h);
+    }
+
+    if (!this->set_size(this->out_w_, out_h)) {
+      this->cleanup_();
+      return DECODE_ERROR_OUT_OF_MEMORY;
+    }
+
+    jpeg_start_decompress(this->cinfo_);
+
+    size_t row_stride = static_cast<size_t>(this->out_w_) * 3;
+    this->row_buffer_ = static_cast<uint8_t *>(malloc(row_stride));
+    if (this->row_buffer_ == nullptr) {
+      this->cleanup_();
+      return DECODE_ERROR_OUT_OF_MEMORY;
+    }
+
+    this->use_rgb565_ = (this->image_->image_type() == image::ImageType::IMAGE_TYPE_RGB565);
+    this->big_endian_ = this->image_->is_big_endian();
+    this->scaling_ = (this->x_scale_ != 1.0 || this->y_scale_ != 1.0 ||
+                      this->x_offset_ != 0 || this->y_offset_ != 0);
+    this->current_scanline_ = 0;
+    this->prev_dst_y_ = -1;
+    this->phase_ = DECOMPRESSING;
+  }
+
+  // --- DECOMPRESSING phase: process a chunk of scanlines ---
+  if (setjmp(this->jerr_->setjmp_buffer)) {
+    ESP_LOGE(TAG, "JPEG decode error: %s", this->jerr_->message);
+    this->cleanup_();
     return DECODE_ERROR_UNSUPPORTED_FORMAT;
   }
 
-  jpeg_create_decompress(&cinfo);
-  jpeg_mem_src(&cinfo, buffer, size);
+  int lines_this_chunk = 0;
+  while (this->cinfo_->output_scanline < this->cinfo_->output_height &&
+         lines_this_chunk < SCANLINES_PER_CHUNK) {
+    uint8_t *row_ptr = this->row_buffer_;
+    jpeg_read_scanlines(this->cinfo_, &row_ptr, 1);
 
-  if (jpeg_read_header(&cinfo, TRUE) != JPEG_HEADER_OK) {
-    ESP_LOGE(TAG, "Could not read JPEG header");
-    jpeg_destroy_decompress(&cinfo);
-    return DECODE_ERROR_INVALID_TYPE;
-  }
-
-  int src_w = cinfo.image_width;
-  int src_h = cinfo.image_height;
-  ESP_LOGD(TAG, "JPEG header: %dx%d, components=%d, progressive=%s",
-           src_w, src_h, cinfo.num_components,
-           cinfo.progressive_mode ? "yes" : "no");
-
-  // Request RGB output regardless of input colorspace
-  cinfo.out_color_space = JCS_RGB;
-  // Use fast integer IDCT — slightly lower quality but faster on ESP32
-  // and avoids pulling in the float IDCT code path.
-  cinfo.dct_method = JDCT_IFAST;
-
-  // Use IDCT scaling to downscale during decode
-  int target_w = this->image_->get_fixed_width();
-  int target_h = this->image_->get_fixed_height();
-  if (target_w > 0 && target_h > 0) {
-    // libjpeg supports scale_num/scale_denom ratios: 1/1, 1/2, 1/4, 1/8
-    // Pick the smallest that still produces output >= target
-    constexpr unsigned int denoms[] = {8, 4, 2, 1};
-    for (unsigned int denom : denoms) {
-      cinfo.scale_num = 1;
-      cinfo.scale_denom = denom;
-      jpeg_calc_output_dimensions(&cinfo);
-      if (static_cast<int>(cinfo.output_width) >= target_w &&
-          static_cast<int>(cinfo.output_height) >= target_h) {
-        break;
-      }
-    }
-    // Reset to 1/1 if none fit (shouldn't happen since 1/1 >= source)
-    if (static_cast<int>(cinfo.output_width) < target_w ||
-        static_cast<int>(cinfo.output_height) < target_h) {
-      cinfo.scale_num = 1;
-      cinfo.scale_denom = 1;
-      jpeg_calc_output_dimensions(&cinfo);
-    }
-  } else {
-    jpeg_calc_output_dimensions(&cinfo);
-  }
-
-  int out_w = cinfo.output_width;
-  int out_h = cinfo.output_height;
-  if (out_w != src_w || out_h != src_h) {
-    ESP_LOGD(TAG, "Using IDCT downscale: %dx%d -> %dx%d", src_w, src_h, out_w, out_h);
-  }
-
-  if (!this->set_size(out_w, out_h)) {
-    jpeg_destroy_decompress(&cinfo);
-    return DECODE_ERROR_OUT_OF_MEMORY;
-  }
-
-  jpeg_start_decompress(&cinfo);
-
-  // Allocate row buffers (raw pointers — safe across longjmp)
-  size_t row_stride = static_cast<size_t>(out_w) * 3;
-  row_buffer = static_cast<uint8_t *>(malloc(row_stride));
-  if (row_buffer == nullptr) {
-    jpeg_destroy_decompress(&cinfo);
-    return DECODE_ERROR_OUT_OF_MEMORY;
-  }
-
-  bool use_rgb565 = (this->image_->image_type() == image::ImageType::IMAGE_TYPE_RGB565);
-  bool big_endian = this->image_->is_big_endian();
-
-  int y = 0;
-  int prev_dst_y = -1;
-  while (cinfo.output_scanline < cinfo.output_height) {
-    uint8_t *row_ptr = row_buffer;
-    jpeg_read_scanlines(&cinfo, &row_ptr, 1);
-
-    if ((y & 63) == 0) {
+    if ((this->current_scanline_ & 63) == 0) {
       App.feed_wdt();
     }
 
-    int dst_y = static_cast<int>(y * this->y_scale_) + this->y_offset_;
-    if (dst_y == prev_dst_y) {
-      y++;
-      continue;
-    }
-    prev_dst_y = dst_y;
+    int dst_y = static_cast<int>(this->current_scanline_ * this->y_scale_) + this->y_offset_;
+    if (dst_y != this->prev_dst_y_) {
+      this->prev_dst_y_ = dst_y;
+      lines_this_chunk++;
 
-    if (use_rgb565) {
-      uint8_t *dst = row_buffer;
-      for (int x = 0; x < out_w; x++) {
-        uint8_t r = row_buffer[x * 3 + 0];
-        uint8_t g = row_buffer[x * 3 + 1];
-        uint8_t b = row_buffer[x * 3 + 2];
-        uint16_t rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-        if (big_endian) {
-          dst[0] = rgb565 >> 8;
-          dst[1] = rgb565 & 0xFF;
-        } else {
-          dst[0] = rgb565 & 0xFF;
-          dst[1] = rgb565 >> 8;
+      if (this->use_rgb565_ && this->scaling_) {
+        this->draw_rgb888_scaled(this->current_scanline_, this->out_w_, this->row_buffer_, this->big_endian_);
+      } else if (this->use_rgb565_) {
+        uint8_t *dst = this->row_buffer_;
+        for (int x = 0; x < this->out_w_; x++) {
+          uint8_t r = this->row_buffer_[x * 3 + 0];
+          uint8_t g = this->row_buffer_[x * 3 + 1];
+          uint8_t b = this->row_buffer_[x * 3 + 2];
+          uint16_t rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+          if (this->big_endian_) {
+            dst[0] = rgb565 >> 8;
+            dst[1] = rgb565 & 0xFF;
+          } else {
+            dst[0] = rgb565 & 0xFF;
+            dst[1] = rgb565 >> 8;
+          }
+          dst += 2;
         }
-        dst += 2;
-      }
-      this->draw_rgb565_block(0, y, out_w, 1, row_buffer);
-    } else {
-      for (int x = 0; x < out_w; x++) {
-        Color color(row_buffer[x * 3 + 0], row_buffer[x * 3 + 1], row_buffer[x * 3 + 2]);
-        this->draw(x, y, 1, 1, color);
+        this->draw_rgb565_block(0, this->current_scanline_, this->out_w_, 1, this->row_buffer_);
+      } else {
+        for (int x = 0; x < this->out_w_; x++) {
+          Color color(this->row_buffer_[x * 3 + 0], this->row_buffer_[x * 3 + 1], this->row_buffer_[x * 3 + 2]);
+          this->draw(x, this->current_scanline_, 1, 1, color);
+        }
       }
     }
-    y++;
+    this->current_scanline_++;
   }
 
-  jpeg_finish_decompress(&cinfo);
-  jpeg_destroy_decompress(&cinfo);
-  free(row_buffer);
+  if (this->cinfo_->output_scanline >= this->cinfo_->output_height) {
+    jpeg_finish_decompress(this->cinfo_);
+    this->cleanup_();
+    this->phase_ = FINISHED;
+    this->decoded_bytes_ = size;
+    return size;
+  }
 
-  this->decoded_bytes_ = size;
-  return size;
+  return 0;
 }
 
 }  // namespace online_image

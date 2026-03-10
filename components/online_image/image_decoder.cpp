@@ -101,6 +101,32 @@ void ImageDecoder::draw_rgb565_block(int x, int y, int w, int h, const uint8_t *
   }
 }
 
+void ImageDecoder::draw_rgb888_scaled(int src_y, int src_w, const uint8_t *rgb888, bool big_endian) {
+  int dst_y = static_cast<int>(src_y * this->y_scale_) + this->y_offset_;
+  if (dst_y < 0 || dst_y >= this->image_->buffer_height_)
+    return;
+
+  int dst_x_start = std::max(0, this->x_offset_);
+  int dst_x_end = std::min(this->x_offset_ + this->scaled_width_, this->image_->buffer_width_);
+  double inv_scale = (this->x_scale_ > 0) ? 1.0 / this->x_scale_ : 1.0;
+
+  for (int dst_x = dst_x_start; dst_x < dst_x_end; dst_x++) {
+    int src_col = static_cast<int>((dst_x - this->x_offset_) * inv_scale);
+    if (src_col >= src_w) src_col = src_w - 1;
+    int si = src_col * 3;
+    uint8_t r = rgb888[si], g = rgb888[si + 1], b = rgb888[si + 2];
+    uint16_t rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+    int dst_pos = this->image_->get_position_(dst_x, dst_y);
+    if (big_endian) {
+      this->image_->buffer_[dst_pos] = rgb565 >> 8;
+      this->image_->buffer_[dst_pos + 1] = rgb565 & 0xFF;
+    } else {
+      this->image_->buffer_[dst_pos] = rgb565 & 0xFF;
+      this->image_->buffer_[dst_pos + 1] = rgb565 >> 8;
+    }
+  }
+}
+
 DownloadBuffer::DownloadBuffer(size_t size) : size_(size) {
   this->buffer_ = this->allocator_.allocate(size);
   this->reset();

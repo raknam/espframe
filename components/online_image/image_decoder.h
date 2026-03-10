@@ -86,6 +86,19 @@ class ImageDecoder {
    */
   void draw_rgb565_block(int x, int y, int w, int h, const uint8_t *data);
 
+  /**
+   * @brief Convert RGB888 source pixels to RGB565 and write only the sampled
+   * destination pixels. Combines color conversion with nearest-neighbor
+   * downscaling in a single pass, avoiding work on source pixels that would
+   * be discarded.
+   *
+   * @param src_y Source scanline index.
+   * @param src_w Source scanline width in pixels.
+   * @param rgb888 Pointer to RGB888 pixel data (3 bytes per pixel).
+   * @param big_endian Whether to store RGB565 in big-endian byte order.
+   */
+  void draw_rgb888_scaled(int src_y, int src_w, const uint8_t *rgb888, bool big_endian);
+
   bool is_finished() const { return this->decoded_bytes_ == this->download_size_; }
 
  protected:

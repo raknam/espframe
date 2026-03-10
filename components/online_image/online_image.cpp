@@ -230,7 +230,6 @@ void OnlineImage::update() {
 
 void OnlineImage::loop() {
   if (!this->decoder_) {
-    // Not decoding at the moment => nothing to do.
     this->disable_loop();
     return;
   }
@@ -251,22 +250,28 @@ void OnlineImage::loop() {
     ESP_LOGE(TAG, "Downloader not instantiated; cannot download");
     return;
   }
+
+  // Download phase: pull data from the HTTP connection
   size_t available = this->download_buffer_.free_capacity();
   if (available) {
-    // Some decoders need to fully download the image before downloading.
-    // In case of huge images, don't wait blocking until the whole image has been downloaded,
-    // use smaller chunks
     available = std::min(available, this->download_buffer_initial_size_);
     auto len = this->downloader_->read(this->download_buffer_.append(), available);
     if (len > 0) {
       this->download_buffer_.write(len);
-      auto fed = this->decoder_->decode(this->download_buffer_.data(), this->download_buffer_.unread());
-      if (fed < 0) {
-        ESP_LOGE(TAG, "Error when decoding image.");
-        this->end_connection_();
-        this->download_error_callback_.call();
-        return;
-      }
+    }
+  }
+
+  // Decode phase: always attempt decode when data is buffered,
+  // so chunked decoders get called every loop iteration.
+  if (this->download_buffer_.unread() > 0) {
+    auto fed = this->decoder_->decode(this->download_buffer_.data(), this->download_buffer_.unread());
+    if (fed < 0) {
+      ESP_LOGE(TAG, "Error when decoding image.");
+      this->end_connection_();
+      this->download_error_callback_.call();
+      return;
+    }
+    if (fed > 0) {
       this->download_buffer_.read(fed);
     }
   }
