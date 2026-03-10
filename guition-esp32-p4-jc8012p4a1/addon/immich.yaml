@@ -94,6 +94,33 @@ globals:
   - id: immich_prefetch_person
     type: std::string
     initial_value: '""'
+  - id: touch_start_x
+    type: int
+    initial_value: '0'
+  - id: immich_prev_valid
+    type: bool
+    initial_value: 'false'
+  - id: immich_prev_asset_id
+    type: std::string
+    initial_value: '""'
+  - id: immich_prev_image_url
+    type: std::string
+    initial_value: '""'
+  - id: immich_prev_date
+    type: std::string
+    initial_value: '""'
+  - id: immich_prev_location
+    type: std::string
+    initial_value: '""'
+  - id: immich_prev_year
+    type: int
+    initial_value: '0'
+  - id: immich_prev_camera
+    type: std::string
+    initial_value: '""'
+  - id: immich_prev_person
+    type: std::string
+    initial_value: '""'
 
 # --- Backlight ---
 
@@ -185,15 +212,30 @@ lvgl:
             src: immich_image
             scrollable: false
             clickable: true
-            on_short_click:
+            on_press:
               then:
-                - if:
-                    condition:
-                      lambda: 'return lv_obj_has_flag(id(info_overlay), LV_OBJ_FLAG_HIDDEN);'
-                    then:
-                      - lvgl.widget.show: info_overlay
-                    else:
-                      - lvgl.widget.hide: info_overlay
+                - lambda: |-
+                    lv_point_t point;
+                    lv_indev_get_point(lv_indev_get_act(), &point);
+                    id(touch_start_x) = point.x;
+            on_release:
+              then:
+                - lambda: |-
+                    lv_point_t point;
+                    lv_indev_get_point(lv_indev_get_act(), &point);
+                    int dx = point.x - id(touch_start_x);
+                    if (dx < -80) {
+                      id(immich_backoff_cycles) = 1;
+                      id(immich_request_next_image).execute();
+                    } else if (dx > 80) {
+                      id(immich_backoff_cycles) = 1;
+                      id(immich_show_previous).execute();
+                    } else {
+                      if (lv_obj_has_flag(id(info_overlay), LV_OBJ_FLAG_HIDDEN))
+                        lv_obj_clear_flag(id(info_overlay), LV_OBJ_FLAG_HIDDEN);
+                      else
+                        lv_obj_add_flag(id(info_overlay), LV_OBJ_FLAG_HIDDEN);
+                    }
             on_long_press:
               then:
                 - script.execute: immich_request_next_image
@@ -389,7 +431,18 @@ script:
                       tag: immich
                       format: "Previous request still in flight, skipping"
                 else:
-                  - lambda: 'id(immich_request_inflight) = true;'
+                  - lambda: |-
+                      id(immich_request_inflight) = true;
+                      if (!id(immich_last_asset_id).empty()) {
+                        id(immich_prev_asset_id) = id(immich_last_asset_id);
+                        id(immich_prev_image_url) = id(immich_last_image_url);
+                        id(immich_prev_date) = id(immich_photo_date);
+                        id(immich_prev_location) = id(immich_photo_location);
+                        id(immich_prev_year) = id(immich_photo_year);
+                        id(immich_prev_camera) = id(immich_photo_camera);
+                        id(immich_prev_person) = id(immich_photo_person);
+                        id(immich_prev_valid) = true;
+                      }
                   - if:
                       condition:
                         lambda: 'return id(immich_prefetch_ready);'
@@ -409,6 +462,58 @@ script:
                             url: !lambda 'return id(immich_last_image_url);'
                       else:
                         - script.execute: immich_fetch_and_show
+
+  - id: immich_show_previous
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(immich_prev_valid);'
+          then:
+            - logger.log:
+                level: INFO
+                tag: immich
+                format: "No previous image available"
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(immich_request_inflight);'
+                then:
+                  - logger.log:
+                      level: WARN
+                      tag: immich
+                      format: "Request in flight, cannot show previous"
+                else:
+                  - lambda: |-
+                      id(immich_request_inflight) = true;
+                      std::string tmp_id = id(immich_last_asset_id);
+                      std::string tmp_url = id(immich_last_image_url);
+                      std::string tmp_date = id(immich_photo_date);
+                      std::string tmp_loc = id(immich_photo_location);
+                      int tmp_year = id(immich_photo_year);
+                      std::string tmp_cam = id(immich_photo_camera);
+                      std::string tmp_per = id(immich_photo_person);
+
+                      id(immich_last_asset_id) = id(immich_prev_asset_id);
+                      id(immich_last_image_url) = id(immich_prev_image_url);
+                      id(immich_photo_date) = id(immich_prev_date);
+                      id(immich_photo_location) = id(immich_prev_location);
+                      id(immich_photo_year) = id(immich_prev_year);
+                      id(immich_photo_camera) = id(immich_prev_camera);
+                      id(immich_photo_person) = id(immich_prev_person);
+
+                      id(immich_prev_asset_id) = tmp_id;
+                      id(immich_prev_image_url) = tmp_url;
+                      id(immich_prev_date) = tmp_date;
+                      id(immich_prev_location) = tmp_loc;
+                      id(immich_prev_year) = tmp_year;
+                      id(immich_prev_camera) = tmp_cam;
+                      id(immich_prev_person) = tmp_per;
+
+                      ESP_LOGI("immich", "Showing previous: %s", id(immich_last_asset_id).c_str());
+                  - online_image.set_url:
+                      id: immich_image
+                      url: !lambda 'return id(immich_last_image_url);'
 
   - id: immich_fetch_and_show
     mode: single
