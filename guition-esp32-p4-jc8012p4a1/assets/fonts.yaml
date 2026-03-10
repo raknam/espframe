@@ -12,8 +12,8 @@ font:
     glyphs: " 0123456789:"
 
   - file: "gfonts://Roboto@Light"
-    id: roboto_light40_font
-    size: 40
+    id: roboto_light46_font
+    size: 46
     bpp: 4
     glyphs: >-
       !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
@@ -28,8 +28,8 @@ font:
       ¡¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž—–‐…·µ©®™«»°•€£¥¢ªº†
 
   - file: "gfonts://Roboto@Light"
-    id: roboto_light26_font
-    size: 26
+    id: roboto_light32_font
+    size: 32
     bpp: 4
     glyphs: >-
       !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~

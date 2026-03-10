@@ -455,14 +455,14 @@ lvgl:
                               text: ""
                               text_color: 0x000000
                               text_opa: 50%
-                              text_font: roboto_light26_font
+                              text_font: roboto_light46_font
                           - label:
                               id: time_ago_label
                               x: 0
                               y: 0
                               text: ""
                               text_color: 0xFFFFFF
-                              text_font: roboto_light26_font
+                              text_font: roboto_light46_font
                     - obj:
                         width: SIZE_CONTENT
                         height: SIZE_CONTENT
@@ -478,14 +478,14 @@ lvgl:
                               text: ""
                               text_color: 0x000000
                               text_opa: 50%
-                              text_font: roboto_light40_font
+                              text_font: roboto_light32_font
                           - label:
                               id: location_label
                               x: 0
                               y: 0
                               text: ""
                               text_color: 0xFFFFFF
-                              text_font: roboto_light40_font
+                              text_font: roboto_light32_font
         - obj:
             id: loading_screen
             x: 0
@@ -518,7 +518,7 @@ lvgl:
                   widgets:
                     - label:
                         text: "Starting up"
-                        text_font: roboto_light40_font
+                        text_font: roboto_light46_font
                         text_color: 0xFFFFFF
                         width: 700
                         text_align: center
@@ -571,7 +571,7 @@ lvgl:
                         text_color: 0xFFFFFF
                     - label:
                         text: "WiFi Setup"
-                        text_font: roboto_light40_font
+                        text_font: roboto_light46_font
                         text_color: 0xFFFFFF
                         width: 700
                         text_align: center
