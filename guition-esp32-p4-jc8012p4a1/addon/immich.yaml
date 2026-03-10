@@ -8,7 +8,7 @@
 # =============================================================================
 
 substitutions:
-  immich_slide_interval: "45s"
+  immich_slide_interval: "15s"
   immich_verify_ssl: "false"
   immich_error_backoff_cycles: "2"
 
