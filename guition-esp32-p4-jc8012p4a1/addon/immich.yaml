@@ -94,9 +94,6 @@ globals:
   - id: immich_photo_month
     type: int
     initial_value: '0'
-  - id: immich_photo_camera
-    type: std::string
-    initial_value: '""'
   - id: immich_photo_person
     type: std::string
     initial_value: '""'
@@ -123,9 +120,6 @@ globals:
   - id: immich_prev_month
     type: int
     initial_value: '0'
-  - id: immich_prev_camera
-    type: std::string
-    initial_value: '""'
   - id: immich_prev_person
     type: std::string
     initial_value: '""'
@@ -149,9 +143,6 @@ globals:
   - id: slot0_month
     type: int
     initial_value: '0'
-  - id: slot0_camera
-    type: std::string
-    initial_value: '""'
   - id: slot0_person
     type: std::string
     initial_value: '""'
@@ -175,9 +166,6 @@ globals:
   - id: slot1_month
     type: int
     initial_value: '0'
-  - id: slot1_camera
-    type: std::string
-    initial_value: '""'
   - id: slot1_person
     type: std::string
     initial_value: '""'
@@ -201,9 +189,6 @@ globals:
   - id: slot2_month
     type: int
     initial_value: '0'
-  - id: slot2_camera
-    type: std::string
-    initial_value: '""'
   - id: slot2_person
     type: std::string
     initial_value: '""'
