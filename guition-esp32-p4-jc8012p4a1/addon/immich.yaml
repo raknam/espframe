@@ -454,7 +454,7 @@ online_image:
   - id: immich_portrait_left
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
-    resize: 640x960
+    resize: 640x1200
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -479,7 +479,7 @@ online_image:
   - id: immich_portrait_right
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
-    resize: 640x960
+    resize: 640x1200
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -505,7 +505,7 @@ online_image:
   - id: immich_portrait_preload_left
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
-    resize: 640x960
+    resize: 640x1200
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -524,7 +524,7 @@ online_image:
   - id: immich_portrait_preload_right
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
-    resize: 640x960
+    resize: 640x1200
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -589,7 +589,7 @@ lvgl:
             id: portrait_pair_container
             align: CENTER
             width: 1280
-            height: 960
+            height: 800
             bg_color: 0x000000
             bg_opa: 100%
             border_width: 0
@@ -626,14 +626,32 @@ lvgl:
               then:
                 - script.execute: immich_advance_forward
             widgets:
-              - image:
-                  id: portrait_left_img
-                  src: immich_portrait_left
+              - obj:
+                  width: 640
+                  height: 800
+                  bg_opa: 0%
+                  border_width: 0
+                  pad_all: 0
                   scrollable: false
-              - image:
-                  id: portrait_right_img
-                  src: immich_portrait_right
+                  widgets:
+                    - image:
+                        id: portrait_left_img
+                        src: immich_portrait_left
+                        align: CENTER
+                        scrollable: false
+              - obj:
+                  width: 640
+                  height: 800
+                  bg_opa: 0%
+                  border_width: 0
+                  pad_all: 0
                   scrollable: false
+                  widgets:
+                    - image:
+                        id: portrait_right_img
+                        src: immich_portrait_right
+                        align: CENTER
+                        scrollable: false
         - obj:
             id: info_overlay
             align: BOTTOM_LEFT
