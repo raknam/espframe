@@ -53,6 +53,7 @@ online_image:
   - id: immich_image
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
+    resize: 1280x800
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -96,11 +97,13 @@ lvgl:
   pages:
     - id: main_page
       bg_color: 0x000000
+      scrollable: false
       widgets:
         - image:
             id: slideshow_img
             align: CENTER
             src: immich_image
+            scrollable: false
         - obj:
             id: info_overlay
             align: BOTTOM_MID

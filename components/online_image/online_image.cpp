@@ -81,7 +81,7 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
   if (this->is_auto_resize_()) {
     width = width_in;
     height = height_in;
-    if (this->width_ != width && this->height_ != height) {
+    if (this->width_ != width || this->height_ != height) {
       this->release();
     }
   } else if (width_in > 0 && height_in > 0) {
