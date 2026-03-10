@@ -10,6 +10,7 @@ time:
               char buf[6];
               snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
               lv_label_set_text(id(time_label), buf);
+              lv_label_set_text(id(time_label_shadow), buf);
             }
 
 interval:
@@ -21,4 +22,5 @@ interval:
             char buf[6];
             snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
             lv_label_set_text(id(time_label), buf);
+            lv_label_set_text(id(time_label_shadow), buf);
           }

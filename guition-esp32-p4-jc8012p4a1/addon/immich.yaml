@@ -389,33 +389,103 @@ lvgl:
                 - script.execute: immich_advance_forward
         - obj:
             id: info_overlay
-            align: BOTTOM_MID
-            width: 100%
-            height: 56
-            bg_color: 0x000000
-            bg_opa: 50%
-            pad_left: 20
-            pad_right: 20
-            pad_top: 0
-            pad_bottom: 0
+            align: BOTTOM_LEFT
+            x: 45
+            y: -40
+            width: SIZE_CONTENT
+            height: SIZE_CONTENT
+            bg_opa: 0%
             border_width: 0
+            pad_all: 0
+            scrollable: false
             clickable: false
+            layout:
+              type: flex
+              flex_flow: ROW
+              flex_align_cross: CENTER
+              pad_column: 20
             widgets:
-              - label:
-                  id: time_label
-                  align: LEFT_MID
-                  text: ""
-                  text_color: 0xFFFFFF
-                  text_font: roboto_light40_font
-              - label:
-                  id: meta_label
-                  align: RIGHT_MID
-                  text: ""
-                  text_color: 0xCCCCCC
-                  text_font: roboto_light26_font
-                  text_align: RIGHT
-                  long_mode: DOT
-                  width: 1000
+              - obj:
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: 0%
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  widgets:
+                    - label:
+                        id: time_label_shadow
+                        x: 1
+                        y: 1
+                        text: ""
+                        text_color: 0x000000
+                        text_opa: 50%
+                        text_font: roboto_light150_font
+                    - label:
+                        id: time_label
+                        x: 0
+                        y: 0
+                        text: ""
+                        text_color: 0xFFFFFF
+                        text_font: roboto_light150_font
+              - obj:
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: 0%
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: COLUMN
+                    pad_row: 8
+                  widgets:
+                    - obj:
+                        width: SIZE_CONTENT
+                        height: SIZE_CONTENT
+                        bg_opa: 0%
+                        border_width: 0
+                        pad_all: 0
+                        scrollable: false
+                        widgets:
+                          - label:
+                              id: location_label_shadow
+                              x: 1
+                              y: 1
+                              text: ""
+                              text_color: 0x000000
+                              text_opa: 50%
+                              text_font: roboto_light40_font
+                          - label:
+                              id: location_label
+                              x: 0
+                              y: 0
+                              text: ""
+                              text_color: 0xFFFFFF
+                              text_font: roboto_light40_font
+                    - obj:
+                        width: SIZE_CONTENT
+                        height: SIZE_CONTENT
+                        bg_opa: 0%
+                        border_width: 0
+                        pad_all: 0
+                        scrollable: false
+                        widgets:
+                          - label:
+                              id: time_ago_label_shadow
+                              x: 1
+                              y: 1
+                              text: ""
+                              text_color: 0x000000
+                              text_opa: 50%
+                              text_font: roboto_light26_font
+                          - label:
+                              id: time_ago_label
+                              x: 0
+                              y: 0
+                              text: ""
+                              text_color: 0xFFFFFF
+                              text_font: roboto_light26_font
         - obj:
             id: loading_screen
             x: 0
@@ -598,34 +668,29 @@ script:
             - lvgl.image.update:
                 id: slideshow_img
                 src: immich_img_2
-      - lvgl.label.update:
-          id: meta_label
-          text: !lambda |-
-            std::string meta = id(immich_photo_date);
-            if (id(immich_photo_year) > 0) {
-              auto now = id(sntp_time).now();
-              if (now.is_valid()) {
-                int months_ago = (now.year - id(immich_photo_year)) * 12 + (now.month - id(immich_photo_month));
-                if (months_ago >= 12) {
-                  int years = months_ago / 12;
-                  if (years == 1) meta += " (1 year ago)";
-                  else meta += str_sprintf(" (%d years ago)", years);
-                } else if (months_ago == 1) {
-                  meta += " (1 month ago)";
-                } else if (months_ago > 1) {
-                  meta += str_sprintf(" (%d months ago)", months_ago);
-                }
+      - lambda: |-
+          std::string loc = id(immich_photo_location);
+          lv_label_set_text(id(location_label), loc.c_str());
+          lv_label_set_text(id(location_label_shadow), loc.c_str());
+
+          std::string ago;
+          if (id(immich_photo_year) > 0) {
+            auto now = id(sntp_time).now();
+            if (now.is_valid()) {
+              int months_ago = (now.year - id(immich_photo_year)) * 12 + (now.month - id(immich_photo_month));
+              if (months_ago >= 12) {
+                int years = months_ago / 12;
+                if (years == 1) ago = "1 year ago";
+                else ago = str_sprintf("%d years ago", years);
+              } else if (months_ago == 1) {
+                ago = "1 month ago";
+              } else if (months_ago > 1) {
+                ago = str_sprintf("%d months ago", months_ago);
               }
             }
-            if (!id(immich_photo_person).empty()) {
-              if (!meta.empty()) meta += "  \u2022  ";
-              meta += id(immich_photo_person);
-            }
-            if (!id(immich_photo_location).empty()) {
-              if (!meta.empty()) meta += "  \u2022  ";
-              meta += id(immich_photo_location);
-            }
-            return meta;
+          }
+          lv_label_set_text(id(time_ago_label), ago.c_str());
+          lv_label_set_text(id(time_ago_label_shadow), ago.c_str());
       - script.execute: extract_accent_color
 
   # ---------------------------------------------------------------------------
