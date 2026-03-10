@@ -415,8 +415,8 @@ lvgl:
                   widgets:
                     - label:
                         id: time_label_shadow
-                        x: 1
-                        y: 1
+                        x: 2
+                        y: 2
                         text: ""
                         text_color: 0x000000
                         text_opa: 50%
@@ -451,8 +451,8 @@ lvgl:
                         widgets:
                           - label:
                               id: time_ago_label_shadow
-                              x: 1
-                              y: 1
+                              x: 2
+                              y: 2
                               text: ""
                               text_color: 0x000000
                               text_opa: 50%
@@ -474,8 +474,8 @@ lvgl:
                         widgets:
                           - label:
                               id: location_label_shadow
-                              x: 1
-                              y: 1
+                              x: 2
+                              y: 2
                               text: ""
                               text_color: 0x000000
                               text_opa: 50%
