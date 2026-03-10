@@ -2,9 +2,9 @@
 # IMMICH SLIDESHOW - STANDALONE
 # =============================================================================
 # Self-contained digital photo frame powered by Immich.
-# Fetches random images via the Immich API and displays them fullscreen
-# on an LVGL-driven display with a metadata overlay.
-# No Home Assistant or external dashboard dependency required.
+# Uses a 3-slot ring buffer of online_image components for instant forward
+# swiping. Two images are prefetched ahead. Backward navigation re-downloads
+# from a stored URL.
 # =============================================================================
 
 substitutions:
@@ -28,7 +28,8 @@ wifi:
     - lvgl.widget.hide: loading_screen
     - lvgl.widget.hide: wifi_setup_prompt
     - delay: 2s
-    - script.execute: immich_request_next_image
+    - lambda: 'id(target_slot) = 0;'
+    - script.execute: immich_fetch_into_slot
   on_disconnect:
     - if:
         condition:
@@ -36,16 +37,46 @@ wifi:
         then:
           - lvgl.widget.show: wifi_setup_prompt
 
+# =============================================================================
+# GLOBALS
+# =============================================================================
+
 globals:
+  # --- System ---
   - id: boot_grace_period
     type: bool
     initial_value: 'true'
-  - id: immich_request_inflight
-    type: bool
-    initial_value: 'false'
   - id: immich_backoff_cycles
     type: int
     initial_value: '0'
+  - id: immich_error_retries
+    type: int
+    initial_value: '0'
+  - id: touch_start_x
+    type: int
+    initial_value: '0'
+
+  # --- Ring buffer state ---
+  - id: active_slot
+    type: int
+    initial_value: '0'
+  - id: target_slot
+    type: int
+    initial_value: '0'
+  - id: active_slot_displayed
+    type: bool
+    initial_value: 'false'
+  - id: slot0_ready
+    type: bool
+    initial_value: 'false'
+  - id: slot1_ready
+    type: bool
+    initial_value: 'false'
+  - id: slot2_ready
+    type: bool
+    initial_value: 'false'
+
+  # --- Current display metadata ---
   - id: immich_last_asset_id
     type: std::string
     initial_value: '""'
@@ -67,36 +98,8 @@ globals:
   - id: immich_photo_person
     type: std::string
     initial_value: '""'
-  - id: immich_error_retries
-    type: int
-    initial_value: '0'
-  - id: immich_prefetch_ready
-    type: bool
-    initial_value: 'false'
-  - id: immich_prefetch_asset_id
-    type: std::string
-    initial_value: '""'
-  - id: immich_prefetch_image_url
-    type: std::string
-    initial_value: '""'
-  - id: immich_prefetch_date
-    type: std::string
-    initial_value: '""'
-  - id: immich_prefetch_location
-    type: std::string
-    initial_value: '""'
-  - id: immich_prefetch_year
-    type: int
-    initial_value: '0'
-  - id: immich_prefetch_camera
-    type: std::string
-    initial_value: '""'
-  - id: immich_prefetch_person
-    type: std::string
-    initial_value: '""'
-  - id: touch_start_x
-    type: int
-    initial_value: '0'
+
+  # --- Previous image (for backward navigation) ---
   - id: immich_prev_valid
     type: bool
     initial_value: 'false'
@@ -122,7 +125,78 @@ globals:
     type: std::string
     initial_value: '""'
 
-# --- Backlight ---
+  # --- Slot 0 metadata ---
+  - id: slot0_asset_id
+    type: std::string
+    initial_value: '""'
+  - id: slot0_image_url
+    type: std::string
+    initial_value: '""'
+  - id: slot0_date
+    type: std::string
+    initial_value: '""'
+  - id: slot0_location
+    type: std::string
+    initial_value: '""'
+  - id: slot0_year
+    type: int
+    initial_value: '0'
+  - id: slot0_camera
+    type: std::string
+    initial_value: '""'
+  - id: slot0_person
+    type: std::string
+    initial_value: '""'
+
+  # --- Slot 1 metadata ---
+  - id: slot1_asset_id
+    type: std::string
+    initial_value: '""'
+  - id: slot1_image_url
+    type: std::string
+    initial_value: '""'
+  - id: slot1_date
+    type: std::string
+    initial_value: '""'
+  - id: slot1_location
+    type: std::string
+    initial_value: '""'
+  - id: slot1_year
+    type: int
+    initial_value: '0'
+  - id: slot1_camera
+    type: std::string
+    initial_value: '""'
+  - id: slot1_person
+    type: std::string
+    initial_value: '""'
+
+  # --- Slot 2 metadata ---
+  - id: slot2_asset_id
+    type: std::string
+    initial_value: '""'
+  - id: slot2_image_url
+    type: std::string
+    initial_value: '""'
+  - id: slot2_date
+    type: std::string
+    initial_value: '""'
+  - id: slot2_location
+    type: std::string
+    initial_value: '""'
+  - id: slot2_year
+    type: int
+    initial_value: '0'
+  - id: slot2_camera
+    type: std::string
+    initial_value: '""'
+  - id: slot2_person
+    type: std::string
+    initial_value: '""'
+
+# =============================================================================
+# BACKLIGHT
+# =============================================================================
 
 light:
   - platform: monochromatic
@@ -132,10 +206,12 @@ light:
     default_transition_length: 500ms
     restore_mode: ALWAYS_ON
 
-# --- Image fetcher ---
+# =============================================================================
+# 3-SLOT IMAGE RING BUFFER
+# =============================================================================
 
 online_image:
-  - id: immich_image
+  - id: immich_img_0
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
     resize: 1280x960
@@ -146,54 +222,130 @@ online_image:
     on_download_finished:
       then:
         - lambda: |-
-            id(immich_request_inflight) = false;
+            id(slot0_ready) = true;
             id(immich_error_retries) = 0;
-        - lvgl.image.update:
-            id: slideshow_img
-            src: immich_image
-        - lvgl.label.update:
-            id: meta_label
-            text: !lambda |-
-              std::string meta = id(immich_photo_date);
-              if (id(immich_photo_year) > 0) {
-                auto now = id(sntp_time).now();
-                if (now.is_valid()) {
-                  int ago = now.year - id(immich_photo_year);
-                  if (ago == 1) meta += " (1 year ago)";
-                  else if (ago > 1) meta += str_sprintf(" (%d years ago)", ago);
-                }
-              }
-              if (!id(immich_photo_camera).empty()) {
-                if (!meta.empty()) meta += "  \u2022  ";
-                meta += id(immich_photo_camera);
-              }
-              if (!id(immich_photo_person).empty()) {
-                if (!meta.empty()) meta += "  \u2022  ";
-                meta += id(immich_photo_person);
-              }
-              if (!id(immich_photo_location).empty()) {
-                if (!meta.empty()) meta += "  \u2022  ";
-                meta += id(immich_photo_location);
-              }
-              return meta;
-        - script.execute: immich_prefetch_next
+            ESP_LOGI("immich", "Slot 0 ready: %s", id(slot0_asset_id).c_str());
+            if (id(active_slot) == 0) {
+              id(immich_photo_date) = id(slot0_date);
+              id(immich_photo_location) = id(slot0_location);
+              id(immich_photo_year) = id(slot0_year);
+              id(immich_photo_camera) = id(slot0_camera);
+              id(immich_photo_person) = id(slot0_person);
+              id(immich_last_asset_id) = id(slot0_asset_id);
+              id(immich_last_image_url) = id(slot0_image_url);
+              id(active_slot_displayed) = true;
+            }
+        - if:
+            condition:
+              lambda: 'return id(active_slot) == 0;'
+            then:
+              - script.execute: immich_display_current
+        - script.execute: immich_prefetch_chain
     on_error:
       then:
         - lambda: |-
-            id(immich_request_inflight) = false;
             id(immich_error_retries)++;
-            ESP_LOGE("immich", "Image decode failed (attempt %d): %s",
-                     id(immich_error_retries), id(immich_last_image_url).c_str());
+            ESP_LOGE("immich", "Slot 0 decode failed (attempt %d)", id(immich_error_retries));
         - if:
             condition:
               lambda: 'return id(immich_error_retries) < 3;'
             then:
-              - delay: 1s
-              - script.execute: immich_request_next_image
+              - delay: 2s
+              - script.execute: immich_prefetch_chain
             else:
               - lambda: 'id(immich_error_retries) = 0;'
 
-# --- LVGL UI ---
+  - id: immich_img_1
+    url: "https://via.placeholder.com/1x1.jpg"
+    format: JPEG
+    resize: 1280x960
+    type: RGB565
+    byte_order: little_endian
+    request_headers:
+      x-api-key: ${immich_api_key}
+    on_download_finished:
+      then:
+        - lambda: |-
+            id(slot1_ready) = true;
+            id(immich_error_retries) = 0;
+            ESP_LOGI("immich", "Slot 1 ready: %s", id(slot1_asset_id).c_str());
+            if (id(active_slot) == 1) {
+              id(immich_photo_date) = id(slot1_date);
+              id(immich_photo_location) = id(slot1_location);
+              id(immich_photo_year) = id(slot1_year);
+              id(immich_photo_camera) = id(slot1_camera);
+              id(immich_photo_person) = id(slot1_person);
+              id(immich_last_asset_id) = id(slot1_asset_id);
+              id(immich_last_image_url) = id(slot1_image_url);
+              id(active_slot_displayed) = true;
+            }
+        - if:
+            condition:
+              lambda: 'return id(active_slot) == 1;'
+            then:
+              - script.execute: immich_display_current
+        - script.execute: immich_prefetch_chain
+    on_error:
+      then:
+        - lambda: |-
+            id(immich_error_retries)++;
+            ESP_LOGE("immich", "Slot 1 decode failed (attempt %d)", id(immich_error_retries));
+        - if:
+            condition:
+              lambda: 'return id(immich_error_retries) < 3;'
+            then:
+              - delay: 2s
+              - script.execute: immich_prefetch_chain
+            else:
+              - lambda: 'id(immich_error_retries) = 0;'
+
+  - id: immich_img_2
+    url: "https://via.placeholder.com/1x1.jpg"
+    format: JPEG
+    resize: 1280x960
+    type: RGB565
+    byte_order: little_endian
+    request_headers:
+      x-api-key: ${immich_api_key}
+    on_download_finished:
+      then:
+        - lambda: |-
+            id(slot2_ready) = true;
+            id(immich_error_retries) = 0;
+            ESP_LOGI("immich", "Slot 2 ready: %s", id(slot2_asset_id).c_str());
+            if (id(active_slot) == 2) {
+              id(immich_photo_date) = id(slot2_date);
+              id(immich_photo_location) = id(slot2_location);
+              id(immich_photo_year) = id(slot2_year);
+              id(immich_photo_camera) = id(slot2_camera);
+              id(immich_photo_person) = id(slot2_person);
+              id(immich_last_asset_id) = id(slot2_asset_id);
+              id(immich_last_image_url) = id(slot2_image_url);
+              id(active_slot_displayed) = true;
+            }
+        - if:
+            condition:
+              lambda: 'return id(active_slot) == 2;'
+            then:
+              - script.execute: immich_display_current
+        - script.execute: immich_prefetch_chain
+    on_error:
+      then:
+        - lambda: |-
+            id(immich_error_retries)++;
+            ESP_LOGE("immich", "Slot 2 decode failed (attempt %d)", id(immich_error_retries));
+        - if:
+            condition:
+              lambda: 'return id(immich_error_retries) < 3;'
+            then:
+              - delay: 2s
+              - script.execute: immich_prefetch_chain
+            else:
+              - lambda: 'id(immich_error_retries) = 0;'
+
+# =============================================================================
+# LVGL UI
+# =============================================================================
 
 lvgl:
   buffer_size: 6%
@@ -205,11 +357,10 @@ lvgl:
       bg_color: 0x000000
       scrollable: false
       widgets:
-        # --- Slideshow image ---
         - image:
             id: slideshow_img
             align: CENTER
-            src: immich_image
+            src: immich_img_0
             scrollable: false
             clickable: true
             on_press:
@@ -226,7 +377,7 @@ lvgl:
                     int dx = point.x - id(touch_start_x);
                     if (dx < -80) {
                       id(immich_backoff_cycles) = 1;
-                      id(immich_request_next_image).execute();
+                      id(immich_advance_forward).execute();
                     } else if (dx > 80) {
                       id(immich_backoff_cycles) = 1;
                       id(immich_show_previous).execute();
@@ -238,8 +389,7 @@ lvgl:
                     }
             on_long_press:
               then:
-                - script.execute: immich_request_next_image
-        # --- Metadata overlay (bottom bar) ---
+                - script.execute: immich_advance_forward
         - obj:
             id: info_overlay
             align: BOTTOM_MID
@@ -269,7 +419,6 @@ lvgl:
                   text_align: RIGHT
                   long_mode: DOT
                   width: 1000
-        # --- Loading screen (shown at boot until WiFi connects) ---
         - obj:
             id: loading_screen
             x: 0
@@ -319,7 +468,6 @@ lvgl:
                         indicator:
                           bg_color: 0xFFFFFF
                           radius: 3
-        # --- WiFi setup prompt ---
         - obj:
             id: wifi_setup_prompt
             x: 0
@@ -368,7 +516,9 @@ lvgl:
                         width: 700
                         text_align: center
 
-# --- Boot sequence ---
+# =============================================================================
+# BOOT SEQUENCE
+# =============================================================================
 
 esphome:
   on_boot:
@@ -397,7 +547,9 @@ esphome:
             then:
               - lvgl.widget.show: wifi_setup_prompt
 
-# --- Slideshow timer ---
+# =============================================================================
+# SLIDESHOW TIMER
+# =============================================================================
 
 interval:
   - interval: ${immich_slide_interval}
@@ -406,12 +558,70 @@ interval:
           condition:
             wifi.connected:
           then:
-            - script.execute: immich_request_next_image
+            - script.execute: immich_advance_forward
 
-# --- Immich API logic ---
+# =============================================================================
+# SCRIPTS
+# =============================================================================
 
 script:
-  - id: immich_request_next_image
+  # ---------------------------------------------------------------------------
+  # Display whichever slot is active
+  # ---------------------------------------------------------------------------
+  - id: immich_display_current
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(active_slot) == 0;'
+          then:
+            - lvgl.image.update:
+                id: slideshow_img
+                src: immich_img_0
+      - if:
+          condition:
+            lambda: 'return id(active_slot) == 1;'
+          then:
+            - lvgl.image.update:
+                id: slideshow_img
+                src: immich_img_1
+      - if:
+          condition:
+            lambda: 'return id(active_slot) == 2;'
+          then:
+            - lvgl.image.update:
+                id: slideshow_img
+                src: immich_img_2
+      - lvgl.label.update:
+          id: meta_label
+          text: !lambda |-
+            std::string meta = id(immich_photo_date);
+            if (id(immich_photo_year) > 0) {
+              auto now = id(sntp_time).now();
+              if (now.is_valid()) {
+                int ago = now.year - id(immich_photo_year);
+                if (ago == 1) meta += " (1 year ago)";
+                else if (ago > 1) meta += str_sprintf(" (%d years ago)", ago);
+              }
+            }
+            if (!id(immich_photo_camera).empty()) {
+              if (!meta.empty()) meta += "  \u2022  ";
+              meta += id(immich_photo_camera);
+            }
+            if (!id(immich_photo_person).empty()) {
+              if (!meta.empty()) meta += "  \u2022  ";
+              meta += id(immich_photo_person);
+            }
+            if (!id(immich_photo_location).empty()) {
+              if (!meta.empty()) meta += "  \u2022  ";
+              meta += id(immich_photo_location);
+            }
+            return meta;
+
+  # ---------------------------------------------------------------------------
+  # Advance forward: move ring index, display if ready, else fetch fresh
+  # ---------------------------------------------------------------------------
+  - id: immich_advance_forward
     mode: single
     then:
       - if:
@@ -424,15 +634,14 @@ script:
           else:
             - if:
                 condition:
-                  lambda: 'return id(immich_request_inflight);'
+                  lambda: 'return !id(active_slot_displayed);'
                 then:
                   - logger.log:
                       level: WARN
                       tag: immich
-                      format: "Previous request still in flight, skipping"
+                      format: "Active slot not displayed yet, skipping advance"
                 else:
                   - lambda: |-
-                      id(immich_request_inflight) = true;
                       if (!id(immich_last_asset_id).empty()) {
                         id(immich_prev_asset_id) = id(immich_last_asset_id);
                         id(immich_prev_image_url) = id(immich_last_image_url);
@@ -443,26 +652,50 @@ script:
                         id(immich_prev_person) = id(immich_photo_person);
                         id(immich_prev_valid) = true;
                       }
+                      int old_slot = id(active_slot);
+                      id(active_slot) = (old_slot + 1) % 3;
+                      id(active_slot_displayed) = false;
+                      if (old_slot == 0) id(slot0_ready) = false;
+                      else if (old_slot == 1) id(slot1_ready) = false;
+                      else id(slot2_ready) = false;
+                      ESP_LOGI("immich", "Advancing: slot %d -> %d", old_slot, id(active_slot));
                   - if:
                       condition:
-                        lambda: 'return id(immich_prefetch_ready);'
+                        lambda: |-
+                          int s = id(active_slot);
+                          return (s == 0 && id(slot0_ready)) || (s == 1 && id(slot1_ready)) || (s == 2 && id(slot2_ready));
                       then:
                         - lambda: |-
-                            id(immich_last_asset_id) = id(immich_prefetch_asset_id);
-                            id(immich_last_image_url) = id(immich_prefetch_image_url);
-                            id(immich_photo_date) = id(immich_prefetch_date);
-                            id(immich_photo_location) = id(immich_prefetch_location);
-                            id(immich_photo_year) = id(immich_prefetch_year);
-                            id(immich_photo_camera) = id(immich_prefetch_camera);
-                            id(immich_photo_person) = id(immich_prefetch_person);
-                            id(immich_prefetch_ready) = false;
-                            ESP_LOGI("immich", "Using prefetched asset: %s", id(immich_last_asset_id).c_str());
-                        - online_image.set_url:
-                            id: immich_image
-                            url: !lambda 'return id(immich_last_image_url);'
+                            int s = id(active_slot);
+                            if (s == 0) {
+                              id(immich_photo_date) = id(slot0_date); id(immich_photo_location) = id(slot0_location);
+                              id(immich_photo_year) = id(slot0_year); id(immich_photo_camera) = id(slot0_camera);
+                              id(immich_photo_person) = id(slot0_person); id(immich_last_asset_id) = id(slot0_asset_id);
+                              id(immich_last_image_url) = id(slot0_image_url);
+                            } else if (s == 1) {
+                              id(immich_photo_date) = id(slot1_date); id(immich_photo_location) = id(slot1_location);
+                              id(immich_photo_year) = id(slot1_year); id(immich_photo_camera) = id(slot1_camera);
+                              id(immich_photo_person) = id(slot1_person); id(immich_last_asset_id) = id(slot1_asset_id);
+                              id(immich_last_image_url) = id(slot1_image_url);
+                            } else {
+                              id(immich_photo_date) = id(slot2_date); id(immich_photo_location) = id(slot2_location);
+                              id(immich_photo_year) = id(slot2_year); id(immich_photo_camera) = id(slot2_camera);
+                              id(immich_photo_person) = id(slot2_person); id(immich_last_asset_id) = id(slot2_asset_id);
+                              id(immich_last_image_url) = id(slot2_image_url);
+                            }
+                            id(active_slot_displayed) = true;
+                            ESP_LOGI("immich", "Instant display slot %d: %s", s, id(immich_last_asset_id).c_str());
+                        - script.execute: immich_display_current
+                        - script.execute: immich_prefetch_chain
                       else:
-                        - script.execute: immich_fetch_and_show
+                        - lambda: |-
+                            id(target_slot) = id(active_slot);
+                            ESP_LOGI("immich", "Slot %d not ready, fetching fresh", id(active_slot));
+                        - script.execute: immich_fetch_into_slot
 
+  # ---------------------------------------------------------------------------
+  # Show previous image (swipe right)
+  # ---------------------------------------------------------------------------
   - id: immich_show_previous
     mode: single
     then:
@@ -475,47 +708,90 @@ script:
                 tag: immich
                 format: "No previous image available"
           else:
+            - lambda: |-
+                std::string tmp_id = id(immich_last_asset_id);
+                std::string tmp_url = id(immich_last_image_url);
+                std::string tmp_date = id(immich_photo_date);
+                std::string tmp_loc = id(immich_photo_location);
+                int tmp_year = id(immich_photo_year);
+                std::string tmp_cam = id(immich_photo_camera);
+                std::string tmp_per = id(immich_photo_person);
+
+                id(immich_last_asset_id) = id(immich_prev_asset_id);
+                id(immich_last_image_url) = id(immich_prev_image_url);
+                id(immich_photo_date) = id(immich_prev_date);
+                id(immich_photo_location) = id(immich_prev_location);
+                id(immich_photo_year) = id(immich_prev_year);
+                id(immich_photo_camera) = id(immich_prev_camera);
+                id(immich_photo_person) = id(immich_prev_person);
+
+                id(immich_prev_asset_id) = tmp_id;
+                id(immich_prev_image_url) = tmp_url;
+                id(immich_prev_date) = tmp_date;
+                id(immich_prev_location) = tmp_loc;
+                id(immich_prev_year) = tmp_year;
+                id(immich_prev_camera) = tmp_cam;
+                id(immich_prev_person) = tmp_per;
+
+                int prev_slot = (id(active_slot) + 2) % 3;
+                id(active_slot) = prev_slot;
+                id(active_slot_displayed) = false;
+
+                if (prev_slot == 0) {
+                  id(slot0_ready) = false;
+                  id(slot0_asset_id) = id(immich_last_asset_id);
+                  id(slot0_image_url) = id(immich_last_image_url);
+                  id(slot0_date) = id(immich_photo_date);
+                  id(slot0_location) = id(immich_photo_location);
+                  id(slot0_year) = id(immich_photo_year);
+                  id(slot0_camera) = id(immich_photo_camera);
+                  id(slot0_person) = id(immich_photo_person);
+                } else if (prev_slot == 1) {
+                  id(slot1_ready) = false;
+                  id(slot1_asset_id) = id(immich_last_asset_id);
+                  id(slot1_image_url) = id(immich_last_image_url);
+                  id(slot1_date) = id(immich_photo_date);
+                  id(slot1_location) = id(immich_photo_location);
+                  id(slot1_year) = id(immich_photo_year);
+                  id(slot1_camera) = id(immich_photo_camera);
+                  id(slot1_person) = id(immich_photo_person);
+                } else {
+                  id(slot2_ready) = false;
+                  id(slot2_asset_id) = id(immich_last_asset_id);
+                  id(slot2_image_url) = id(immich_last_image_url);
+                  id(slot2_date) = id(immich_photo_date);
+                  id(slot2_location) = id(immich_photo_location);
+                  id(slot2_year) = id(immich_photo_year);
+                  id(slot2_camera) = id(immich_photo_camera);
+                  id(slot2_person) = id(immich_photo_person);
+                }
+                ESP_LOGI("immich", "Showing previous in slot %d: %s", prev_slot, id(immich_last_asset_id).c_str());
             - if:
                 condition:
-                  lambda: 'return id(immich_request_inflight);'
+                  lambda: 'return id(active_slot) == 0;'
                 then:
-                  - logger.log:
-                      level: WARN
-                      tag: immich
-                      format: "Request in flight, cannot show previous"
-                else:
-                  - lambda: |-
-                      id(immich_request_inflight) = true;
-                      std::string tmp_id = id(immich_last_asset_id);
-                      std::string tmp_url = id(immich_last_image_url);
-                      std::string tmp_date = id(immich_photo_date);
-                      std::string tmp_loc = id(immich_photo_location);
-                      int tmp_year = id(immich_photo_year);
-                      std::string tmp_cam = id(immich_photo_camera);
-                      std::string tmp_per = id(immich_photo_person);
-
-                      id(immich_last_asset_id) = id(immich_prev_asset_id);
-                      id(immich_last_image_url) = id(immich_prev_image_url);
-                      id(immich_photo_date) = id(immich_prev_date);
-                      id(immich_photo_location) = id(immich_prev_location);
-                      id(immich_photo_year) = id(immich_prev_year);
-                      id(immich_photo_camera) = id(immich_prev_camera);
-                      id(immich_photo_person) = id(immich_prev_person);
-
-                      id(immich_prev_asset_id) = tmp_id;
-                      id(immich_prev_image_url) = tmp_url;
-                      id(immich_prev_date) = tmp_date;
-                      id(immich_prev_location) = tmp_loc;
-                      id(immich_prev_year) = tmp_year;
-                      id(immich_prev_camera) = tmp_cam;
-                      id(immich_prev_person) = tmp_per;
-
-                      ESP_LOGI("immich", "Showing previous: %s", id(immich_last_asset_id).c_str());
                   - online_image.set_url:
-                      id: immich_image
-                      url: !lambda 'return id(immich_last_image_url);'
+                      id: immich_img_0
+                      url: !lambda 'return id(slot0_image_url);'
+            - if:
+                condition:
+                  lambda: 'return id(active_slot) == 1;'
+                then:
+                  - online_image.set_url:
+                      id: immich_img_1
+                      url: !lambda 'return id(slot1_image_url);'
+            - if:
+                condition:
+                  lambda: 'return id(active_slot) == 2;'
+                then:
+                  - online_image.set_url:
+                      id: immich_img_2
+                      url: !lambda 'return id(slot2_image_url);'
 
-  - id: immich_fetch_and_show
+  # ---------------------------------------------------------------------------
+  # Fetch API metadata and start image download into target_slot
+  # ---------------------------------------------------------------------------
+  - id: immich_fetch_into_slot
     mode: single
     then:
       - http_request.post:
@@ -533,11 +809,9 @@ script:
               - lambda: |-
                   if (response->status_code != 200) {
                     ESP_LOGW("immich", "HTTP %d from Immich", response->status_code);
-                    id(immich_request_inflight) = false;
                     id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
                     return;
                   }
-
                   std::string asset_id, photo_date, photo_location, photo_camera, photo_person;
                   int photo_year = 0;
                   auto doc = json::parse_json(body);
@@ -552,7 +826,6 @@ script:
                   }
                   if (asset.isNull() || !asset["id"].is<const char *>()) {
                     ESP_LOGW("immich", "No valid asset in response");
-                    id(immich_request_inflight) = false;
                     id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
                     return;
                   }
@@ -613,130 +886,84 @@ script:
                     }
                   }
 
-                  id(immich_last_asset_id) = asset_id;
-                  id(immich_photo_date) = photo_date;
-                  id(immich_photo_location) = photo_location;
-                  id(immich_photo_year) = photo_year;
-                  id(immich_photo_camera) = photo_camera;
-                  id(immich_photo_person) = photo_person;
-                  id(immich_last_image_url) = std::string("${immich_base_url}") +
-                                              "/api/assets/" + asset_id + "/thumbnail?size=preview";
-                  ESP_LOGI("immich", "Asset: %s | Date: %s | Camera: %s | Person: %s | Location: %s",
-                           asset_id.c_str(), photo_date.c_str(), photo_camera.c_str(),
+                  std::string img_url = std::string("${immich_base_url}") +
+                                        "/api/assets/" + asset_id + "/thumbnail?size=preview";
+                  int slot = id(target_slot);
+                  ESP_LOGI("immich", "Slot %d fetched: %s | %s | %s | %s | %s",
+                           slot, asset_id.c_str(), photo_date.c_str(), photo_camera.c_str(),
                            photo_person.c_str(), photo_location.c_str());
-              - online_image.set_url:
-                  id: immich_image
-                  url: !lambda 'return id(immich_last_image_url);'
+
+                  if (slot == 0) {
+                    id(slot0_asset_id) = asset_id; id(slot0_image_url) = img_url;
+                    id(slot0_date) = photo_date; id(slot0_location) = photo_location;
+                    id(slot0_year) = photo_year; id(slot0_camera) = photo_camera;
+                    id(slot0_person) = photo_person;
+                  } else if (slot == 1) {
+                    id(slot1_asset_id) = asset_id; id(slot1_image_url) = img_url;
+                    id(slot1_date) = photo_date; id(slot1_location) = photo_location;
+                    id(slot1_year) = photo_year; id(slot1_camera) = photo_camera;
+                    id(slot1_person) = photo_person;
+                  } else {
+                    id(slot2_asset_id) = asset_id; id(slot2_image_url) = img_url;
+                    id(slot2_date) = photo_date; id(slot2_location) = photo_location;
+                    id(slot2_year) = photo_year; id(slot2_camera) = photo_camera;
+                    id(slot2_person) = photo_person;
+                  }
+              - if:
+                  condition:
+                    lambda: 'return id(target_slot) == 0;'
+                  then:
+                    - online_image.set_url:
+                        id: immich_img_0
+                        url: !lambda 'return id(slot0_image_url);'
+              - if:
+                  condition:
+                    lambda: 'return id(target_slot) == 1;'
+                  then:
+                    - online_image.set_url:
+                        id: immich_img_1
+                        url: !lambda 'return id(slot1_image_url);'
+              - if:
+                  condition:
+                    lambda: 'return id(target_slot) == 2;'
+                  then:
+                    - online_image.set_url:
+                        id: immich_img_2
+                        url: !lambda 'return id(slot2_image_url);'
           on_error:
             then:
               - lambda: |-
-                  ESP_LOGW("immich", "Request error calling /api/search/random");
-                  id(immich_request_inflight) = false;
+                  ESP_LOGW("immich", "API request error for slot %d", id(target_slot));
                   id(immich_backoff_cycles) = ${immich_error_backoff_cycles};
 
-  - id: immich_prefetch_next
+  # ---------------------------------------------------------------------------
+  # Prefetch chain: fill the next empty slot(s) ahead of active_slot
+  # ---------------------------------------------------------------------------
+  - id: immich_prefetch_chain
     mode: single
     then:
-      - http_request.post:
-          id: http_req
-          url: ${immich_base_url}/api/search/random
-          capture_response: true
-          max_response_buffer_size: 24kB
-          request_headers:
-            Content-Type: application/json
-            Accept: application/json
-            x-api-key: ${immich_api_key}
-          body: '{"size":1,"type":"IMAGE","withExif":true,"withPeople":true}'
-          on_response:
-            then:
-              - lambda: |-
-                  if (response->status_code != 200) {
-                    ESP_LOGW("immich", "Prefetch: HTTP %d", response->status_code);
-                    return;
-                  }
-                  auto doc = json::parse_json(body);
-                  JsonObject asset;
-                  if (!doc.isNull()) {
-                    if (doc.is<JsonArray>()) {
-                      JsonArray arr = doc.as<JsonArray>();
-                      if (arr.size() > 0) asset = arr[0].as<JsonObject>();
-                    } else if (doc.is<JsonObject>()) {
-                      asset = doc.as<JsonObject>();
-                    }
-                  }
-                  if (asset.isNull() || !asset["id"].is<const char *>()) {
-                    ESP_LOGW("immich", "Prefetch: no valid asset");
-                    return;
-                  }
-                  std::string asset_id = asset["id"].as<std::string>();
-                  std::string photo_date, photo_location, photo_camera, photo_person;
-                  int photo_year = 0;
-
-                  if (asset["localDateTime"].is<const char *>()) {
-                    std::string raw = asset["localDateTime"].as<std::string>();
-                    if (raw.size() >= 10) {
-                      photo_year = atoi(raw.substr(0, 4).c_str());
-                      int month = atoi(raw.substr(5, 2).c_str());
-                      const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                      if (month >= 1 && month <= 12)
-                        photo_date = str_sprintf("%s %d", months[month], photo_year);
-                    }
-                  }
-
-                  JsonObject exif = asset["exifInfo"].as<JsonObject>();
-                  if (!exif.isNull()) {
-                    std::string city, country;
-                    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
-                    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
-                    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
-                    else if (!city.empty()) photo_location = city;
-                    else if (!country.empty()) photo_location = country;
-
-                    std::string make, model;
-                    if (exif["make"].is<const char *>()) make = exif["make"].as<std::string>();
-                    if (exif["model"].is<const char *>()) model = exif["model"].as<std::string>();
-                    if (!model.empty() && !make.empty() && model.find(make) != std::string::npos)
-                      photo_camera = model;
-                    else if (!model.empty() && !make.empty())
-                      photo_camera = make + " " + model;
-                    else if (!model.empty())
-                      photo_camera = model;
-                    else
-                      photo_camera = make;
-
-                    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
-                      std::string raw = exif["dateTimeOriginal"].as<std::string>();
-                      if (raw.size() >= 10) {
-                        photo_year = atoi(raw.substr(0, 4).c_str());
-                        int month = atoi(raw.substr(5, 2).c_str());
-                        const char *months[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                        if (month >= 1 && month <= 12)
-                          photo_date = str_sprintf("%s %d", months[month], photo_year);
-                      }
-                    }
-                  }
-
-                  if (asset["people"].is<JsonArray>()) {
-                    JsonArray people = asset["people"].as<JsonArray>();
-                    if (people.size() > 0) {
-                      JsonObject person = people[0].as<JsonObject>();
-                      if (person["name"].is<const char *>())
-                        photo_person = person["name"].as<std::string>();
-                    }
-                  }
-
-                  id(immich_prefetch_asset_id) = asset_id;
-                  id(immich_prefetch_image_url) = std::string("${immich_base_url}") +
-                                                  "/api/assets/" + asset_id + "/thumbnail?size=preview";
-                  id(immich_prefetch_date) = photo_date;
-                  id(immich_prefetch_location) = photo_location;
-                  id(immich_prefetch_year) = photo_year;
-                  id(immich_prefetch_camera) = photo_camera;
-                  id(immich_prefetch_person) = photo_person;
-                  id(immich_prefetch_ready) = true;
-                  ESP_LOGI("immich", "Prefetched: %s", asset_id.c_str());
-          on_error:
-            then:
-              - lambda: 'ESP_LOGW("immich", "Prefetch request failed");'
+      - lambda: |-
+          int next1 = (id(active_slot) + 1) % 3;
+          int next2 = (id(active_slot) + 2) % 3;
+          bool n1_ready = (next1 == 0) ? id(slot0_ready) : (next1 == 1) ? id(slot1_ready) : id(slot2_ready);
+          bool n2_ready = (next2 == 0) ? id(slot0_ready) : (next2 == 1) ? id(slot1_ready) : id(slot2_ready);
+          if (!n1_ready) {
+            id(target_slot) = next1;
+            ESP_LOGI("immich", "Prefetch chain: filling slot %d (next)", next1);
+          } else if (!n2_ready) {
+            id(target_slot) = next2;
+            ESP_LOGI("immich", "Prefetch chain: filling slot %d (next-next)", next2);
+          } else {
+            ESP_LOGI("immich", "Prefetch chain: all slots filled");
+            return;
+          }
+      - if:
+          condition:
+            lambda: |-
+              int next1 = (id(active_slot) + 1) % 3;
+              int next2 = (id(active_slot) + 2) % 3;
+              bool n1_ready = (next1 == 0) ? id(slot0_ready) : (next1 == 1) ? id(slot1_ready) : id(slot2_ready);
+              bool n2_ready = (next2 == 0) ? id(slot0_ready) : (next2 == 1) ? id(slot1_ready) : id(slot2_ready);
+              return !n1_ready || !n2_ready;
+          then:
+            - script.execute: immich_fetch_into_slot
