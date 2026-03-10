@@ -2,8 +2,13 @@
 # ACCENT COLOR - Extract dominant color from photo
 # =============================================================================
 # Samples a grid of pixels from the displayed image, weighted by colour
-# saturation so vivid pixels dominate over blacks/whites/grays, and applies
-# a darkened version as the main_page background colour.
+# saturation so vivid pixels dominate over blacks/whites/grays, and paints
+# the letterbox regions of the image buffer with a darkened accent colour.
+#
+# The image buffer is always 1280x960 (from the resize parameter) and covers
+# the entire display, so the page background is never visible. The black
+# letterbox bars are zero-filled pixels in the buffer itself. This script
+# detects the content boundaries and fills the padding regions directly.
 #
 # Reads the raw RGB565 buffer directly (little-endian byte order) because
 # Image::get_pixel() always decodes as big-endian, producing wrong colours
@@ -29,17 +34,40 @@ script:
           const uint8_t *data = dsc->data;
           if (!data) return;
 
+          // Detect letterbox offsets by scanning from the buffer edges inward.
+          // The decoder centres the image and zero-fills the padding, so the
+          // first non-zero pixel along the middle row/column marks the boundary.
+          int x_off = 0;
+          int mid_y = img_h / 2;
+          for (int x = 0; x < img_w / 2; x++) {
+            int pos = (x + mid_y * img_w) * 2;
+            uint16_t px = data[pos] | (data[pos + 1] << 8);
+            if (px != 0x0000) { x_off = x; break; }
+          }
+          int y_off = 0;
+          int mid_x = img_w / 2;
+          for (int y = 0; y < img_h / 2; y++) {
+            int pos = (mid_x + y * img_w) * 2;
+            uint16_t px = data[pos] | (data[pos + 1] << 8);
+            if (px != 0x0000) { y_off = y; break; }
+          }
+
+          if (x_off == 0 && y_off == 0) return;
+
+          // Sample accent colour from the image content area only
+          int content_w = img_w - 2 * x_off;
+          int content_h = img_h - 2 * y_off;
           int grid = 20;
-          int step_x = img_w / grid;
-          int step_y = img_h / grid;
+          int step_x = content_w / grid;
+          int step_y = content_h / grid;
           if (step_x < 1) step_x = 1;
           if (step_y < 1) step_y = 1;
 
           int64_t r_wsum = 0, g_wsum = 0, b_wsum = 0;
           int64_t w_total = 0;
 
-          for (int sy = step_y / 2; sy < img_h; sy += step_y) {
-            for (int sx = step_x / 2; sx < img_w; sx += step_x) {
+          for (int sy = y_off + step_y / 2; sy < img_h - y_off; sy += step_y) {
+            for (int sx = x_off + step_x / 2; sx < img_w - x_off; sx += step_x) {
               int pos = (sx + sy * img_w) * 2;
               uint16_t rgb565 = data[pos] | (data[pos + 1] << 8);
 
@@ -62,14 +90,46 @@ script:
             }
           }
 
-          if (w_total > 0) {
-            int r = (int)(r_wsum / w_total);
-            int g = (int)(g_wsum / w_total);
-            int b = (int)(b_wsum / w_total);
-            ESP_LOGI("accent", "Accent color: rgb(%d,%d,%d)", r, g, b);
+          if (w_total <= 0) return;
 
-            int dr = r / 3, dg = g / 3, db = b / 3;
-            lv_color_t dark_accent = lv_color_make(dr, dg, db);
-            lv_obj_set_style_bg_color(id(main_page)->obj, dark_accent, 0);
-            lv_obj_set_style_bg_opa(id(main_page)->obj, LV_OPA_COVER, 0);
+          int r = (int)(r_wsum / w_total);
+          int g = (int)(g_wsum / w_total);
+          int b = (int)(b_wsum / w_total);
+          ESP_LOGI("accent", "Accent rgb(%d,%d,%d) offset x=%d y=%d", r, g, b, x_off, y_off);
+
+          int dr = r / 3, dg = g / 3, db = b / 3;
+          uint16_t accent_565 = ((dr >> 3) << 11) | ((dg >> 2) << 5) | (db >> 3);
+          uint8_t lo = accent_565 & 0xFF;
+          uint8_t hi = (accent_565 >> 8) & 0xFF;
+
+          uint8_t *buf = const_cast<uint8_t*>(data);
+
+          // Fill left and right letterbox columns (full height)
+          for (int y = 0; y < img_h; y++) {
+            int row = y * img_w;
+            for (int x = 0; x < x_off; x++) {
+              int pos = (row + x) * 2;
+              buf[pos] = lo; buf[pos + 1] = hi;
+            }
+            for (int x = img_w - x_off; x < img_w; x++) {
+              int pos = (row + x) * 2;
+              buf[pos] = lo; buf[pos + 1] = hi;
+            }
           }
+          // Fill top and bottom letterbox rows (between the side bars)
+          for (int y = 0; y < y_off; y++) {
+            int row = y * img_w;
+            for (int x = x_off; x < img_w - x_off; x++) {
+              int pos = (row + x) * 2;
+              buf[pos] = lo; buf[pos + 1] = hi;
+            }
+          }
+          for (int y = img_h - y_off; y < img_h; y++) {
+            int row = y * img_w;
+            for (int x = x_off; x < img_w - x_off; x++) {
+              int pos = (row + x) * 2;
+              buf[pos] = lo; buf[pos + 1] = hi;
+            }
+          }
+
+          lv_obj_invalidate(id(slideshow_img)->obj);
