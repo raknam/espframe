@@ -12,16 +12,54 @@ select:
       then:
         - script.execute: update_clock_display
 
-text:
   - platform: template
     name: "Timezone"
-    id: timezone_text
-    mode: text
+    id: timezone_select
+    options:
+      - "Pacific/Midway"
+      - "Pacific/Honolulu"
+      - "America/Anchorage"
+      - "America/Los_Angeles"
+      - "America/Vancouver"
+      - "America/Denver"
+      - "America/Phoenix"
+      - "America/Chicago"
+      - "America/Mexico_City"
+      - "America/New_York"
+      - "America/Toronto"
+      - "America/Halifax"
+      - "America/Caracas"
+      - "America/Sao_Paulo"
+      - "America/Argentina/Buenos_Aires"
+      - "Atlantic/Azores"
+      - "UTC"
+      - "Europe/London"
+      - "Europe/Paris"
+      - "Europe/Berlin"
+      - "Europe/Rome"
+      - "Europe/Madrid"
+      - "Africa/Cairo"
+      - "Europe/Athens"
+      - "Europe/Istanbul"
+      - "Europe/Moscow"
+      - "Asia/Riyadh"
+      - "Asia/Dubai"
+      - "Asia/Kolkata"
+      - "Asia/Kathmandu"
+      - "Asia/Dhaka"
+      - "Asia/Bangkok"
+      - "Asia/Singapore"
+      - "Asia/Shanghai"
+      - "Asia/Hong_Kong"
+      - "Asia/Tokyo"
+      - "Asia/Seoul"
+      - "Australia/Adelaide"
+      - "Australia/Sydney"
+      - "Pacific/Auckland"
+      - "Pacific/Fiji"
+    initial_option: "Europe/London"
     optimistic: true
     restore_value: true
-    initial_value: "Europe/London"
-    min_length: 1
-    max_length: 50
     on_value:
       then:
         - lambda: 'id(sntp_time).set_timezone(x);'
