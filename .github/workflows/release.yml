@@ -26,41 +26,51 @@ jobs:
       - name: Build ESPHome firmware
         id: build
         uses: esphome/build-action@v7
+        continue-on-error: true
         with:
           yaml-file: guition-esp32-p4-jc8012p4a1/factory.yaml
 
-      - name: Generate manifest
+      - name: Verify build and generate manifest
+        id: firmware
         run: |
-          cd "${{ steps.build.outputs.name }}"
-          FACTORY_BIN=$(ls *.factory.bin)
-          cat > manifest.json << EOF
+          OUT_DIR=$(find . -maxdepth 1 -name "*.factory.bin" -printf '%h\n' 2>/dev/null || true)
+          if [ -z "$OUT_DIR" ]; then
+            OUT_DIR=$(find . -maxdepth 2 -name "*.factory.bin" -not -path "./.esphome/*" -printf '%h\n' | head -1)
+          fi
+          if [ -z "$OUT_DIR" ]; then
+            echo "::error::Firmware compilation failed"
+            exit 1
+          fi
+          FACTORY_BIN=$(basename "$OUT_DIR"/*.factory.bin)
+          echo "dir=$OUT_DIR" >> "$GITHUB_OUTPUT"
+          cat > "$OUT_DIR/manifest.json" << MANIFEST
           {
-            "name": "${{ steps.build.outputs.project-name }}",
-            "version": "${{ steps.build.outputs.project-version }}",
+            "name": "Immich Frame",
+            "version": "${{ github.ref_name }}",
             "home_assistant_domain": "esphome",
             "builds": [
               {
                 "chipFamily": "ESP32-P4",
                 "parts": [
-                  { "path": "${FACTORY_BIN}", "offset": 0 }
+                  { "path": "$FACTORY_BIN", "offset": 0 }
                 ]
               }
             ]
           }
-          EOF
+          MANIFEST
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: firmware
-          path: ${{ steps.build.outputs.name }}/
+          path: ${{ steps.firmware.outputs.dir }}/
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ steps.build.outputs.name }}/*.factory.bin
-            ${{ steps.build.outputs.name }}/manifest.json
+            ${{ steps.firmware.outputs.dir }}/*.factory.bin
+            ${{ steps.firmware.outputs.dir }}/manifest.json
 
   deploy-pages:
     name: Deploy to GitHub Pages
