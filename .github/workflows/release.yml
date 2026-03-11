@@ -19,56 +19,62 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Build ESPHome firmware
-        id: build
-        uses: esphome/build-action@v7.1.0
-        continue-on-error: true
-        with:
-          yaml-file: guition-esp32-p4-jc8012p4a1/factory.yaml
+      - name: Compile P4 firmware
+        run: >-
+          docker run --rm
+          -v "${PWD}:/config"
+          ghcr.io/esphome/esphome:2026.2.4
+          compile /config/guition-esp32-p4-jc8012p4a1/factory.yaml
 
-      - name: Verify build and generate manifest
+      - name: Collect firmware files and generate manifest
         id: firmware
         run: |
-          OUT_DIR=$(find . -maxdepth 2 -name "*.factory.bin" -not -path "./.esphome/*" -printf '%h\n' | head -1)
-          if [ -z "$OUT_DIR" ]; then
-            echo "::error::Firmware compilation failed"
+          BUILD_DIR="guition-esp32-p4-jc8012p4a1/.esphome/build/immich-frame-10inch/.pioenvs/immich-frame-10inch"
+          mkdir -p output
+
+          if [ ! -f "${BUILD_DIR}/firmware.factory.bin" ]; then
+            echo "::error::Firmware compilation failed — factory binary not found"
             exit 1
           fi
-          FACTORY_BIN=$(basename "$OUT_DIR"/*.factory.bin)
-          echo "dir=$OUT_DIR" >> "$GITHUB_OUTPUT"
-          cat > "$OUT_DIR/manifest.json" << MANIFEST
+
+          sudo cp "${BUILD_DIR}/firmware.factory.bin" output/immich-frame.factory.bin
+
+          VERSION="${{ github.event.release.tag_name || github.ref_name }}"
+          cat > output/manifest.json << EOF
           {
             "name": "Immich Frame",
-            "version": "${{ github.event.release.tag_name || github.ref_name }}",
+            "version": "${VERSION}",
             "home_assistant_domain": "esphome",
             "builds": [
               {
                 "chipFamily": "ESP32-P4",
                 "parts": [
-                  { "path": "$FACTORY_BIN", "offset": 0 }
+                  { "path": "immich-frame.factory.bin", "offset": 0 }
                 ]
               }
             ]
           }
-          MANIFEST
+          EOF
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v6
         with:
           name: firmware
-          path: ${{ steps.firmware.outputs.dir }}/
+          path: output/
 
       - name: Upload firmware to release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ${{ steps.firmware.outputs.dir }}/*.factory.bin
-            ${{ steps.firmware.outputs.dir }}/manifest.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ github.event.release.tag_name }}"
+          output/immich-frame.factory.bin
+          output/manifest.json
+          --clobber
 
   deploy-pages:
     name: Deploy to GitHub Pages
@@ -78,7 +84,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
 
