@@ -98,10 +98,10 @@ One previous image is stored separately (`immich_prev_*` globals, including zoom
 
 ### Fetch Into Slot
 
-1. `POST ${immich_base_url}/api/search/random` with `{"size":1,"type":"IMAGE","withExif":true,"withPeople":true}`.
+1. `POST {immich_url}/api/search/random` with `{"size":1,"type":"IMAGE","withExif":true,"withPeople":true}`. The URL and API key are read at runtime from the `immich_url` and `immich_api_key_text` text components.
 2. Parse response for asset `id`, `localDateTime`, `exifInfo` (city, country, dateTimeOriginal, exifImageWidth, exifImageHeight, orientation), and `people` (first person name).
 3. Determine portrait status from EXIF dimensions (accounting for orientation tags 5–8 which swap axes). Calculate zoom for mildly panoramic landscapes.
-4. Build image URL: `${immich_base_url}/api/assets/{id}/thumbnail?size=preview`.
+4. Build image URL: `{immich_url}/api/assets/{id}/thumbnail?size=preview`.
 5. Store parsed metadata (including `is_portrait`, `datetime`, `companion_url`, `zoom`) into the target slot's globals.
 6. Trigger `online_image.set_url` on the corresponding image component.
 
@@ -124,7 +124,7 @@ One previous image is stored separately (`immich_prev_*` globals, including zoom
 ### Companion Portrait Search (`immich_fetch_portrait_companion`)
 
 1. Extract the calendar date (first 10 characters) from the portrait's `localDateTime`.
-2. `POST ${immich_base_url}/api/search/random` with `{"size":10,"type":"IMAGE","withExif":true,"takenAfter":"YYYY-MM-DDT00:00:00.000Z","takenBefore":"YYYY-MM-DDT23:59:59.999Z"}`.
+2. `POST {immich_url}/api/search/random` with `{"size":10,"type":"IMAGE","withExif":true,"takenAfter":"YYYY-MM-DDT00:00:00.000Z","takenBefore":"YYYY-MM-DDT23:59:59.999Z"}`.
 3. Iterate results, skip the primary asset, and check EXIF dimensions for portrait orientation.
 4. If a companion is found:
    - If the target slot is the **active** slot, start downloading into `immich_portrait_right` immediately.
@@ -146,20 +146,22 @@ Checks the two slots ahead of `active_slot`. Fetches into the first one that isn
 
 ## Immich API Contract
 
+All Immich API calls use the runtime-configurable `immich_url` and `immich_api_key_text` text components (see [Runtime Configuration](#runtime-configuration) below).
+
 - **Random image selection:**
-  - `POST ${immich_base_url}/api/search/random`
-  - Headers: `Content-Type: application/json`, `Accept: application/json`, `x-api-key: ${immich_api_key}`
+  - `POST {immich_url}/api/search/random`
+  - Headers: `Content-Type: application/json`, `Accept: application/json`, `x-api-key: {immich_api_key_text}`
   - Body: `{"size":1,"type":"IMAGE","withExif":true,"withPeople":true}`
 
 - **Companion portrait search (same-day portraits):**
-  - `POST ${immich_base_url}/api/search/random`
-  - Headers: `Content-Type: application/json`, `Accept: application/json`, `x-api-key: ${immich_api_key}`
+  - `POST {immich_url}/api/search/random`
+  - Headers: `Content-Type: application/json`, `Accept: application/json`, `x-api-key: {immich_api_key_text}`
   - Body: `{"size":10,"type":"IMAGE","withExif":true,"takenAfter":"YYYY-MM-DDT00:00:00.000Z","takenBefore":"YYYY-MM-DDT23:59:59.999Z"}`
   - Response is filtered client-side: skip the primary asset, check EXIF for portrait orientation, use the first match.
 
 - **Rendered image bytes:**
-  - `GET ${immich_base_url}/api/assets/{id}/thumbnail?size=preview`
-  - Header: `x-api-key: ${immich_api_key}` (configured on the `online_image` component via `request_headers`)
+  - `GET {immich_url}/api/assets/{id}/thumbnail?size=preview`
+  - Header: `x-api-key: {immich_api_key_text}` (configured on the `online_image` component via `request_headers` lambdas)
 
 ## Config Inputs and Secrets
 
