@@ -267,7 +267,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -360,7 +360,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -453,7 +453,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -547,7 +547,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -576,7 +576,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -606,7 +606,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -625,7 +625,7 @@ online_image:
     type: RGB565
     byte_order: little_endian
     request_headers:
-      x-api-key: ${immich_api_key}
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
     on_download_finished:
       then:
         - lambda: |-
@@ -1269,13 +1269,13 @@ script:
     then:
       - http_request.post:
           id: http_req
-          url: ${immich_base_url}/api/search/random
+          url: !lambda 'return id(immich_url).state + "/api/search/random";'
           capture_response: true
           max_response_buffer_size: 24kB
           request_headers:
             Content-Type: application/json
             Accept: application/json
-            x-api-key: ${immich_api_key}
+            x-api-key: !lambda 'return id(immich_api_key_text).state;'
           body: '{"size":1,"type":"IMAGE","withExif":true,"withPeople":true}'
           on_response:
             then:
@@ -1368,7 +1368,7 @@ script:
                     }
                   }
 
-                  std::string img_url = std::string("${immich_base_url}") +
+                  std::string img_url = id(immich_url).state +
                                         "/api/assets/" + asset_id + "/thumbnail?size=preview";
                   int slot = id(target_slot);
                   ESP_LOGI("immich", "Slot %d fetched: %s | %s | %s | %s | portrait=%d zoom=%u",
@@ -1452,13 +1452,13 @@ script:
                    id(companion_target_slot), day.c_str());
       - http_request.post:
           id: http_req
-          url: ${immich_base_url}/api/search/random
+          url: !lambda 'return id(immich_url).state + "/api/search/random";'
           capture_response: true
           max_response_buffer_size: 48kB
           request_headers:
             Content-Type: application/json
             Accept: application/json
-            x-api-key: ${immich_api_key}
+            x-api-key: !lambda 'return id(immich_api_key_text).state;'
           body: !lambda |-
             std::string day = id(portrait_search_datetime);
             std::string after = day + "T00:00:00.000Z";
@@ -1506,7 +1506,7 @@ script:
                     if (ori == "5" || ori == "6" || ori == "7" || ori == "8") std::swap(ew, eh);
                     if (ew <= 0 || eh <= 0 || eh <= ew) continue;
 
-                    companion_url = std::string("${immich_base_url}") +
+                    companion_url = id(immich_url).state +
                                     "/api/assets/" + aid + "/thumbnail?size=preview";
                     ESP_LOGI("immich", "Companion portrait found: %s for slot %d",
                              aid.c_str(), id(companion_target_slot));

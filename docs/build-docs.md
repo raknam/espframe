@@ -17,6 +17,7 @@ guition-esp32-p4-jc8012p4a1/
 ├── addon/
 │   ├── lvgl_base.yaml          # Shared LVGL config (buffer, displays)
 │   ├── connectivity.yaml       # WiFi, captive portal, HTTP client
+│   ├── immich_config.yaml      # Runtime-configurable Immich URL and API key
 │   ├── backlight.yaml          # Display backlight light component
 │   ├── screen_loading.yaml     # Loading screen (LVGL page + boot sequence)
 │   ├── screen_wifi_setup.yaml  # WiFi setup screen (LVGL page)

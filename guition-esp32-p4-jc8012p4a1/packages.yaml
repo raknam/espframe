@@ -4,6 +4,7 @@ packages:
   icons:           !include assets/icons.yaml
   lvgl_base:       !include addon/lvgl_base.yaml
   connectivity:    !include addon/connectivity.yaml
+  immich_config:   !include addon/immich_config.yaml
   backlight:       !include addon/backlight.yaml
   time_sync:       !include addon/time.yaml
   accent_color:    !include addon/accent_color.yaml
