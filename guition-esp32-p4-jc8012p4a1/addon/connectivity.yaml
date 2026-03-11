@@ -29,8 +29,12 @@ wifi:
                  id(immich_url).state.c_str(), id(immich_url).state.length(),
                  id(immich_api_key_text).state.length(),
                  id(immich_fetch_started) ? "true" : "false");
-        id(target_slot) = 0;
-    - script.execute: immich_fetch_into_slot
+    - if:
+        condition:
+          lambda: 'return !id(immich_fetch_started);'
+        then:
+          - lambda: 'id(target_slot) = 0;'
+          - script.execute: immich_fetch_into_slot
   on_disconnect:
     - if:
         condition:
