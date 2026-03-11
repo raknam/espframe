@@ -2,12 +2,8 @@
 # IMMICH CONFIGURATION - Runtime-configurable Immich server settings
 # =============================================================================
 # Exposes Immich URL and API key as text entities in the web server UI.
-# Values persist across reboots via NVS flash.
+# Values persist across reboots via NVS flash. Configure via http://<device-ip>/
 # =============================================================================
-
-substitutions:
-  immich_base_url: ""
-  immich_api_key: ""
 
 text:
   - platform: template
@@ -15,7 +11,6 @@ text:
     id: immich_url
     optimistic: true
     restore_value: true
-    initial_value: ${immich_base_url}
     min_length: 0
     max_length: 255
     mode: text
@@ -26,7 +21,6 @@ text:
     id: immich_api_key_text
     optimistic: true
     restore_value: true
-    initial_value: ${immich_api_key}
     min_length: 0
     max_length: 255
     mode: password

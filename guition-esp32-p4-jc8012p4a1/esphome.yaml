@@ -2,8 +2,6 @@
 substitutions:
   name: "immich-frame-10inch"
   friendly_name: "Immich Frame 10inch"
-  immich_base_url: "http://192.168.1.30:2283"
-  immich_api_key: !secret immich_api_key
 
 # Wifi Setup
 wifi:
