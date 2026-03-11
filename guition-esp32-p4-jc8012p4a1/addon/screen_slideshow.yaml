@@ -1470,6 +1470,7 @@ script:
                     id(slot0_pending_asset_id) = asset_id;
                     ESP_LOGI("immich", "Starting image download slot 0: %s (api key: %d chars)", img_url.c_str(), id(immich_api_key_text).state.length());
                     id(immich_img_0).set_url(img_url);
+                    id(immich_img_0).update();
                   } else if (slot == 1) {
                     id(slot1_asset_id) = asset_id; id(slot1_image_url) = img_url;
                     id(slot1_date) = photo_date; id(slot1_location) = photo_location;
@@ -1480,6 +1481,7 @@ script:
                     id(slot1_pending_asset_id) = asset_id;
                     ESP_LOGI("immich", "Starting image download slot 1: %s (api key: %d chars)", img_url.c_str(), id(immich_api_key_text).state.length());
                     id(immich_img_1).set_url(img_url);
+                    id(immich_img_1).update();
                   } else {
                     id(slot2_asset_id) = asset_id; id(slot2_image_url) = img_url;
                     id(slot2_date) = photo_date; id(slot2_location) = photo_location;
@@ -1490,6 +1492,7 @@ script:
                     id(slot2_pending_asset_id) = asset_id;
                     ESP_LOGI("immich", "Starting image download slot 2: %s (api key: %d chars)", img_url.c_str(), id(immich_api_key_text).state.length());
                     id(immich_img_2).set_url(img_url);
+                    id(immich_img_2).update();
                   }
           on_error:
             then:
