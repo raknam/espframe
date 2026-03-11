@@ -17,8 +17,6 @@ esp32:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  includes:
-    - components/immich_frame/immich_helpers.h
   platformio_options:
     board_build.flash_mode: dio
     build_flags:
@@ -64,8 +62,10 @@ external_components:
       url: https://github.com/jtenniswood/immich-frame
       ref: ${package_ref}
       path: components
-    components: [gsl3680, online_image]
+    components: [gsl3680, online_image, immich_frame]
     refresh: 0s
+
+immich_frame:
 
 # DSI PHY power rail
 esp_ldo:
