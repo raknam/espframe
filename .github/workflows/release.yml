@@ -10,6 +10,9 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -18,10 +21,10 @@ jobs:
   build-firmware:
     name: Build Firmware
     runs-on: ubuntu-latest
-    outputs:
-      artifact-name: ${{ steps.build.outputs.name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Build ESPHome firmware
         id: build
@@ -33,10 +36,7 @@ jobs:
       - name: Verify build and generate manifest
         id: firmware
         run: |
-          OUT_DIR=$(find . -maxdepth 1 -name "*.factory.bin" -printf '%h\n' 2>/dev/null || true)
-          if [ -z "$OUT_DIR" ]; then
-            OUT_DIR=$(find . -maxdepth 2 -name "*.factory.bin" -not -path "./.esphome/*" -printf '%h\n' | head -1)
-          fi
+          OUT_DIR=$(find . -maxdepth 2 -name "*.factory.bin" -not -path "./.esphome/*" -printf '%h\n' | head -1)
           if [ -z "$OUT_DIR" ]; then
             echo "::error::Firmware compilation failed"
             exit 1
@@ -46,7 +46,7 @@ jobs:
           cat > "$OUT_DIR/manifest.json" << MANIFEST
           {
             "name": "Immich Frame",
-            "version": "${{ github.ref_name }}",
+            "version": "${{ github.event.release.tag_name || github.ref_name }}",
             "home_assistant_domain": "esphome",
             "builds": [
               {
@@ -66,6 +66,7 @@ jobs:
           path: ${{ steps.firmware.outputs.dir }}/
 
       - name: Upload firmware to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -81,6 +82,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Download firmware artifact
         uses: actions/download-artifact@v4
@@ -90,7 +93,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
