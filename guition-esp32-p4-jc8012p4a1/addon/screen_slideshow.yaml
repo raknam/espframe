@@ -726,12 +726,14 @@ lvgl:
                   border_width: 0
                   pad_all: 0
                   scrollable: false
+                  clickable: false
                   widgets:
                     - image:
                         id: portrait_left_img
                         src: immich_portrait_left
                         align: CENTER
                         scrollable: false
+                        clickable: false
               - obj:
                   width: 640
                   height: 800
@@ -739,12 +741,14 @@ lvgl:
                   border_width: 0
                   pad_all: 0
                   scrollable: false
+                  clickable: false
                   widgets:
                     - image:
                         id: portrait_right_img
                         src: immich_portrait_right
                         align: CENTER
                         scrollable: false
+                        clickable: false
         - obj:
             id: info_overlay
             align: BOTTOM_LEFT
