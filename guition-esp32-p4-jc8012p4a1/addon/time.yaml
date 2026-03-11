@@ -1,26 +1,60 @@
+select:
+  - platform: template
+    name: "Clock Format"
+    id: clock_format_select
+    options:
+      - "24 Hour"
+      - "12 Hour"
+    initial_option: "24 Hour"
+    optimistic: true
+    restore_value: true
+    on_value:
+      then:
+        - script.execute: update_clock_display
+
+text:
+  - platform: template
+    name: "Timezone"
+    id: timezone_text
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "Europe/London"
+    min_length: 1
+    max_length: 50
+    on_value:
+      then:
+        - lambda: 'id(sntp_time).set_timezone(x);'
+        - script.execute: update_clock_display
+
+script:
+  - id: update_clock_display
+    mode: single
+    then:
+      - lambda: |-
+          auto now = id(sntp_time).now();
+          if (!now.is_valid()) return;
+          int hour = now.hour;
+          char buf[6];
+          if (id(clock_format_select).state == "12 Hour") {
+            hour = hour % 12;
+            if (hour == 0) hour = 12;
+            snprintf(buf, sizeof(buf), "%d:%02d", hour, now.minute);
+          } else {
+            snprintf(buf, sizeof(buf), "%02d:%02d", hour, now.minute);
+          }
+          lv_label_set_text(id(time_label), buf);
+          lv_label_set_text(id(time_label_shadow), buf);
+
 time:
   - platform: sntp
     id: sntp_time
     timezone: "Europe/London"
     on_time_sync:
       then:
-        - lambda: |-
-            auto now = id(sntp_time).now();
-            if (now.is_valid()) {
-              char buf[6];
-              snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
-              lv_label_set_text(id(time_label), buf);
-              lv_label_set_text(id(time_label_shadow), buf);
-            }
+        - script.execute: update_clock_display
 
 interval:
   - interval: 60s
     then:
-      - lambda: |-
-          auto now = id(sntp_time).now();
-          if (now.is_valid()) {
-            char buf[6];
-            snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
-            lv_label_set_text(id(time_label), buf);
-            lv_label_set_text(id(time_label_shadow), buf);
-          }
+      - script.execute: update_clock_display
