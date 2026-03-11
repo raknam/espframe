@@ -25,10 +25,29 @@ jobs:
 
       - name: Build ESPHome firmware
         id: build
-        uses: esphome/build-action@v6
+        uses: esphome/build-action@v7
         with:
           yaml-file: guition-esp32-p4-jc8012p4a1/factory.yaml
-          complete-manifest: true
+
+      - name: Generate manifest
+        run: |
+          cd "${{ steps.build.outputs.name }}"
+          FACTORY_BIN=$(ls *.factory.bin)
+          cat > manifest.json << EOF
+          {
+            "name": "${{ steps.build.outputs.project-name }}",
+            "version": "${{ steps.build.outputs.project-version }}",
+            "home_assistant_domain": "esphome",
+            "builds": [
+              {
+                "chipFamily": "ESP32-P4",
+                "parts": [
+                  { "path": "${FACTORY_BIN}", "offset": 0 }
+                ]
+              }
+            ]
+          }
+          EOF
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
