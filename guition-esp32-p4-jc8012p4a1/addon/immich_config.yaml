@@ -5,6 +5,11 @@
 # Values persist across reboots via NVS flash. Configure via http://<device-ip>/
 # =============================================================================
 
+globals:
+  - id: immich_fetch_started
+    type: bool
+    initial_value: 'false'
+
 text:
   - platform: template
     name: "Immich URL"

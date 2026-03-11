@@ -24,7 +24,9 @@ wifi:
     - delay: 800ms
     - lvgl.page.show: slideshow_page
     - delay: 2s
-    - lambda: 'id(target_slot) = 0;'
+    - lambda: |-
+        id(immich_fetch_started) = true;
+        id(target_slot) = 0;
     - script.execute: immich_fetch_into_slot
   on_disconnect:
     - if:

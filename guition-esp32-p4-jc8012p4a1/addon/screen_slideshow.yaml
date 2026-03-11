@@ -913,8 +913,9 @@ interval:
           condition:
             lambda: |-
               if (!wifi::global_wifi_component->is_connected()) return false;
-              if (!id(immich_url).state.empty() && !id(immich_api_key_text).state.empty()
-                  && !id(slot0_ready) && !id(slot1_ready) && !id(slot2_ready)) {
+              if (!id(immich_fetch_started)
+                  && !id(immich_url).state.empty() && !id(immich_api_key_text).state.empty()) {
+                id(immich_fetch_started) = true;
                 id(target_slot) = 0;
                 id(immich_fetch_into_slot).execute();
                 return false;
