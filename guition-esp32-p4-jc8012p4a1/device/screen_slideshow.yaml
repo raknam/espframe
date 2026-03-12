@@ -225,6 +225,14 @@ number:
     unit_of_measurement: "s"
     icon: "mdi:eye-timer-outline"
 
+switch:
+  - platform: template
+    name: "Show Photo Metadata"
+    id: show_photo_metadata
+    optimistic: true
+    restore_value: true
+    icon: "mdi:image-text"
+
 # =============================================================================
 # SLIDESHOW TIMER
 # =============================================================================
@@ -265,7 +273,7 @@ script:
             id(immich_advance_forward).execute();
           } else if (dx > SWIPE_THRESHOLD_PX) {
             id(immich_show_previous).execute();
-          } else {
+          } else if (id(show_photo_metadata).state) {
             if (lv_obj_has_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN)) {
               lv_obj_clear_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);
               id(hide_info_overlay).execute();

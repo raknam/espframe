@@ -408,7 +408,9 @@ script:
           lv_label_set_text(id(time_ago_label), ago.c_str());
           lv_label_set_text(id(time_ago_label_shadow), ago.c_str());
 
-          lv_obj_clear_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);
+          if (id(show_photo_metadata).state) {
+            lv_obj_clear_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);
+          }
       - script.execute: hide_info_overlay
       - script.execute: extract_accent_color
       - if:
@@ -597,6 +599,9 @@ script:
             ago = format_time_ago(id(current_display).year, id(current_display).month, now.year, now.month);
           lv_label_set_text(id(time_ago_label), ago.c_str());
           lv_label_set_text(id(time_ago_label_shadow), ago.c_str());
+          if (id(show_photo_metadata).state) {
+            lv_obj_clear_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);
+          }
       - lvgl.image.update:
           id: portrait_left_img
           src: immich_portrait_left
