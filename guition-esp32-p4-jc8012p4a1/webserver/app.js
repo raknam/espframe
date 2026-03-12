@@ -21,10 +21,15 @@
     update: "/update/firmware_update",
   };
 
-  function get(url) {
-    return fetch(url).then(function (r) {
-      return r.json();
-    });
+  function safeGet(url) {
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .catch(function () {
+        return null;
+      });
   }
 
   function post(url, params) {
@@ -36,45 +41,62 @@
           })
           .join("&")
       : "";
-    return fetch(url + qs, { method: "POST" });
+    return fetch(url + qs, { method: "POST" }).catch(function () {});
   }
 
   function fetchAll() {
     return Promise.all([
-      get(endpoints.immich_url),
-      get(endpoints.api_key),
-      get(endpoints.clock_format + "?detail=all"),
-      get(endpoints.timezone + "?detail=all"),
-      get(endpoints.interval),
-      get(endpoints.backlight),
-      get(endpoints.show_clock),
-      get(endpoints.firmware).catch(function () {
-        return null;
-      }),
-      get(endpoints.update).catch(function () {
-        return null;
-      }),
+      safeGet(endpoints.immich_url),
+      safeGet(endpoints.api_key),
+      safeGet(endpoints.clock_format + "?detail=all"),
+      safeGet(endpoints.timezone + "?detail=all"),
+      safeGet(endpoints.interval),
+      safeGet(endpoints.backlight),
+      safeGet(endpoints.show_clock),
+      safeGet(endpoints.firmware),
+      safeGet(endpoints.update),
     ]).then(function (r) {
-      S.immich_url = r[0].value || "";
-      S.api_key = r[1].value || "";
-      S.clock_format = r[2].value;
-      S.clock_options = r[2].options || ["24 Hour", "12 Hour"];
-      S.timezone = r[3].value;
-      S.tz_options = r[3].options || [];
-      S.interval = r[4].value;
-      S.interval_min = r[4].min_value || 5;
-      S.interval_max = r[4].max_value || 300;
-      S.interval_step = r[4].step || 5;
-      S.backlight_on = r[5].state === "ON";
-      S.brightness = r[5].brightness != null ? Math.round(r[5].brightness * 100) : 100;
-      S.show_clock = r[6].value === true || r[6].state === "ON";
-      S.firmware = r[7] ? r[7].value || r[7].state || "" : "";
+      var d;
+
+      d = r[0] || {};
+      S.immich_url = d.value || "";
+
+      d = r[1] || {};
+      S.api_key = d.value || "";
+
+      d = r[2] || {};
+      S.clock_format = d.value || "24 Hour";
+      S.clock_options = d.option || ["24 Hour", "12 Hour"];
+
+      d = r[3] || {};
+      S.timezone = d.value || "";
+      S.tz_options = d.option || [];
+
+      d = r[4] || {};
+      S.interval = d.value || 30;
+      S.interval_min = d.min_value || 5;
+      S.interval_max = d.max_value || 300;
+      S.interval_step = d.step || 5;
+
+      d = r[5] || {};
+      S.backlight_on = d.state === "ON";
+      S.brightness =
+        d.brightness != null ? Math.round((d.brightness / 255) * 100) : 100;
+
+      d = r[6] || {};
+      S.show_clock = d.value === true || d.state === "ON";
+
+      d = r[7] || {};
+      S.firmware = d.value || d.state || "";
+
+      d = r[8] || {};
       S.update_available =
-        r[8] && r[8].installed_version && r[8].latest_version
-          ? r[8].installed_version !== r[8].latest_version
+        d.installed_version && d.latest_version
+          ? d.installed_version !== d.latest_version
           : false;
-      S.installed_version = r[8] ? r[8].installed_version || "" : "";
-      S.latest_version = r[8] ? r[8].latest_version || "" : "";
+      S.installed_version = d.installed_version || "";
+      S.latest_version = d.latest_version || "";
+
       return S;
     });
   }
@@ -295,12 +317,12 @@
       bVal.textContent = bSlider.value + "%";
     };
     bSlider.onchange = function () {
-      var v = parseInt(bSlider.value);
-      if (v === 0) {
+      var pct = parseInt(bSlider.value);
+      if (pct === 0) {
         post(endpoints.backlight + "/turn_off");
       } else {
         post(endpoints.backlight + "/turn_on", {
-          brightness: (v / 100).toFixed(2),
+          brightness: Math.round((pct / 100) * 255),
         });
       }
     };
@@ -357,7 +379,7 @@
     clk.appendChild(f7);
     wrap.appendChild(clk);
 
-    // Firmware (only if data available)
+    // Firmware
     if (S.firmware || S.installed_version) {
       var fw = el("div", "card");
       fw.innerHTML = "<h3>Firmware</h3>";
@@ -390,9 +412,7 @@
             });
           })
           .then(function () {
-            return get(endpoints.update).catch(function () {
-              return null;
-            });
+            return safeGet(endpoints.update);
           })
           .then(function (data) {
             checkBtn.disabled = false;
@@ -430,27 +450,28 @@
   var evtSource = null;
   function openSSE() {
     if (evtSource) return;
-    evtSource = new EventSource("/events");
-    evtSource.addEventListener("state", function (e) {
-      try {
-        var d = JSON.parse(e.data);
-        handleEvent(d);
-      } catch (_) {}
-    });
-    evtSource.onerror = function () {
-      setStatus(false);
-    };
-    evtSource.onopen = function () {
-      setStatus(true);
-    };
+    try {
+      evtSource = new EventSource("/events");
+      evtSource.addEventListener("state", function (e) {
+        try {
+          handleEvent(JSON.parse(e.data));
+        } catch (_) {}
+      });
+      evtSource.onerror = function () {
+        setStatus(false);
+      };
+      evtSource.onopen = function () {
+        setStatus(true);
+      };
+    } catch (_) {}
   }
 
   function handleEvent(d) {
+    if (!d || !d.id) return;
     var id = d.id;
     var val = d.value != null ? d.value : d.state;
     if (id === "text-immich_url") {
       S.immich_url = val || "";
-      updateInput("url", S.immich_url);
     } else if (id === "text-immich_api_key_text") {
       S.api_key = val || "";
     } else if (id === "select-clock_format_select") {
@@ -462,21 +483,18 @@
     } else if (id === "light-backlight") {
       S.backlight_on = d.state === "ON";
       S.brightness =
-        d.brightness != null ? Math.round(d.brightness * 100) : S.brightness;
+        d.brightness != null
+          ? Math.round((d.brightness / 255) * 100)
+          : S.brightness;
     } else if (id === "switch-show_clock") {
       S.show_clock = d.state === "ON" || val === true;
     }
   }
 
-  function updateInput(type, value) {
-    var inp = app.querySelector('input[type="' + type + '"]');
-    if (inp && document.activeElement !== inp) inp.value = value;
-  }
-
   function setStatus(online) {
-    var el = document.getElementById("conn-status");
-    if (!el) return;
-    el.innerHTML = online
+    var s = document.getElementById("conn-status");
+    if (!s) return;
+    s.innerHTML = online
       ? '<span class="dot green"></span> Connected'
       : '<span class="dot red"></span> Disconnected';
   }
@@ -499,7 +517,7 @@
       var items = options.filter(function (o) {
         return !f || o.toLowerCase().indexOf(f) !== -1;
       });
-      items.forEach(function (o, i) {
+      items.forEach(function (o) {
         var row = document.createElement("div");
         row.textContent = o;
         if (o === current) row.className = "selected";
@@ -597,7 +615,7 @@
   // --- Init ---
 
   app.innerHTML =
-    '<div style="text-align:center;padding:60px 0;color:var(--text2)">Loading\u2026</div>';
+    '<div style="text-align:center;padding:60px 0;color:#999">Loading\u2026</div>';
   fetchAll()
     .then(function () {
       if (!S.immich_url) {
@@ -606,8 +624,15 @@
         renderSettings();
       }
     })
-    .catch(function () {
+    .catch(function (err) {
       app.innerHTML =
-        '<div class="card" style="text-align:center"><h3>Connection Error</h3><p style="color:var(--text2);margin-top:8px">Could not reach the device. Make sure you\'re connected to its WiFi network.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="location.reload()">Retry</button></div>';
+        '<div style="background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:20px;text-align:center;margin-top:40px">' +
+        "<h3 style=\"color:#e0e0e0;margin:0 0 8px\">Connection Error</h3>" +
+        '<p style="color:#999;margin:0 0 16px;font-size:.9rem">Could not reach the device.<br>Make sure you are connected to its network.</p>' +
+        '<p style="color:#666;font-size:.75rem;margin:0 0 16px">' +
+        esc(String(err)) +
+        "</p>" +
+        '<button onclick="location.reload()" style="background:#5c9cf5;color:#fff;border:none;border-radius:6px;padding:8px 20px;cursor:pointer;font-size:.9rem">Retry</button>' +
+        "</div>";
     });
 })();
