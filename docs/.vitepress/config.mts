@@ -19,7 +19,7 @@ export default defineConfig({
           { text: 'Overview', link: '/' },
           { text: 'Install', link: '/install' },
           { text: 'Configuration', link: '/configuration' },
-          { text: 'Creating an API Key', link: '/api-key' },
+          { text: 'Immich API Key', link: '/api-key' },
         ],
       },
       {
