@@ -8,7 +8,6 @@
 
 substitutions:
   immich_slide_interval_seconds: "15"
-  info_overlay_timeout_seconds: "0"
   slideshow_check_interval: "5s"
 
 # =============================================================================
@@ -134,67 +133,6 @@ lvgl:
                         text: ""
                         text_color: 0xFFFFFF
                         text_font: roboto_light150_font
-              - obj:
-                  id: metadata_container
-                  hidden: true
-                  width: SIZE_CONTENT
-                  height: SIZE_CONTENT
-                  bg_opa: 0%
-                  border_width: 0
-                  pad_all: 0
-                  pad_top: 25
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: COLUMN
-                    pad_row: 8
-                  widgets:
-                    - obj:
-                        width: SIZE_CONTENT
-                        height: SIZE_CONTENT
-                        bg_opa: 0%
-                        border_width: 0
-                        pad_all: 0
-                        scrollable: false
-                        widgets:
-                          - label:
-                              id: time_ago_label_shadow
-                              x: 2
-                              y: 2
-                              text: ""
-                              text_color: 0x000000
-                              text_opa: 50%
-                              text_font: roboto_light46_font
-                          - label:
-                              id: time_ago_label
-                              x: 0
-                              y: 0
-                              text: ""
-                              text_color: 0xFFFFFF
-                              text_font: roboto_light46_font
-                    - obj:
-                        width: SIZE_CONTENT
-                        height: SIZE_CONTENT
-                        bg_opa: 0%
-                        border_width: 0
-                        pad_all: 0
-                        scrollable: false
-                        widgets:
-                          - label:
-                              id: location_label_shadow
-                              x: 2
-                              y: 2
-                              text: ""
-                              text_color: 0x000000
-                              text_opa: 50%
-                              text_font: roboto_light32_font
-                          - label:
-                              id: location_label
-                              x: 0
-                              y: 0
-                              text: ""
-                              text_color: 0xFFFFFF
-                              text_font: roboto_light32_font
 
 # =============================================================================
 # USER-CONFIGURABLE SETTINGS
@@ -213,25 +151,6 @@ number:
     unit_of_measurement: "s"
     icon: "mdi:timer-outline"
 
-  - platform: template
-    name: "Info Overlay Timeout"
-    id: info_overlay_timeout
-    min_value: 0
-    max_value: 30
-    step: 1
-    initial_value: ${info_overlay_timeout_seconds}
-    optimistic: true
-    restore_value: true
-    unit_of_measurement: "s"
-    icon: "mdi:eye-timer-outline"
-
-switch:
-  - platform: template
-    name: "Show Photo Metadata"
-    id: show_photo_metadata
-    optimistic: true
-    restore_value: true
-    icon: "mdi:image-text"
 
 # =============================================================================
 # SLIDESHOW TIMER
@@ -273,22 +192,5 @@ script:
             id(immich_advance_forward).execute();
           } else if (dx > SWIPE_THRESHOLD_PX) {
             id(immich_show_previous).execute();
-          } else if (id(show_photo_metadata).state) {
-            if (lv_obj_has_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN)) {
-              lv_obj_clear_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);
-              id(hide_info_overlay).execute();
-            } else {
-              lv_obj_add_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);
-              id(hide_info_overlay).stop();
-            }
           }
-  - id: hide_info_overlay
-    mode: restart
-    then:
-      - if:
-          condition:
-            lambda: 'return id(info_overlay_timeout).state > 0;'
-          then:
-            - delay: !lambda 'return (uint32_t)(id(info_overlay_timeout).state * 1000);'
-            - lambda: 'lv_obj_add_flag(id(metadata_container), LV_OBJ_FLAG_HIDDEN);'
 
