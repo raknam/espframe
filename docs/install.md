@@ -7,7 +7,7 @@ Flash Immich Frame directly from your browser.
 - **Guition ESP32-P4 10" display** (JC8012P4A1)
 - **USB-C cable** (data-capable, not charge-only)
 - **Immich server** running on your network — [immich.app](https://immich.app/)
-- An **Immich API key** — see [Creating an API Key](./configuration#creating-an-api-key) for which permissions to select
+- An **Immich API key** — see [Creating an API Key](./api-key) for which permissions to select
 
 ## Where to Buy
 
@@ -54,4 +54,4 @@ The frame will start displaying photos from your Immich library.
 
 ## Manual Install
 
-If you prefer to compile from source using ESPHome, see the [Getting Started](/getting-started) guide.
+If you prefer full control over substitutions or want to compile from source using ESPHome, see the [Manual Setup](/manual-setup) guide.

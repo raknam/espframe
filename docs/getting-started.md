@@ -10,7 +10,7 @@ This guide covers the manual ESPHome install for users who want to customize sub
 
 1. **A [Guition ESP32-P4 (JC8012P4A1)](https://www.guition.com/)** — 10" 1280x800 touchscreen display
 2. **An [Immich](https://immich.app/) server** running on your local network
-3. **An Immich API key** — generate one in your Immich web UI under *Account Settings > API Keys* (see [which permissions to select](./configuration#creating-an-api-key))
+3. **An Immich API key** — generate one in your Immich web UI under *Account Settings > API Keys* (see [which permissions to select](./api-key))
 4. **[ESPHome](https://esphome.io/) installed** — via Home Assistant add-on, Docker, or `pip install esphome`
 
 ## Step 1: Create Your Config

@@ -20,6 +20,13 @@ export default defineConfig({
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Usage', link: '/usage' },
           { text: 'Configuration', link: '/configuration' },
+          { text: 'Creating an API Key', link: '/api-key' },
+        ],
+      },
+      {
+        text: 'Advanced',
+        items: [
+          { text: 'Manual Setup', link: '/manual-setup' },
           { text: 'Troubleshooting', link: '/troubleshooting' },
         ],
       },
