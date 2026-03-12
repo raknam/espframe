@@ -343,10 +343,23 @@
     var conn = el("div", "card");
     conn.innerHTML = "<h3>Connection</h3>";
 
+    var connStatus = el("div", "status");
+    connStatus.id = "conn-status";
+    connStatus.style.marginBottom = "12px";
+
+    function showSaved(msg) {
+      connStatus.innerHTML = '<span class="dot green"></span> ' + (msg || "Saved");
+      clearTimeout(connStatus._t);
+      connStatus._t = setTimeout(function () {
+        connStatus.textContent = "";
+      }, 3000);
+    }
+
     var f1 = field("Immich Server URL");
     var urlInput = input("url", S.immich_url, "https://immich.example.com");
     urlInput.onchange = function () {
       post(endpoints.immich_url + "/set", { value: urlInput.value.trim() });
+      showSaved("URL saved");
     };
     f1.appendChild(urlInput);
     conn.appendChild(f1);
@@ -356,6 +369,7 @@
     var keyInput = input("password", S.api_key, "");
     keyInput.onchange = function () {
       post(endpoints.api_key + "/set", { value: keyInput.value.trim() });
+      showSaved("API key saved");
     };
     var showBtn = el("button", "btn btn-secondary btn-sm");
     showBtn.textContent = "Show";
@@ -370,10 +384,7 @@
     f2.appendChild(grp);
     conn.appendChild(f2);
 
-    var statusEl = el("div", "status");
-    statusEl.id = "conn-status";
-    statusEl.innerHTML = '<span class="dot green"></span> Connected';
-    conn.appendChild(statusEl);
+    conn.appendChild(connStatus);
     wrap.appendChild(conn);
 
     // Display
@@ -581,13 +592,7 @@
     }
   }
 
-  function setStatus(online) {
-    var s = document.getElementById("conn-status");
-    if (!s) return;
-    s.innerHTML = online
-      ? '<span class="dot green"></span> Connected'
-      : '<span class="dot red"></span> Disconnected';
-  }
+  function setStatus() {}
 
   // --- Timezone Select ---
 

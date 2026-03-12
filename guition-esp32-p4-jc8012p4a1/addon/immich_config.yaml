@@ -56,7 +56,7 @@ text:
 
 script:
   - id: immich_check_config_ready
-    mode: single
+    mode: restart
     then:
       - if:
           condition:
