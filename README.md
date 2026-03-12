@@ -1,6 +1,6 @@
 # Immich Frame
 
-A standalone digital photo frame that displays your [Immich](https://immich.app/) photo library on a 10" touchscreen — no Home Assistant or other hub required.
+A standalone digital photo frame that displays your [Immich](https://immich.app/) photo library on a 10" touchscreen — no additional services required.
 
 <p align="center">
   <img src="docs/public/immich-frame.png" alt="Immich Frame displaying photos on a Guition ESP32-P4 10-inch screen" width="700" />
@@ -15,7 +15,7 @@ Built with [ESPHome](https://esphome.io/) on the ESP32-P4, the frame connects di
 - **Prefetched transitions** — next image loads in the background for instant slide changes
 - **Touch gestures** — swipe left/right to navigate, long press to advance
 - **Accent colour fill** — letterboxed areas are tinted with a colour sampled from the photo
-- **Runtime configuration** — change Immich URL, API key, slideshow interval, and more via the built-in web UI
+- **Configuration options** — change Immich URL, API key, slideshow interval, and more via the built-in web UI
 
 ## Hardware
 
