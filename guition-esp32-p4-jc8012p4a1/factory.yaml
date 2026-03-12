@@ -18,6 +18,12 @@ esphome:
 packages:
   espframe: !include packages.yaml
 
+web_server:
+  css_url: ""
+  js_url: ""
+  css_include: "webserver/style.css"
+  js_include: "webserver/app.js"
+
 ota:
   - platform: http_request
 

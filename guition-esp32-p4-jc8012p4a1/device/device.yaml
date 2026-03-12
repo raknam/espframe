@@ -46,10 +46,6 @@ logger:
 web_server:
   port: 80
   version: 2
-  css_url: ""
-  js_url: ""
-  css_include: "webserver/style.css"
-  js_include: "webserver/app.js"
 
 ota:
   - platform: esphome
