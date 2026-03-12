@@ -23,17 +23,6 @@ export default defineConfig({
           { text: 'Troubleshooting', link: '/troubleshooting' },
         ],
       },
-      {
-        text: 'Reference',
-        collapsed: true,
-        items: [
-          { text: 'Architecture', link: '/architecture' },
-          { text: 'Data Flow', link: '/data-flow' },
-          { text: 'Immich API', link: '/api' },
-          { text: 'UI & Screens', link: '/ui' },
-          { text: 'Components', link: '/components' },
-        ],
-      },
     ],
 
     socialLinks: [

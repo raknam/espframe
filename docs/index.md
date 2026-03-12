@@ -21,8 +21,8 @@ features:
     details: Runs directly on the ESP32-P4 with ESPHome. Connects to your Immich server over HTTP — no Home Assistant or other hub needed.
   - title: Smart Portrait Pairing
     details: Automatically detects portrait photos and finds a companion portrait from the same day, displaying them side-by-side to fill the screen.
-  - title: Smooth Prefetching
-    details: A 3-slot ring buffer prefetches upcoming images so transitions are instant, with hardware-accelerated JPEG decoding.
+  - title: Smooth Transitions
+    details: Upcoming images are prefetched in the background so transitions between photos are instant.
   - title: Touch Gestures
     details: Swipe left/right to navigate and long press to advance. Works on both single images and portrait pairs.
   - title: Accent Color Fill

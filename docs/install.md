@@ -17,7 +17,7 @@ The web installer requires **Chrome** or **Edge** on desktop with [WebSerial](ht
 - **Guition ESP32-P4 10" display** (JC8012P4A1)
 - **USB-C cable** (data-capable, not charge-only)
 - **Immich server** running on your network — [immich.app](https://immich.app/)
-- An **Immich API key** ([how to create one](https://immich.app/docs/features/command-line-interface#obtain-the-api-key))
+- An **Immich API key** — see [Creating an API Key](./configuration#creating-an-api-key) for which permissions to select
 
 ## Step-by-Step
 
