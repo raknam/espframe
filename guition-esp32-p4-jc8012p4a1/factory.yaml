@@ -31,6 +31,12 @@ update:
       then:
         - update.perform: firmware_update
 
+text_sensor:
+  - platform: template
+    name: Firmware Version
+    icon: "mdi:tag"
+    lambda: 'return {"${firmware_version}"};'
+
 button:
   - platform: template
     name: Check for Update
