@@ -20,10 +20,9 @@ Defined in `addon/screen_slideshow.yaml`. The main photo display, shown via `lvg
 
 - **`slideshow_img`** — Full-screen LVGL image widget displaying the active slot's image. Zoom level is applied per-slot via `lv_img_set_zoom`. Hidden when a portrait pair is active.
 - **`portrait_pair_container`** — Hidden by default. A 1280×800 flex ROW container with two 640×800 child objects, each containing an image widget (`portrait_left_img`, `portrait_right_img`). Shown when a portrait pair is displayed; supports the same touch gestures as `slideshow_img`. Each portrait image is resized to 640×1200 and centred within its half.
-- **`info_overlay`** — Transparent container anchored to bottom-left (no background bar). Tap image to toggle visibility. Uses a flex ROW layout with the clock on the left and metadata stacked vertically to its right.
+- **`info_overlay`** — Transparent container anchored to bottom-left (no background bar). Contains the clock display.
+  - **`clock_container`** — Visibility controlled by the **Show Clock** switch. Hidden by default until the switch is evaluated at boot.
   - **`time_label`** — Current time (HH:MM) in Roboto Light 150px, updated every 60s via SNTP.
-  - **`time_ago_label`** — Relative photo age ("3 years ago") in Roboto Light 46px.
-  - **`location_label`** — Photo location (city, country) in Roboto Light 32px.
   - Each label has a paired `*_shadow` label rendered behind it (same text, black at 50% opacity, offset 2px right and 2px down) for readability over photos.
 
 ## Touch Gestures

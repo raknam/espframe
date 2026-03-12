@@ -18,7 +18,6 @@ Open `http://<device-ip>/` in your browser to access the settings page. Changes 
 | Setting | Default | Description |
 |---|---|---|
 | **Slideshow Interval** | 15s | Time between photos (5–300 seconds) |
-| **Info Overlay Timeout** | 0s | Auto-hide the info overlay after this many seconds. `0` means it stays visible until you tap again. |
 
 ### Clock
 

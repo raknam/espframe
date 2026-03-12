@@ -6,20 +6,13 @@
 |---|---|
 | **Swipe left** | Next photo |
 | **Swipe right** | Previous photo |
-| **Tap** | Show or hide the info overlay |
 | **Long press** | Next photo |
 
 These gestures work the same whether a single photo or a portrait pair is on screen.
 
-## Info Overlay
+## Clock Overlay
 
-Tap the screen to show the info overlay in the bottom-left corner. It displays:
-
-- **Clock** — current time (if enabled in [settings](./configuration#clock))
-- **Time ago** — how long ago the photo was taken (e.g. "3 years ago")
-- **Location** — where the photo was taken (city and country from EXIF data)
-
-Tap again to hide it. If you've set an **Info Overlay Timeout** in the [settings](./configuration#slideshow), it hides automatically after that many seconds.
+When **Show Clock** is enabled in [settings](./configuration#clock), the current time is displayed in the bottom-left corner of the screen.
 
 ## Portrait Pairing
 
