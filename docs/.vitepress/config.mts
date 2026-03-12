@@ -28,6 +28,12 @@ export default defineConfig({
           { text: 'Troubleshooting', link: '/troubleshooting' },
         ],
       },
+      {
+        text: 'Project',
+        items: [
+          { text: 'Roadmap', link: '/roadmap' },
+        ],
+      },
     ],
 
     socialLinks: [
