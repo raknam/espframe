@@ -1,7 +1,26 @@
 (function () {
   "use strict";
 
-  var S = {};
+  var S = {
+    clock_options: ["24 Hour", "12 Hour"],
+    tz_options: [],
+    interval_min: 5,
+    interval_max: 300,
+    interval_step: 5,
+    interval: 30,
+    brightness: 100,
+    backlight_on: true,
+    show_clock: true,
+    clock_format: "24 Hour",
+    immich_url: "",
+    api_key: "",
+    timezone: "",
+    firmware: "",
+    installed_version: "",
+    latest_version: "",
+    update_available: false,
+  };
+
   var app = document.getElementById("app");
   if (!app) {
     app = document.createElement("div");
@@ -21,17 +40,6 @@
     update: "/update/firmware_update",
   };
 
-  function safeGet(url) {
-    return fetch(url)
-      .then(function (r) {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .catch(function () {
-        return null;
-      });
-  }
-
   function post(url, params) {
     var qs = params
       ? "?" +
@@ -44,61 +52,103 @@
     return fetch(url + qs, { method: "POST" }).catch(function () {});
   }
 
-  function fetchAll() {
-    return Promise.all([
-      safeGet(endpoints.immich_url),
-      safeGet(endpoints.api_key),
-      safeGet(endpoints.clock_format + "?detail=all"),
-      safeGet(endpoints.timezone + "?detail=all"),
-      safeGet(endpoints.interval),
-      safeGet(endpoints.backlight),
-      safeGet(endpoints.show_clock),
-      safeGet(endpoints.firmware),
-      safeGet(endpoints.update),
-    ]).then(function (r) {
-      var d;
+  function safeGet(url) {
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .catch(function () {
+        return null;
+      });
+  }
 
-      d = r[0] || {};
+  // --- SSE-based init ---
+
+  var evtSource = null;
+  var rendered = false;
+  var renderTimer = null;
+
+  function collectState(d) {
+    if (!d || !d.id) return;
+    var id = d.id;
+    if (id === "text-immich_url") {
       S.immich_url = d.value || "";
-
-      d = r[1] || {};
+    } else if (id === "text-immich_api_key_text") {
       S.api_key = d.value || "";
-
-      d = r[2] || {};
+    } else if (id === "select-clock_format_select") {
       S.clock_format = d.value || "24 Hour";
-      S.clock_options = d.option || ["24 Hour", "12 Hour"];
-
-      d = r[3] || {};
+      if (d.option && d.option.length) S.clock_options = d.option;
+    } else if (id === "select-timezone_select") {
       S.timezone = d.value || "";
-      S.tz_options = d.option || [];
-
-      d = r[4] || {};
-      S.interval = d.value || 30;
-      S.interval_min = d.min_value || 5;
-      S.interval_max = d.max_value || 300;
-      S.interval_step = d.step || 5;
-
-      d = r[5] || {};
+      if (d.option && d.option.length) S.tz_options = d.option;
+    } else if (id === "number-slideshow_interval") {
+      S.interval = d.value != null ? d.value : 30;
+      if (d.min_value != null) S.interval_min = d.min_value;
+      if (d.max_value != null) S.interval_max = d.max_value;
+      if (d.step != null) S.interval_step = d.step;
+    } else if (id === "light-backlight") {
       S.backlight_on = d.state === "ON";
-      S.brightness =
-        d.brightness != null ? Math.round((d.brightness / 255) * 100) : 100;
-
-      d = r[6] || {};
+      if (d.brightness != null)
+        S.brightness = Math.round((d.brightness / 255) * 100);
+    } else if (id === "switch-show_clock") {
       S.show_clock = d.value === true || d.state === "ON";
-
-      d = r[7] || {};
+    } else if (id === "text_sensor-firmware_version") {
       S.firmware = d.value || d.state || "";
-
-      d = r[8] || {};
-      S.update_available =
-        d.installed_version && d.latest_version
-          ? d.installed_version !== d.latest_version
-          : false;
-      S.installed_version = d.installed_version || "";
+    } else if (id === "update-firmware_update") {
+      S.installed_version = d.current_version || "";
       S.latest_version = d.latest_version || "";
+      S.update_available =
+        S.installed_version &&
+        S.latest_version &&
+        S.installed_version !== S.latest_version;
+    }
+  }
 
-      return S;
-    });
+  function tryRender() {
+    if (rendered) return;
+    rendered = true;
+    if (!S.immich_url) {
+      renderWizard();
+    } else {
+      renderSettings();
+    }
+  }
+
+  function initSSE() {
+    try {
+      evtSource = new EventSource("/events");
+
+      evtSource.addEventListener("state", function (e) {
+        try {
+          var d = JSON.parse(e.data);
+          collectState(d);
+        } catch (_) {}
+
+        if (!rendered) {
+          clearTimeout(renderTimer);
+          renderTimer = setTimeout(tryRender, 500);
+        }
+      });
+
+      evtSource.onerror = function () {
+        setStatus(false);
+        if (!rendered) {
+          clearTimeout(renderTimer);
+          renderTimer = setTimeout(tryRender, 1000);
+        }
+      };
+
+      evtSource.onopen = function () {
+        setStatus(true);
+      };
+    } catch (_) {
+      tryRender();
+    }
+
+    setTimeout(function () {
+      if (!rendered) tryRender();
+    }, 5000);
   }
 
   // --- Wizard ---
@@ -441,53 +491,19 @@
       verLine.textContent = "v" + S.firmware;
       app.appendChild(verLine);
     }
-
-    openSSE();
   }
 
-  // --- SSE ---
+  // --- SSE live updates (after render) ---
 
-  var evtSource = null;
-  function openSSE() {
-    if (evtSource) return;
-    try {
-      evtSource = new EventSource("/events");
-      evtSource.addEventListener("state", function (e) {
-        try {
-          handleEvent(JSON.parse(e.data));
-        } catch (_) {}
-      });
-      evtSource.onerror = function () {
-        setStatus(false);
-      };
-      evtSource.onopen = function () {
-        setStatus(true);
-      };
-    } catch (_) {}
-  }
-
-  function handleEvent(d) {
+  function handleLiveEvent(d) {
     if (!d || !d.id) return;
     var id = d.id;
-    var val = d.value != null ? d.value : d.state;
-    if (id === "text-immich_url") {
-      S.immich_url = val || "";
-    } else if (id === "text-immich_api_key_text") {
-      S.api_key = val || "";
-    } else if (id === "select-clock_format_select") {
-      S.clock_format = val;
-    } else if (id === "select-timezone_select") {
-      S.timezone = val;
-    } else if (id === "number-slideshow_interval") {
-      S.interval = parseFloat(val);
-    } else if (id === "light-backlight") {
+    if (id === "light-backlight") {
       S.backlight_on = d.state === "ON";
-      S.brightness =
-        d.brightness != null
-          ? Math.round((d.brightness / 255) * 100)
-          : S.brightness;
+      if (d.brightness != null)
+        S.brightness = Math.round((d.brightness / 255) * 100);
     } else if (id === "switch-show_clock") {
-      S.show_clock = d.state === "ON" || val === true;
+      S.show_clock = d.state === "ON" || d.value === true;
     }
   }
 
@@ -506,7 +522,7 @@
     var inp = document.createElement("input");
     inp.type = "text";
     inp.value = current || "";
-    inp.placeholder = "Search\u2026";
+    inp.placeholder = "Search timezones\u2026";
 
     var dd = el("div", "dropdown");
     var highlighted = -1;
@@ -517,6 +533,13 @@
       var items = options.filter(function (o) {
         return !f || o.toLowerCase().indexOf(f) !== -1;
       });
+      if (items.length === 0) {
+        var empty = document.createElement("div");
+        empty.textContent = "No matches";
+        empty.style.color = "#666";
+        dd.appendChild(empty);
+        return;
+      }
       items.forEach(function (o) {
         var row = document.createElement("div");
         row.textContent = o;
@@ -535,7 +558,7 @@
 
     inp.onfocus = function () {
       inp.select();
-      render(inp.value);
+      render("");
       dd.classList.add("open");
     };
     inp.oninput = function () {
@@ -545,7 +568,7 @@
     inp.onblur = function () {
       setTimeout(function () {
         dd.classList.remove("open");
-      }, 150);
+      }, 200);
     };
     inp.onkeydown = function (e) {
       var items = dd.children;
@@ -559,7 +582,8 @@
         updateHighlight(items);
       } else if (e.key === "Enter" && highlighted >= 0 && items[highlighted]) {
         e.preventDefault();
-        items[highlighted].onmousedown({ preventDefault: function () {} });
+        if (items[highlighted].onmousedown)
+          items[highlighted].onmousedown({ preventDefault: function () {} });
       } else if (e.key === "Escape") {
         dd.classList.remove("open");
         inp.blur();
@@ -616,23 +640,5 @@
 
   app.innerHTML =
     '<div style="text-align:center;padding:60px 0;color:#999">Loading\u2026</div>';
-  fetchAll()
-    .then(function () {
-      if (!S.immich_url) {
-        renderWizard();
-      } else {
-        renderSettings();
-      }
-    })
-    .catch(function (err) {
-      app.innerHTML =
-        '<div style="background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:20px;text-align:center;margin-top:40px">' +
-        "<h3 style=\"color:#e0e0e0;margin:0 0 8px\">Connection Error</h3>" +
-        '<p style="color:#999;margin:0 0 16px;font-size:.9rem">Could not reach the device.<br>Make sure you are connected to its network.</p>' +
-        '<p style="color:#666;font-size:.75rem;margin:0 0 16px">' +
-        esc(String(err)) +
-        "</p>" +
-        '<button onclick="location.reload()" style="background:#5c9cf5;color:#fff;border:none;border-radius:6px;padding:8px 20px;cursor:pointer;font-size:.9rem">Retry</button>' +
-        "</div>";
-    });
+  initSSE();
 })();
