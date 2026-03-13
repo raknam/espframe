@@ -715,156 +715,157 @@
     wrap.appendChild(clk);
 
     // Firmware
+    var fw = el("div", "card");
+    fw.innerHTML = "<h3>Firmware</h3>";
+
     if (S.firmware || S.installed_version) {
-      var fw = el("div", "card");
-      fw.innerHTML = "<h3>Firmware</h3>";
       var ver = el("div", "field");
       ver.innerHTML =
         '<label>Version</label><span style="font-size:.9rem">' +
         esc(S.firmware || S.installed_version) +
         "</span>";
       fw.appendChild(ver);
-
-      if (S.update_available) {
-        var upd = el("div", "field");
-        upd.innerHTML =
-          '<label>Update Available</label><span style="font-size:.9rem;color:var(--accent)">' +
-          esc(S.latest_version) +
-          "</span>";
-        fw.appendChild(upd);
-      }
-
-      var btnRow = el("div", "field");
-      btnRow.style.display = "flex";
-      btnRow.style.gap = "8px";
-      btnRow.style.alignItems = "center";
-      var checkBtn = el("button", "btn btn-secondary btn-sm");
-      checkBtn.textContent = "Check for Update";
-      var statusMsg = el("span");
-      statusMsg.style.cssText = "font-size:.8rem;color:var(--text2)";
-      checkBtn.onclick = function () {
-        checkBtn.disabled = true;
-        checkBtn.textContent = "Checking\u2026";
-        statusMsg.textContent = "";
-        post("/button/check_for_update/press")
-          .then(function () {
-            return new Promise(function (r) {
-              setTimeout(r, 4000);
-            });
-          })
-          .then(function () {
-            return safeGet(endpoints.update);
-          })
-          .then(function (data) {
-            checkBtn.disabled = false;
-            checkBtn.textContent = "Check for Update";
-            if (
-              data &&
-              data.current_version &&
-              data.latest_version &&
-              data.current_version !== data.latest_version
-            ) {
-              S.update_available = true;
-              S.latest_version = data.latest_version;
-              statusMsg.textContent = "";
-              btnRow.innerHTML = "";
-              var updateInfo = el("div");
-              updateInfo.style.cssText = "width:100%";
-              updateInfo.innerHTML =
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-                '<span style="font-size:.85rem;color:var(--accent)">' +
-                esc(data.latest_version) + " available</span></div>";
-              var installBtn = el("button", "btn btn-primary btn-sm");
-              installBtn.textContent = "Install Now";
-              installBtn.onclick = function () {
-                installBtn.disabled = true;
-                installBtn.textContent = "Installing\u2026";
-                post("/update/firmware_update/install");
-              };
-              updateInfo.appendChild(installBtn);
-              btnRow.appendChild(updateInfo);
-            } else {
-              statusMsg.textContent = "You\u2019re on the latest version";
-              statusMsg.style.color = "var(--success)";
-            }
-            return safeGet(endpoints.update_beta);
-          })
-          .then(function (betaData) {
-            if (betaData && betaData.latest_version) {
-              S.beta_version = betaData.latest_version;
-              S.beta_available =
-                betaData.current_version &&
-                betaData.latest_version !== betaData.current_version;
-            }
-            renderBetaRow();
-          });
-      };
-      btnRow.appendChild(checkBtn);
-      btnRow.appendChild(statusMsg);
-      fw.appendChild(btnRow);
-
-      var betaRow = el("div");
-      fw.appendChild(betaRow);
-
-      function renderBetaRow() {
-        betaRow.innerHTML = "";
-        if (!S.beta_available) return;
-        var inner = el("div", "field");
-        inner.style.display = "flex";
-        inner.style.gap = "8px";
-        inner.style.alignItems = "center";
-        var betaLabel = el("span");
-        betaLabel.style.cssText = "font-size:.85rem;color:var(--text2)";
-        betaLabel.textContent = "Pre-release: " + S.beta_version;
-        var betaBtn = el("button", "btn btn-secondary btn-sm");
-        betaBtn.textContent = "Install Pre-release";
-        betaBtn.onclick = function () {
-          betaBtn.disabled = true;
-          betaBtn.textContent = "Installing\u2026";
-          post(endpoints.update_beta + "/install");
-        };
-        inner.appendChild(betaLabel);
-        inner.appendChild(betaBtn);
-        betaRow.appendChild(inner);
-      }
-      renderBetaRow();
-
-      var fAutoUpd = field("");
-      var autoTr = el("div", "toggle-row");
-      autoTr.innerHTML = "<span>Auto Update</span>";
-      var autoTog = el("div", S.auto_update ? "toggle on" : "toggle");
-      autoTog.onclick = function () {
-        S.auto_update = !S.auto_update;
-        autoTog.className = S.auto_update ? "toggle on" : "toggle";
-        post(
-          endpoints.auto_update + (S.auto_update ? "/turn_on" : "/turn_off")
-        );
-        freqField.style.display = S.auto_update ? "" : "none";
-      };
-      autoTr.appendChild(autoTog);
-      fAutoUpd.appendChild(autoTr);
-      fw.appendChild(fAutoUpd);
-
-      var freqField = field("Update Frequency");
-      var freqSel = document.createElement("select");
-      freqSel.className = "select";
-      S.update_freq_options.forEach(function (opt) {
-        var o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        if (opt === S.update_frequency) o.selected = true;
-        freqSel.appendChild(o);
-      });
-      freqSel.onchange = function () {
-        S.update_frequency = freqSel.value;
-        post(endpoints.update_frequency + "/set", { option: freqSel.value });
-      };
-      freqField.appendChild(freqSel);
-      freqField.style.display = S.auto_update ? "" : "none";
-      fw.appendChild(freqField);
-
-      wrap.appendChild(fw);
     }
+
+    if (S.update_available) {
+      var upd = el("div", "field");
+      upd.innerHTML =
+        '<label>Update Available</label><span style="font-size:.9rem;color:var(--accent)">' +
+        esc(S.latest_version) +
+        "</span>";
+      fw.appendChild(upd);
+    }
+
+    var btnRow = el("div", "field");
+    btnRow.style.display = "flex";
+    btnRow.style.gap = "8px";
+    btnRow.style.alignItems = "center";
+    var checkBtn = el("button", "btn btn-secondary btn-sm");
+    checkBtn.textContent = "Check for Update";
+    var statusMsg = el("span");
+    statusMsg.style.cssText = "font-size:.8rem;color:var(--text2)";
+    checkBtn.onclick = function () {
+      checkBtn.disabled = true;
+      checkBtn.textContent = "Checking\u2026";
+      statusMsg.textContent = "";
+      post("/button/check_for_update/press")
+        .then(function () {
+          return new Promise(function (r) {
+            setTimeout(r, 4000);
+          });
+        })
+        .then(function () {
+          return safeGet(endpoints.update);
+        })
+        .then(function (data) {
+          checkBtn.disabled = false;
+          checkBtn.textContent = "Check for Update";
+          if (
+            data &&
+            data.current_version &&
+            data.latest_version &&
+            data.current_version !== data.latest_version
+          ) {
+            S.update_available = true;
+            S.latest_version = data.latest_version;
+            statusMsg.textContent = "";
+            btnRow.innerHTML = "";
+            var updateInfo = el("div");
+            updateInfo.style.cssText = "width:100%";
+            updateInfo.innerHTML =
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+              '<span style="font-size:.85rem;color:var(--accent)">' +
+              esc(data.latest_version) + " available</span></div>";
+            var installBtn = el("button", "btn btn-primary btn-sm");
+            installBtn.textContent = "Install Now";
+            installBtn.onclick = function () {
+              installBtn.disabled = true;
+              installBtn.textContent = "Installing\u2026";
+              post("/update/firmware_update/install");
+            };
+            updateInfo.appendChild(installBtn);
+            btnRow.appendChild(updateInfo);
+          } else {
+            statusMsg.textContent = "You\u2019re on the latest version";
+            statusMsg.style.color = "var(--success)";
+          }
+          return safeGet(endpoints.update_beta);
+        })
+        .then(function (betaData) {
+          if (betaData && betaData.latest_version) {
+            S.beta_version = betaData.latest_version;
+            S.beta_available =
+              betaData.current_version &&
+              betaData.latest_version !== betaData.current_version;
+          }
+          renderBetaRow();
+        });
+    };
+    btnRow.appendChild(checkBtn);
+    btnRow.appendChild(statusMsg);
+    fw.appendChild(btnRow);
+
+    var betaRow = el("div");
+    fw.appendChild(betaRow);
+
+    function renderBetaRow() {
+      betaRow.innerHTML = "";
+      if (!S.beta_available) return;
+      var inner = el("div", "field");
+      inner.style.display = "flex";
+      inner.style.gap = "8px";
+      inner.style.alignItems = "center";
+      var betaLabel = el("span");
+      betaLabel.style.cssText = "font-size:.85rem;color:var(--text2)";
+      betaLabel.textContent = "Pre-release: " + S.beta_version;
+      var betaBtn = el("button", "btn btn-secondary btn-sm");
+      betaBtn.textContent = "Install Pre-release";
+      betaBtn.onclick = function () {
+        betaBtn.disabled = true;
+        betaBtn.textContent = "Installing\u2026";
+        post(endpoints.update_beta + "/install");
+      };
+      inner.appendChild(betaLabel);
+      inner.appendChild(betaBtn);
+      betaRow.appendChild(inner);
+    }
+    renderBetaRow();
+
+    var fAutoUpd = field("");
+    var autoTr = el("div", "toggle-row");
+    autoTr.innerHTML = "<span>Auto Update</span>";
+    var autoTog = el("div", S.auto_update ? "toggle on" : "toggle");
+    autoTog.onclick = function () {
+      S.auto_update = !S.auto_update;
+      autoTog.className = S.auto_update ? "toggle on" : "toggle";
+      post(
+        endpoints.auto_update + (S.auto_update ? "/turn_on" : "/turn_off")
+      );
+      freqField.style.display = S.auto_update ? "" : "none";
+    };
+    autoTr.appendChild(autoTog);
+    fAutoUpd.appendChild(autoTr);
+    fw.appendChild(fAutoUpd);
+
+    var freqField = field("Update Frequency");
+    var freqSel = document.createElement("select");
+    freqSel.className = "select";
+    S.update_freq_options.forEach(function (opt) {
+      var o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      if (opt === S.update_frequency) o.selected = true;
+      freqSel.appendChild(o);
+    });
+    freqSel.onchange = function () {
+      S.update_frequency = freqSel.value;
+      post(endpoints.update_frequency + "/set", { option: freqSel.value });
+    };
+    freqField.appendChild(freqSel);
+    freqField.style.display = S.auto_update ? "" : "none";
+    fw.appendChild(freqField);
+
+    wrap.appendChild(fw);
 
     // Logs
     var logs = el("div", "card card-logs");
