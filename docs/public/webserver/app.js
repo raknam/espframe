@@ -739,6 +739,7 @@
     fw.appendChild(versionRow);
 
     var updateRow = el("div");
+    updateRow.style.marginBottom = "8px";
     fw.appendChild(updateRow);
     var betaRow = el("div");
     betaRow.style.marginBottom = "12px";
