@@ -10,11 +10,6 @@ substitutions:
   friendly_name: "Immich Frame 10inch"
   firmware_version: "0.0.0"
 
-esphome:
-  project:
-    name: jtenniswood.immich-frame
-    version: "${firmware_version}"
-
 packages:
   espframe: !include packages.yaml
 

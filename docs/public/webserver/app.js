@@ -69,6 +69,7 @@
     update_available: false,
     beta_version: "",
     beta_available: false,
+    beta_opt_in: localStorage.getItem("beta_opt_in") === "true",
     auto_update: true,
     update_frequency: "Daily",
     update_freq_options: ["Hourly", "Daily", "Weekly"],
@@ -789,7 +790,10 @@
             statusMsg.textContent = "You\u2019re on the latest version";
             statusMsg.style.color = "var(--success)";
           }
-          return safeGet(endpoints.update_beta);
+          if (S.beta_opt_in) {
+            return safeGet(endpoints.update_beta);
+          }
+          return null;
         })
         .then(function (betaData) {
           if (betaData && betaData.latest_version) {
@@ -810,7 +814,7 @@
 
     function renderBetaRow() {
       betaRow.innerHTML = "";
-      if (!S.beta_available) return;
+      if (!S.beta_opt_in || !S.beta_available) return;
       var inner = el("div", "field");
       inner.style.display = "flex";
       inner.style.gap = "8px";
@@ -864,6 +868,32 @@
     freqField.appendChild(freqSel);
     freqField.style.display = S.auto_update ? "" : "none";
     fw.appendChild(freqField);
+
+    var fBetaUpd = field("");
+    var betaTr = el("div", "toggle-row");
+    betaTr.innerHTML = "<span>Pre-release Updates</span>";
+    var betaTog = el("div", S.beta_opt_in ? "toggle on" : "toggle");
+    betaTog.onclick = function () {
+      S.beta_opt_in = !S.beta_opt_in;
+      betaTog.className = S.beta_opt_in ? "toggle on" : "toggle";
+      localStorage.setItem("beta_opt_in", S.beta_opt_in ? "true" : "false");
+      if (S.beta_opt_in) {
+        safeGet(endpoints.update_beta).then(function (betaData) {
+          if (betaData && betaData.latest_version) {
+            S.beta_version = betaData.latest_version;
+            S.beta_available =
+              betaData.current_version &&
+              betaData.latest_version !== betaData.current_version;
+          }
+          renderBetaRow();
+        });
+      } else {
+        betaRow.innerHTML = "";
+      }
+    };
+    betaTr.appendChild(betaTog);
+    fBetaUpd.appendChild(betaTr);
+    fw.appendChild(fBetaUpd);
 
     wrap.appendChild(fw);
 

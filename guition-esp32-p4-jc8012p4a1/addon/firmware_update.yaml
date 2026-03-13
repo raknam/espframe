@@ -1,3 +1,8 @@
+esphome:
+  project:
+    name: jtenniswood.immich-frame
+    version: "${firmware_version}"
+
 globals:
   - id: update_check_counter
     type: int
