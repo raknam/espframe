@@ -48,6 +48,13 @@ update:
             then:
               - update.perform: firmware_update
 
+  - platform: http_request
+    id: firmware_update_beta
+    name: Firmware Update Beta
+    source: https://jtenniswood.github.io/espframe/firmware/beta/manifest.json
+    update_interval: never
+    internal: true
+
 switch:
   - platform: template
     name: "Auto Update"
@@ -96,3 +103,4 @@ button:
     icon: "mdi:update"
     on_press:
       - component.update: firmware_update
+      - component.update: firmware_update_beta

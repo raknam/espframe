@@ -67,6 +67,8 @@
     installed_version: "",
     latest_version: "",
     update_available: false,
+    beta_version: "",
+    beta_available: false,
     auto_update: true,
     update_frequency: "Daily",
     update_freq_options: ["Hourly", "Daily", "Weekly"],
@@ -97,6 +99,7 @@
     show_clock: "/switch/show_clock",
     firmware: "/text_sensor/firmware_version",
     update: "/update/firmware_update",
+    update_beta: "/update/firmware_update_beta",
     auto_update: "/switch/auto_update",
     update_frequency: "/select/update_frequency",
     schedule_enabled: "/switch/screen_schedule",
@@ -171,6 +174,12 @@
         S.installed_version &&
         S.latest_version &&
         S.installed_version !== S.latest_version;
+    } else if (id === "update-firmware_update_beta") {
+      S.beta_version = d.latest_version || "";
+      S.beta_available =
+        S.beta_version &&
+        d.current_version &&
+        S.beta_version !== d.current_version;
     } else if (id === "switch-auto_update") {
       S.auto_update = d.value === true || d.state === "ON";
     } else if (id === "select-update_frequency") {
@@ -778,11 +787,47 @@
               statusMsg.textContent = "You\u2019re on the latest version";
               statusMsg.style.color = "var(--success)";
             }
+            return safeGet(endpoints.update_beta);
+          })
+          .then(function (betaData) {
+            if (betaData && betaData.latest_version) {
+              S.beta_version = betaData.latest_version;
+              S.beta_available =
+                betaData.current_version &&
+                betaData.latest_version !== betaData.current_version;
+            }
+            renderBetaRow();
           });
       };
       btnRow.appendChild(checkBtn);
       btnRow.appendChild(statusMsg);
       fw.appendChild(btnRow);
+
+      var betaRow = el("div");
+      fw.appendChild(betaRow);
+
+      function renderBetaRow() {
+        betaRow.innerHTML = "";
+        if (!S.beta_available) return;
+        var inner = el("div", "field");
+        inner.style.display = "flex";
+        inner.style.gap = "8px";
+        inner.style.alignItems = "center";
+        var betaLabel = el("span");
+        betaLabel.style.cssText = "font-size:.85rem;color:var(--text2)";
+        betaLabel.textContent = "Pre-release: " + S.beta_version;
+        var betaBtn = el("button", "btn btn-secondary btn-sm");
+        betaBtn.textContent = "Install Pre-release";
+        betaBtn.onclick = function () {
+          betaBtn.disabled = true;
+          betaBtn.textContent = "Installing\u2026";
+          post(endpoints.update_beta + "/install");
+        };
+        inner.appendChild(betaLabel);
+        inner.appendChild(betaBtn);
+        betaRow.appendChild(inner);
+      }
+      renderBetaRow();
 
       var fAutoUpd = field("");
       var autoTr = el("div", "toggle-row");
