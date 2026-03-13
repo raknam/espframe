@@ -97,14 +97,7 @@
           })
           .join("&")
       : "";
-    return fetch(url + qs, { method: "POST" })
-      .then(function (r) {
-        console.log("[POST] " + url + qs + " -> " + r.status);
-        return r;
-      })
-      .catch(function (err) {
-        console.error("[POST] " + url + qs + " -> FAILED", err);
-      });
+    return fetch(url + qs, { method: "POST" }).catch(function () {});
   }
 
   function safeGet(url) {
@@ -126,7 +119,6 @@
 
   function collectState(d) {
     if (!d || !d.id) return;
-    console.log("[SSE] id=" + d.id, "value=" + (d.value != null ? d.value : d.state));
     var id = d.id;
     if (id === "text-immich_url") {
       S.immich_url = d.value || "";
