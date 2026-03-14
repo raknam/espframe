@@ -14,18 +14,6 @@ Control **which** photos the frame displays.
 | Date-range filter (e.g. "this month in history") | Planned |
 | Exclude videos / motion photos | Planned |
 
-## Backlight Controls
-
-Adjust the display backlight based on **time of day** and ambient conditions.
-
-| Feature | Status |
-|---|---|
-| Scheduled brightness (dim at night, bright during day) | Planned |
-| Configurable on/off schedule (screen-off overnight) | Planned |
-| Gradual brightness transitions (sunrise/sunset ramp) | Planned |
-| Manual brightness override via touch or HA | Planned |
-| Ambient light sensor support | Planned |
-
 ## Photo Metadata
 
 Show information about the **currently displayed photo**.
