@@ -2,7 +2,7 @@
 
 <img src="/immich-frame.png" alt="Immich Frame displaying photos on a 10-inch touchscreen" style="border-radius: 12px; margin: 1em 0;" />
 
-Espframe is a standalone digital photo frame powered by [ESPHome](https://esphome.io/) on the ESP32-P4. It connects directly to your [Immich](https://immich.app/) server over HTTP and streams your photo library to a 10" touchscreen — no hub, cloud service, or extra software required. Photos advance automatically with smooth transitions, and touch gestures let you swipe through your library at any time.
+Espframe is a standalone digital photo frame powered by [ESPHome](https://esphome.io/) on the ESP32-P4. It connects directly to your [Immich](https://immich.app/) server over HTTP and streams your photo library to a 10" touchscreen — no hub, cloud service, or extra software required.
 
 <a href="./install" class="VPButton medium brand" style="display: inline-block; margin-top: 1em;">Get Started →</a>
 
@@ -21,3 +21,8 @@ When a photo doesn't fill the entire screen (letterboxing), the black bars are r
 ## Slideshow
 
 Photos are fetched randomly from your Immich library and advance automatically based on the **Slideshow Interval** set in [configuration](./configuration#slideshow). The frame prefetches upcoming images in the background so transitions are instant.
+
+
+## Backlight schedules
+
+Control the brightness levels across day and night time, and optionally schedule when the backlight turns off.
