@@ -6,20 +6,16 @@ A standalone digital photo frame that displays your [Immich](https://immich.app/
   <img src="docs/public/immich-frame.png" alt="Immich Frame displaying photos on a Guition ESP32-P4 10-inch screen" width="700" />
 </p>
 
-Built with [ESPHome](https://esphome.io/) on the ESP32-P4, the frame connects directly to your Immich server over HTTP and streams photos with smooth transitions, smart portrait pairing, and touch gesture navigation.
+Built with [ESPHome](https://esphome.io/) on the ESP32-P4, the frame connects directly to your Immich server over HTTP and streams photos to your display, completely in private over your local network.
 
 ## Features
 
 - **Fully standalone** — runs on bare hardware, no hub or cloud service needed
 - **Smart portrait pairing** — detects portrait photos and pairs them side-by-side from the same day
-- **Prefetched transitions** — next image loads in the background for instant slide changes
-- **Touch gestures** — swipe left/right to navigate, long press to advance
 - **Accent colour fill** — letterboxed areas are tinted with a colour sampled from the photo
 - **Configuration options** — change Immich URL, API key, slideshow interval, and more via the built-in web UI
 
 ## Hardware
-
-The frame runs on the **Guition ESP32-P4 10" display** (JC8012P4A1) — a 1280×800 MIPI DSI touchscreen with an ESP32-P4 and ESP32-C6 coprocessor for WiFi/Bluetooth.
 
 | Item | Link |
 |------|------|
@@ -36,6 +32,6 @@ You'll need a USB-C data cable and Chrome or Edge on desktop.
 
 ## Documentation
 
-Full docs — including getting started, configuration, and troubleshooting — are available at:
+Getting started, configuration, and troubleshooting gudies are available at:
 
 **[jtenniswood.github.io/espframe](https://jtenniswood.github.io/espframe/)**
