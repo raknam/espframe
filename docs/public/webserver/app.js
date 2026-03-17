@@ -229,11 +229,22 @@
   function tryRender() {
     if (rendered) return;
     rendered = true;
-    if (!S.immich_url) {
-      renderWizard();
-    } else {
+    if (S.immich_url) {
       renderSettings();
+      return;
     }
+    Promise.all([
+      safeGet(endpoints.immich_url),
+      safeGet(endpoints.api_key)
+    ]).then(function (res) {
+      if (res[0]) S.immich_url = res[0].value || res[0].state || "";
+      if (res[1]) S.api_key = res[1].value || res[1].state || "";
+      if (S.immich_url) {
+        renderSettings();
+      } else {
+        renderWizard();
+      }
+    });
   }
 
   function initSSE() {
