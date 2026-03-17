@@ -162,9 +162,9 @@
     if (!d || !d.id) return;
     var id = d.id;
     if (id === "text/Connection: Server URL") {
-      S.immich_url = d.value || "";
+      S.immich_url = d.value || d.state || "";
     } else if (id === "text/Connection: API Key") {
-      S.api_key = d.value || "";
+      S.api_key = d.value || d.state || "";
     } else if (id === "select/Clock: Format") {
       S.clock_format = d.value || "24 Hour";
       if (d.option && d.option.length) S.clock_options = d.option;
@@ -220,9 +220,9 @@
       S.photo_source = d.value || "All Photos";
       if (d.option && d.option.length) S.photo_source_options = d.option;
     } else if (id === "text/Photos: Album IDs") {
-      S.album_ids = d.value || "";
+      S.album_ids = d.value || d.state || "";
     } else if (id === "text/Photos: Person IDs") {
-      S.person_ids = d.value || "";
+      S.person_ids = d.value || d.state || "";
     }
   }
 
