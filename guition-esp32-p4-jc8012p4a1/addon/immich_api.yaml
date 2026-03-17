@@ -232,7 +232,7 @@ script:
             - script.stop: immich_fetch_into_slot
       - if:
           condition:
-            lambda: 'return id(photo_source_select).state == "Memories" && !id(immich_memory_fallback);'
+            lambda: 'return id(photo_source_select).current_option() == "Memories" && !id(immich_memory_fallback);'
           then:
             - script.execute: immich_fetch_memory_into_slot
             - script.stop: immich_fetch_into_slot
