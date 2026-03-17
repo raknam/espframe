@@ -29,7 +29,7 @@ text:
     optimistic: false
     restore_value: true
     min_length: 0
-    max_length: 512
+    max_length: 255
     mode: text
     icon: "mdi:folder-image"
     set_action:
@@ -43,7 +43,7 @@ text:
     optimistic: false
     restore_value: true
     min_length: 0
-    max_length: 512
+    max_length: 255
     mode: text
     icon: "mdi:account-group"
     set_action:
