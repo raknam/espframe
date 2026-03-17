@@ -225,7 +225,7 @@ script:
           auto now = id(sntp_time).now();
           if (!now.is_valid()) return;
 
-          std::string tz_full = id(timezone_select).state;
+          std::string tz_full = id(timezone_select).current_option();
           std::string tz_id = tz_full.substr(0, tz_full.find(" ("));
           float tz_offset = parse_tz_offset(tz_full);
 

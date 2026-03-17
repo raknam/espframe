@@ -305,7 +305,7 @@
       card.innerHTML = "<h3>Connection</h3>";
 
       var f1 = field("Immich Server URL");
-      var urlInput = input("url", S.immich_url, "https://immich.example.com");
+      var urlInput = input("url", S.immich_url, "http://192.168.0.1:2283");
       f1.appendChild(urlInput);
       card.appendChild(f1);
 
@@ -428,7 +428,7 @@
     }
 
     var f1 = field("Immich Server URL");
-    var urlInput = input("url", S.immich_url, "https://immich.example.com");
+    var urlInput = input("url", S.immich_url, "http://192.168.0.1:2283");
     urlInput.onchange = function () {
       post(endpoints.immich_url + "/set", { value: urlInput.value.trim() });
       showSaved("URL saved");
