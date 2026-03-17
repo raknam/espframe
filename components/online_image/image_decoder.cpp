@@ -22,10 +22,11 @@ bool ImageDecoder::set_size(int width, int height) {
     this->scaled_width_ = width;
     this->scaled_height_ = height;
   } else {
-    double scale = std::min(
-      static_cast<double>(buf_w) / width,
-      static_cast<double>(buf_h) / height
-    );
+    double scale = this->image_->fill_mode_
+      ? std::max(static_cast<double>(buf_w) / width,
+                 static_cast<double>(buf_h) / height)
+      : std::min(static_cast<double>(buf_w) / width,
+                 static_cast<double>(buf_h) / height);
     this->x_scale_ = scale;
     this->y_scale_ = scale;
     this->scaled_width_ = static_cast<int>(width * scale);

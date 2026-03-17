@@ -61,19 +61,6 @@ switch:
               id(immich_prefetch_chain).execute();
             }
 
-  - platform: template
-    name: "Automatic Brightness"
-    id: day_night_enabled
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
-    icon: "mdi:theme-light-dark"
-    on_turn_on:
-      then:
-        - script.execute: backlight_apply_brightness
-    on_turn_off:
-      then:
-        - script.execute: backlight_apply_brightness
-
 number:
   - platform: template
     name: "Schedule On Hour"
@@ -167,7 +154,7 @@ script:
           else:
             - lambda: |-
                 float pct;
-                if (id(day_night_enabled).state && id(sunrise_sunset_valid)) {
+                if (id(sunrise_sunset_valid)) {
                   auto now = id(sntp_time).now();
                   if (now.is_valid()) {
                     int now_min = now.hour * 60 + now.minute;
@@ -179,10 +166,8 @@ script:
                   } else {
                     pct = id(brightness_day).state;
                   }
-                } else if (id(day_night_enabled).state) {
-                  pct = id(brightness_day).state;
                 } else {
-                  pct = 100.0f;
+                  pct = id(brightness_day).state;
                 }
                 float brightness = pct / 100.0f;
                 auto call = id(backlight).turn_on();
@@ -332,7 +317,7 @@ interval:
       - if:
           condition:
             lambda: |-
-              if (!id(day_night_enabled).state || !id(sunrise_sunset_valid) || id(backlight_paused)) return false;
+              if (!id(sunrise_sunset_valid) || id(backlight_paused)) return false;
               auto now = id(sntp_time).now();
               if (!now.is_valid()) return false;
               int now_min = now.hour * 60 + now.minute;

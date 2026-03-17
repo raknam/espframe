@@ -96,6 +96,8 @@ class OnlineImage : public PollingComponent,
   void add_on_finished_callback(std::function<void(bool)> &&callback);
   void add_on_error_callback(std::function<void()> &&callback);
 
+  void set_fill_mode(bool fill) { this->fill_mode_ = fill; }
+
   bool is_big_endian() const { return this->is_big_endian_; }
   int get_fixed_width() const { return this->fixed_width_; }
   int get_fixed_height() const { return this->fixed_height_; }
@@ -174,6 +176,7 @@ class OnlineImage : public PollingComponent,
    * This is used to determine how to store 16 bit colors in the buffer.
    */
   bool is_big_endian_;
+  bool fill_mode_{false};
   /**
    * Actual width of the current image. If fixed_width_ is specified,
    * this will be equal to it; otherwise it will be set once the decoding

@@ -35,6 +35,7 @@ CODEOWNERS = ["@guillempages", "@clydebarrow"]
 MULTI_CONF = True
 
 CONF_ON_DOWNLOAD_FINISHED = "on_download_finished"
+CONF_FILL = "fill"
 CONF_PLACEHOLDER = "placeholder"
 CONF_UPDATE = "update"
 
@@ -154,6 +155,7 @@ ONLINE_IMAGE_SCHEMA = (
             ),
             cv.Required(CONF_FORMAT): cv.one_of(*IMAGE_FORMATS, upper=True),
             cv.Optional(CONF_PLACEHOLDER): cv.use_id(Image_),
+            cv.Optional(CONF_FILL, default=False): cv.boolean,
             cv.Optional(CONF_BUFFER_SIZE, default=65536): cv.int_range(256, 524288),
             cv.Optional(CONF_ON_DOWNLOAD_FINISHED): automation.validate_automation(
                 {
@@ -240,6 +242,9 @@ async def to_code(config):
     )
     await cg.register_component(var, config)
     await cg.register_parented(var, config[CONF_HTTP_REQUEST_ID])
+
+    if config[CONF_FILL]:
+        cg.add(var.set_fill_mode(True))
 
     for key, value in config.get(CONF_REQUEST_HEADERS, {}).items():
         if isinstance(value, Lambda):

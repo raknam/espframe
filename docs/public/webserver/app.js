@@ -76,7 +76,6 @@
     schedule_enabled: false,
     schedule_on_hour: 6,
     schedule_off_hour: 23,
-    day_night_enabled: true,
     brightness_day: 100,
     brightness_night: 75,
     sunrise: "",
@@ -110,7 +109,6 @@
     schedule_enabled: "/switch/screen_schedule",
     schedule_on_hour: "/number/schedule_on_hour",
     schedule_off_hour: "/number/schedule_off_hour",
-    day_night_enabled: "/switch/automatic_brightness",
     brightness_day: "/number/daytime_brightness",
     brightness_night: "/number/nighttime_brightness",
     sunrise: "/text_sensor/sunrise_time",
@@ -206,8 +204,6 @@
       S.schedule_on_hour = d.value != null ? d.value : 6;
     } else if (id === "number-schedule_off_hour") {
       S.schedule_off_hour = d.value != null ? d.value : 23;
-    } else if (id === "switch-automatic_brightness") {
-      S.day_night_enabled = d.value === true || d.state === "ON";
     } else if (id === "number-daytime_brightness") {
       S.brightness_day = d.value != null ? d.value : 100;
     } else if (id === "number-nighttime_brightness") {
@@ -444,56 +440,51 @@
     var keyConfigured = S.api_key && S.api_key.length > 0;
     var keyWrap = el("div");
 
-    if (keyConfigured) {
-      var keyStatus = el("div", "input-group");
-      var maskedDisplay = el("div");
-      maskedDisplay.style.cssText =
+    function showKeyMasked() {
+      keyWrap.innerHTML = "";
+      var row = el("div", "input-group");
+      var mask = el("div");
+      mask.style.cssText =
         "flex:1;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);" +
         "border-radius:6px;color:var(--text2);font-size:.9rem;letter-spacing:2px";
-      maskedDisplay.textContent = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-      var changeBtn = el("button", "btn btn-secondary btn-sm");
-      changeBtn.textContent = "Change";
-      changeBtn.type = "button";
-      changeBtn.onclick = function () {
+      mask.textContent = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+      var cb = el("button", "btn btn-secondary btn-sm");
+      cb.textContent = "Change";
+      cb.type = "button";
+      cb.onclick = function () {
         keyWrap.innerHTML = "";
         keyWrap.appendChild(makeKeyInput());
       };
-      keyStatus.appendChild(maskedDisplay);
-      keyStatus.appendChild(changeBtn);
-      keyWrap.appendChild(keyStatus);
-    } else {
-      keyWrap.appendChild(makeKeyInput());
+      row.appendChild(mask);
+      row.appendChild(cb);
+      keyWrap.appendChild(row);
     }
 
     function makeKeyInput() {
       var grp = el("div", "input-group");
       var keyInput = input("text", "", "Paste your Immich API key");
-      keyInput.onchange = function () {
+      var saveBtn = el("button", "btn btn-primary btn-sm");
+      saveBtn.textContent = "Save";
+      saveBtn.type = "button";
+      saveBtn.onclick = function () {
         var v = keyInput.value.trim();
         if (!v) return;
-        post(endpoints.api_key + "/set", { value: v });
-        showSaved("API key saved");
-        keyInput.value = "";
-        keyWrap.innerHTML = "";
-        var saved = el("div", "input-group");
-        var mask = el("div");
-        mask.style.cssText =
-          "flex:1;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);" +
-          "border-radius:6px;color:var(--text2);font-size:.9rem;letter-spacing:2px";
-        mask.textContent = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-        var cb = el("button", "btn btn-secondary btn-sm");
-        cb.textContent = "Change";
-        cb.type = "button";
-        cb.onclick = function () {
-          keyWrap.innerHTML = "";
-          keyWrap.appendChild(makeKeyInput());
-        };
-        saved.appendChild(mask);
-        saved.appendChild(cb);
-        keyWrap.appendChild(saved);
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving\u2026";
+        post(endpoints.api_key + "/set", { value: v }).then(function () {
+          showSaved("API key saved");
+          showKeyMasked();
+        });
       };
       grp.appendChild(keyInput);
+      grp.appendChild(saveBtn);
       return grp;
+    }
+
+    if (keyConfigured) {
+      showKeyMasked();
+    } else {
+      keyWrap.appendChild(makeKeyInput());
     }
 
     f2.appendChild(keyWrap);
@@ -581,9 +572,9 @@
     src.appendChild(applyBtn);
     wrap.appendChild(src);
 
-    // Display
+    // Frequency
     var disp = el("div", "card");
-    disp.innerHTML = "<h3>Display</h3>";
+    disp.innerHTML = "<h3>Frequency</h3>";
 
     var f3 = field("Slideshow Interval");
     var rw = el("div", "range-wrap");
@@ -606,34 +597,68 @@
     f3.appendChild(rw);
     disp.appendChild(f3);
 
-    var f4 = field("Backlight");
-    var rw2 = el("div", "range-wrap");
-    var bSlider = document.createElement("input");
-    bSlider.type = "range";
-    bSlider.min = 0;
-    bSlider.max = 100;
-    bSlider.step = 1;
-    bSlider.value = S.backlight_on ? S.brightness : 0;
-    var bVal = el("span", "range-val");
-    bVal.textContent = (S.backlight_on ? S.brightness : 0) + "%";
-    bSlider.oninput = function () {
-      bVal.textContent = bSlider.value + "%";
-    };
-    bSlider.onchange = function () {
-      var pct = parseInt(bSlider.value);
-      if (pct === 0) {
-        post(endpoints.backlight + "/turn_off");
-      } else {
-        post(endpoints.backlight + "/turn_on", {
-          brightness: Math.round((pct / 100) * 255),
-        });
-      }
-    };
-    rw2.appendChild(bSlider);
-    rw2.appendChild(bVal);
-    f4.appendChild(rw2);
-    disp.appendChild(f4);
     wrap.appendChild(disp);
+
+    // Screen Brightness
+    var dnCard = el("div", "card");
+    dnCard.innerHTML = "<h3>Screen Brightness</h3>";
+
+    var dnDetails = el("div");
+
+    var fDayBrt = field("Daytime Brightness");
+    var rwDay = el("div", "range-wrap");
+    var daySlider = document.createElement("input");
+    daySlider.type = "range";
+    daySlider.min = 10;
+    daySlider.max = 100;
+    daySlider.step = 5;
+    daySlider.value = S.brightness_day;
+    var dayVal = el("span", "range-val");
+    dayVal.textContent = Math.round(S.brightness_day) + "%";
+    daySlider.oninput = function () {
+      dayVal.textContent = daySlider.value + "%";
+    };
+    daySlider.onchange = function () {
+      post(endpoints.brightness_day + "/set", { value: daySlider.value });
+    };
+    rwDay.appendChild(daySlider);
+    rwDay.appendChild(dayVal);
+    fDayBrt.appendChild(rwDay);
+    dnDetails.appendChild(fDayBrt);
+
+    var fNightBrt = field("Nighttime Brightness");
+    var rwNight = el("div", "range-wrap");
+    var nightSlider = document.createElement("input");
+    nightSlider.type = "range";
+    nightSlider.min = 10;
+    nightSlider.max = 100;
+    nightSlider.step = 5;
+    nightSlider.value = S.brightness_night;
+    var nightVal = el("span", "range-val");
+    nightVal.textContent = Math.round(S.brightness_night) + "%";
+    nightSlider.oninput = function () {
+      nightVal.textContent = nightSlider.value + "%";
+    };
+    nightSlider.onchange = function () {
+      post(endpoints.brightness_night + "/set", { value: nightSlider.value });
+    };
+    rwNight.appendChild(nightSlider);
+    rwNight.appendChild(nightVal);
+    fNightBrt.appendChild(rwNight);
+    dnDetails.appendChild(fNightBrt);
+
+    if (S.sunrise || S.sunset) {
+      var fSunInfo = el("div", "field sun-info");
+      var sunText = "";
+      if (S.sunrise) sunText += "Sunrise: " + esc(S.sunrise);
+      if (S.sunrise && S.sunset) sunText += " \u00a0/\u00a0 ";
+      if (S.sunset) sunText += "Sunset: " + esc(S.sunset);
+      fSunInfo.innerHTML = sunText;
+      dnDetails.appendChild(fSunInfo);
+    }
+
+    dnCard.appendChild(dnDetails);
+    wrap.appendChild(dnCard);
 
     // Schedule
     var sched = el("div", "card");
@@ -692,82 +717,6 @@
 
     sched.appendChild(schedDetails);
     wrap.appendChild(sched);
-
-    // Day/Night Brightness
-    var dnCard = el("div", "card");
-    dnCard.innerHTML = "<h3>Automatic Brightness</h3>";
-
-    var fDnToggle = field("");
-    var dnTr = el("div", "toggle-row");
-    dnTr.innerHTML = "<span>Day/Night Brightness</span>";
-    var dnTog = el("div", S.day_night_enabled ? "toggle on" : "toggle");
-    var dnDetails = el("div");
-    dnDetails.style.display = S.day_night_enabled ? "" : "none";
-
-    dnTog.onclick = function () {
-      S.day_night_enabled = !S.day_night_enabled;
-      dnTog.className = S.day_night_enabled ? "toggle on" : "toggle";
-      dnDetails.style.display = S.day_night_enabled ? "" : "none";
-      post(endpoints.day_night_enabled + (S.day_night_enabled ? "/turn_on" : "/turn_off"));
-    };
-    dnTr.appendChild(dnTog);
-    fDnToggle.appendChild(dnTr);
-    dnCard.appendChild(fDnToggle);
-
-    var fDayBrt = field("Daytime Brightness");
-    var rwDay = el("div", "range-wrap");
-    var daySlider = document.createElement("input");
-    daySlider.type = "range";
-    daySlider.min = 10;
-    daySlider.max = 100;
-    daySlider.step = 5;
-    daySlider.value = S.brightness_day;
-    var dayVal = el("span", "range-val");
-    dayVal.textContent = Math.round(S.brightness_day) + "%";
-    daySlider.oninput = function () {
-      dayVal.textContent = daySlider.value + "%";
-    };
-    daySlider.onchange = function () {
-      post(endpoints.brightness_day + "/set", { value: daySlider.value });
-    };
-    rwDay.appendChild(daySlider);
-    rwDay.appendChild(dayVal);
-    fDayBrt.appendChild(rwDay);
-    dnDetails.appendChild(fDayBrt);
-
-    var fNightBrt = field("Nighttime Brightness");
-    var rwNight = el("div", "range-wrap");
-    var nightSlider = document.createElement("input");
-    nightSlider.type = "range";
-    nightSlider.min = 10;
-    nightSlider.max = 100;
-    nightSlider.step = 5;
-    nightSlider.value = S.brightness_night;
-    var nightVal = el("span", "range-val");
-    nightVal.textContent = Math.round(S.brightness_night) + "%";
-    nightSlider.oninput = function () {
-      nightVal.textContent = nightSlider.value + "%";
-    };
-    nightSlider.onchange = function () {
-      post(endpoints.brightness_night + "/set", { value: nightSlider.value });
-    };
-    rwNight.appendChild(nightSlider);
-    rwNight.appendChild(nightVal);
-    fNightBrt.appendChild(rwNight);
-    dnDetails.appendChild(fNightBrt);
-
-    if (S.sunrise || S.sunset) {
-      var fSunInfo = el("div", "field sun-info");
-      var sunText = "";
-      if (S.sunrise) sunText += "Sunrise: " + esc(S.sunrise);
-      if (S.sunrise && S.sunset) sunText += " \u00a0/\u00a0 ";
-      if (S.sunset) sunText += "Sunset: " + esc(S.sunset);
-      fSunInfo.innerHTML = sunText;
-      dnDetails.appendChild(fSunInfo);
-    }
-
-    dnCard.appendChild(dnDetails);
-    wrap.appendChild(dnCard);
 
     // Clock
     var clk = el("div", "card");

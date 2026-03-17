@@ -20,7 +20,7 @@ Open `http://<device-ip>/` in your browser to access the settings page. Changes 
 
 See [Creating an API Key](/api-key) for how to generate a key and which permissions to select.
 
-### Slideshow
+### Frequency
 
 | Setting | Default | Description |
 |---|---|---|
@@ -36,15 +36,14 @@ See [Creating an API Key](/api-key) for how to generate a key and which permissi
 
 When the schedule is active and the current time is outside the on/off window, the backlight turns off and photo downloads are paused to conserve bandwidth. Downloads resume automatically when the backlight turns back on.
 
-### Automatic Brightness
+### Screen Brightness
 
 | Setting | Default | Description |
 |---|---|---|
-| **Day/Night Brightness** | On | Automatically adjust brightness based on sunrise/sunset |
 | **Daytime Brightness** | 100% | Brightness level during the day (10–100%) |
 | **Nighttime Brightness** | 75% | Brightness level at night (10–100%) |
 
-Sunrise and sunset times are calculated automatically based on the selected timezone. The current sunrise and sunset times are displayed below the brightness sliders.
+Brightness automatically adjusts based on sunrise and sunset times, which are calculated from the selected timezone. The current sunrise and sunset times are displayed below the brightness sliders.
 
 ### Clock
 
