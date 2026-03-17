@@ -28,5 +28,5 @@ Built with [ESPHome](https://esphome.io/) on the ESP32-P4, the frame connects di
 If you find this project useful, consider buying me a coffee to support ongoing development!
 
 <a href="https://www.buymeacoffee.com/jtenniswood">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="36" />
 </a>
