@@ -244,6 +244,7 @@
         try {
           var d = JSON.parse(e.data);
           collectState(d);
+          if (rendered) handleLiveEvent(d);
         } catch (_) {}
 
         if (!rendered) {
@@ -651,15 +652,19 @@
     fNightBrt.appendChild(rwNight);
     dnDetails.appendChild(fNightBrt);
 
-    if (S.sunrise || S.sunset) {
-      var fSunInfo = el("div", "field sun-info");
-      var sunText = "";
-      if (S.sunrise) sunText += "Sunrise: " + esc(S.sunrise);
-      if (S.sunrise && S.sunset) sunText += " \u00a0/\u00a0 ";
-      if (S.sunset) sunText += "Sunset: " + esc(S.sunset);
-      fSunInfo.innerHTML = sunText;
-      dnDetails.appendChild(fSunInfo);
+    var fSunInfo = el("div", "field sun-info");
+    fSunInfo.id = "sun-info";
+    function updateSunInfo() {
+      if (!S.sunrise && !S.sunset) { fSunInfo.style.display = "none"; return; }
+      fSunInfo.style.display = "";
+      var t = "";
+      if (S.sunrise) t += "Sunrise: " + esc(S.sunrise);
+      if (S.sunrise && S.sunset) t += " \u00a0/\u00a0 ";
+      if (S.sunset) t += "Sunset: " + esc(S.sunset);
+      fSunInfo.innerHTML = t;
     }
+    updateSunInfo();
+    dnDetails.appendChild(fSunInfo);
 
     dnCard.appendChild(dnDetails);
     wrap.appendChild(dnCard);
@@ -1004,6 +1009,17 @@
         S.brightness = Math.round((d.brightness / 255) * 100);
     } else if (id === "switch/Clock: Show") {
       S.show_clock = d.state === "ON" || d.value === true;
+    } else if (id === "text_sensor/Screen: Sunrise" || id === "text_sensor/Screen: Sunset") {
+      var el = document.getElementById("sun-info");
+      if (el) {
+        if (!S.sunrise && !S.sunset) { el.style.display = "none"; return; }
+        el.style.display = "";
+        var t = "";
+        if (S.sunrise) t += "Sunrise: " + esc(S.sunrise);
+        if (S.sunrise && S.sunset) t += " \u00a0/\u00a0 ";
+        if (S.sunset) t += "Sunset: " + esc(S.sunset);
+        el.innerHTML = t;
+      }
     }
   }
 
