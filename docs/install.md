@@ -50,11 +50,4 @@ If the serial prompt doesn't appear, the device will create a WiFi hotspot named
 
 Once connected to your network, open the device's IP address in a browser (shown on the device screen). Enter your **Immich server URL** and **API key** in the web interface.
 
-See [Creating an API Key](/api-key) for how to generate a key and which permissions to select.
-
-The frame will start displaying photos from your Immich library.
-
-## Next Steps
-
-- [Configuration](/configuration) — slideshow interval, clock, timezone, and more
-- [Troubleshooting](/troubleshooting) — common issues and fixes
+See [Creating an API Key](/api-key) for how to generate a key and which permissions to select. The frame will start displaying photos from your Immich library.
