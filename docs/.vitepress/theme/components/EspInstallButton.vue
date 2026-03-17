@@ -5,7 +5,7 @@
     </div>
     <div v-else class="install-button">
       <esp-web-install-button :manifest="manifestUrl">
-        <button slot="activate" class="brand-button">Install Immich Frame</button>
+        <button slot="activate" class="brand-button">Install Espframe for Immich</button>
       </esp-web-install-button>
     </div>
   </div>

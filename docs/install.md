@@ -1,11 +1,11 @@
 ---
-title: Install Immich Frame
-description: Flash Immich Frame firmware to your ESP32-P4 directly from the browser using Web Serial.
+title: Install
+description: Flash Espframe for Immich firmware to your ESP32-P4 directly from the browser using Web Serial.
 ---
 
 # Install
 
-Flash Immich Frame directly from your browser.
+Flash Espframe for Immich directly from your browser.
 
 ## What You'll Need
 
@@ -38,7 +38,7 @@ Plug the Guition display into your computer with a USB-C cable. If your OS asks 
 
 ### 2. Flash the firmware
 
-Click **Install Immich Frame** above. Select the serial port for your device in the browser dialog, then confirm the installation. Flashing takes a few minutes.
+Click **Install Espframe for Immich** above. Select the serial port for your device in the browser dialog, then confirm the installation. Flashing takes a few minutes.
 
 ### 3. Configure WiFi
 
@@ -51,3 +51,9 @@ If the serial prompt doesn't appear, the device will create a WiFi hotspot named
 Once connected to your network, open the device's IP address in a browser (shown on the device screen). Enter your **Immich server URL** and **API key** in the web interface.
 
 See [Creating an API Key](/api-key) for how to generate a key and which permissions to select. The frame will start displaying photos from your Immich library.
+
+## What's next
+
+- [Configuration](/configuration) — customise photo sources, slideshow timing, brightness, and more
+- [Home Assistant](/home-assistant) — optionally add the frame to your HA dashboard
+- [Manual Setup](/manual-setup) — install via the ESPHome dashboard for full control

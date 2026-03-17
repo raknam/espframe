@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Configure photo sources, slideshow intervals, clock overlay, backlight schedules, and Wi-Fi settings for your Immich Frame.
+description: Configure photo sources, slideshow intervals, clock overlay, backlight schedules, and Wi-Fi settings for Espframe for Immich.
 ---
 
 # Configuration
@@ -77,8 +77,9 @@ Brightness automatically adjusts based on sunrise and sunset times, which are ca
 | **Clock Format** | 24 Hour | `24 Hour` or `12 Hour` |
 | **Timezone** | Europe/London | Select from a list of common timezones |
 
-!!! note
-    Changes to clock settings can take up to 10 seconds to apply to the screen.
+::: info
+Changes to clock settings can take up to 10 seconds to apply to the screen.
+:::
 
 ### Firmware Updates
 

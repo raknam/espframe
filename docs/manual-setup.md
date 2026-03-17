@@ -16,7 +16,7 @@ In the ESPHome dashboard, create a new YAML configuration for your device. Use t
 ```yaml
 substitutions:
   name: "immich-frame"
-  friendly_name: "Immich Frame"
+  friendly_name: "Espframe for Immich"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -69,7 +69,7 @@ To skip the first-boot setup screen entirely, add the Immich connection details 
 ```yaml
 substitutions:
   name: "immich-frame"
-  friendly_name: "Immich Frame"
+  friendly_name: "Espframe for Immich"
   immich_base_url: "http://192.168.1.30:2283"
   immich_api_key: !secret immich_api_key
 ```

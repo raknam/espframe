@@ -1,5 +1,5 @@
 ---
-title: Immich API Key
+title: API Key
 description: Create a scoped Immich API key with minimal read-only permissions for your Espframe device.
 ---
 
@@ -20,3 +20,7 @@ Immich lets you scope API keys to specific permissions. Espframe only needs read
 | `tag.read` | Tags assigned to photos |
 | `memory.read` | "On this day" memories and groupings |
 | `map.read` | Additional GPS/map data beyond EXIF |
+
+## Next steps
+
+Once you have your API key, enter it in the device's [web UI configuration](/configuration#immich-connection) along with your Immich server URL. For advanced setups, you can also [bake the key into your ESPHome config](/manual-setup#pre-filling-immich-credentials).

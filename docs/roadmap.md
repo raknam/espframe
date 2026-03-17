@@ -5,7 +5,7 @@ description: Planned features and improvements for the Espframe project.
 
 # Roadmap
 
-Planned features and improvements for Espframe. Items are roughly ordered by priority within each category.
+Planned features and improvements for Espframe. Items are roughly ordered by priority within each category. Features marked **Done** are available now — see [Configuration](/configuration) for how to use them.
 
 ## Image Controls
 

@@ -1,15 +1,15 @@
 ---
 title: Home Assistant Integration
-description: Optionally integrate Immich Frame with Home Assistant for OTA updates and dashboard controls.
+description: Optionally integrate Espframe for Immich with Home Assistant for OTA updates and dashboard controls.
 ---
 
 # Home Assistant
 
-Home Assistant is **not required** to use Immich Frame — the device works fully standalone with its built-in [web UI](/configuration). However, if you already run [Home Assistant](https://www.home-assistant.io/), you can add the frame as an ESPHome device to manage updates and change settings from your dashboard instead.
+Home Assistant is **not required** to use Espframe for Immich — the device works fully standalone with its built-in [web UI](/configuration). However, if you already run [Home Assistant](https://www.home-assistant.io/), you can add the frame as an ESPHome device to manage updates and change settings from your dashboard instead.
 
 ## Adding the Device
 
-Because Immich Frame runs on [ESPHome](https://esphome.io/), Home Assistant will usually discover it automatically.
+Because Espframe for Immich runs on [ESPHome](https://esphome.io/), Home Assistant will usually discover it automatically.
 
 ### 1. Check for auto-discovery
 
@@ -62,3 +62,7 @@ Because the frame is a native ESPHome device, you can use it in Home Assistant a
 - **Adjust slideshow speed** — slow the `Photos: Slideshow Interval` in the evening for a more relaxed pace
 - **Switch to memories on weekends** — change `Photos: Source` to `Memories` on Saturday mornings
 - **Notify on disconnect** — send an alert if the frame goes offline
+
+## What's next
+
+For more planned Home Assistant features, check the [Roadmap](/roadmap). If you prefer to manage settings without Home Assistant, see the [Configuration](/configuration) guide for the built-in web UI.
