@@ -132,6 +132,13 @@
     return fetch(url + qs, { method: "POST" }).catch(function () {});
   }
 
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function isValidUuidList(str) {
+    var s = str.trim();
+    if (!s) return true;
+    return s.split(",").every(function (id) { return UUID_RE.test(id.trim()); });
+  }
+
   function safeGet(url) {
     return fetch(url)
       .then(function (r) {
@@ -512,39 +519,66 @@
 
     var albumField = field("Album IDs");
     var albumInput = input("text", S.album_ids, "Paste album IDs, comma-separated");
-    albumInput.onchange = function () {
-      post(endpoints.album_ids + "/set", { value: albumInput.value.trim() });
-    };
+    var albumError = el("div", "field-error");
     var albumHint = el("div");
     albumHint.style.cssText = "font-size:.75rem;color:var(--text2);margin-top:4px";
     albumHint.textContent = "Find IDs in your Immich server URL bar";
     albumField.appendChild(albumInput);
+    albumField.appendChild(albumError);
     albumField.appendChild(albumHint);
     albumField.style.display = S.photo_source === "Album" ? "" : "none";
 
     var personField = field("Person IDs");
     var personInput = input("text", S.person_ids, "Paste person IDs, comma-separated");
-    personInput.onchange = function () {
-      post(endpoints.person_ids + "/set", { value: personInput.value.trim() });
-    };
+    var personError = el("div", "field-error");
     var personHint = el("div");
     personHint.style.cssText = "font-size:.75rem;color:var(--text2);margin-top:4px";
     personHint.textContent = "Find IDs in your Immich server URL bar";
     personField.appendChild(personInput);
+    personField.appendChild(personError);
     personField.appendChild(personHint);
     personField.style.display = S.photo_source === "Person" ? "" : "none";
 
     srcSel.onchange = function () {
       S.photo_source = srcSel.value;
-      post(endpoints.photo_source + "/set", { option: srcSel.value });
       albumField.style.display = srcSel.value === "Album" ? "" : "none";
       personField.style.display = srcSel.value === "Person" ? "" : "none";
+    };
+
+    var applyBtn = el("button", "btn btn-primary btn-block");
+    applyBtn.textContent = "Apply";
+    applyBtn.style.marginTop = "12px";
+    applyBtn.onclick = function () {
+      albumError.textContent = "";
+      personError.textContent = "";
+      var src_val = srcSel.value;
+      if (src_val === "Album" && !isValidUuidList(albumInput.value)) {
+        albumError.textContent = "Invalid UUID format";
+        return;
+      }
+      if (src_val === "Person" && !isValidUuidList(personInput.value)) {
+        personError.textContent = "Invalid UUID format";
+        return;
+      }
+      applyBtn.disabled = true;
+      applyBtn.textContent = "Applying\u2026";
+      post(endpoints.photo_source + "/set", { option: src_val });
+      post(endpoints.album_ids + "/set", { value: albumInput.value.trim() });
+      post(endpoints.person_ids + "/set", { value: personInput.value.trim() });
+      post("/button/apply_photo_source/press").then(function () {
+        applyBtn.textContent = "Applied";
+        setTimeout(function () {
+          applyBtn.disabled = false;
+          applyBtn.textContent = "Apply";
+        }, 2000);
+      });
     };
 
     fSrc.appendChild(srcSel);
     src.appendChild(fSrc);
     src.appendChild(albumField);
     src.appendChild(personField);
+    src.appendChild(applyBtn);
     wrap.appendChild(src);
 
     // Display

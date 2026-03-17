@@ -50,3 +50,21 @@ text:
       - lambda: |-
           id(immich_person_ids).publish_state(x);
           ESP_LOGI("immich", "Person IDs configured (%d chars)", x.length());
+
+button:
+  - platform: template
+    name: "Apply Photo Source"
+    id: apply_photo_source
+    icon: "mdi:check-circle"
+    on_press:
+      - lambda: |-
+          id(slot0).ready = false;
+          id(slot1).ready = false;
+          id(slot2).ready = false;
+          id(portrait_preload_slot) = -1;
+          id(portrait_preload_left_ready) = false;
+          id(portrait_preload_right_ready) = false;
+          id(active_slot_displayed) = false;
+          id(target_slot) = id(active_slot);
+          ESP_LOGI("immich", "Photo source applied — flushing all slots");
+      - script.execute: immich_fetch_into_slot

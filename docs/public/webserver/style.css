@@ -60,6 +60,9 @@ select option{background:var(--surface);color:var(--text)}
 .btn-block{width:100%;display:block}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 
+.field-error{font-size:.75rem;color:#e53935;margin-top:4px}
+.field-error:empty{display:none}
+
 .toggle-row{
   display:flex;justify-content:space-between;align-items:center;
   min-height:36px;
