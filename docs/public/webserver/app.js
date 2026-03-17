@@ -81,7 +81,7 @@
     sunrise: "",
     sunset: "",
     photo_source: "All Photos",
-    photo_source_options: ["All Photos", "Favorites", "Album", "Person"],
+    photo_source_options: ["All Photos", "Favorites", "Album", "Person", "Memories"],
     album_ids: "",
     person_ids: "",
   };
