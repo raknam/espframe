@@ -35,28 +35,8 @@ Once added, the frame exposes its settings as Home Assistant entities. You can v
 
 | Entity | Type | Description |
 |---|---|---|
-| **Photos: Slideshow Interval** | Number | Time between photos (5–300 seconds) |
+| **Photos: Slideshow Interval** | Select | Time between photos (10 seconds – 10 minutes) |
 | **Photos: Source** | Select | Which photos to display (`All Photos`, `Favorites`, `Album`, `Person`, `Memories`) |
-| **Photos: Album IDs** | Text | Comma-separated album UUIDs (used when Source is `Album`) |
-| **Photos: Person IDs** | Text | Comma-separated person UUIDs (used when Source is `Person`) |
-
-### Screen
-
-| Entity | Type | Description |
-|---|---|---|
-| **Screen: Schedule** | Switch | Toggle scheduled backlight on/off |
-| **Screen: Schedule On** | Number | Hour the backlight turns on (0–23) |
-| **Screen: Schedule Off** | Number | Hour the backlight turns off (0–23) |
-| **Screen: Daytime Brightness** | Number | Brightness during the day (10–100%) |
-| **Screen: Nighttime Brightness** | Number | Brightness at night (10–100%) |
-
-### Clock
-
-| Entity | Type | Description |
-|---|---|---|
-| **Clock: Show** | Switch | Toggle the clock overlay |
-| **Clock: Format** | Select | `24 Hour` or `12 Hour` |
-| **Clock: Timezone** | Select | Device timezone |
 
 ### Firmware
 
@@ -69,17 +49,10 @@ Once added, the frame exposes its settings as Home Assistant entities. You can v
 
 | Entity | Type | Description |
 |---|---|---|
+| **Screen: Brightness** | Sensor | Current backlight brightness (0–100%) |
 | **WiFi Signal** | Sensor | Current signal strength (dBm) |
 | **Uptime** | Sensor | Time since last reboot |
-| **Screen: Sunrise** | Text Sensor | Today's calculated sunrise time |
-| **Screen: Sunset** | Text Sensor | Today's calculated sunset time |
 | **Firmware: Version** | Text Sensor | Currently installed firmware version |
-
-## OTA Updates
-
-When a new firmware version is available, Home Assistant will show an update notification on the device page. Click **Update** to flash the new firmware over-the-air — no USB cable required.
-
-You can also trigger OTA updates from **Settings → Devices & Services → ESPHome**, selecting the device, and clicking **Update** in the firmware section.
 
 ## Automations
 

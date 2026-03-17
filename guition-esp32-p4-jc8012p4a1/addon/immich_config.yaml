@@ -24,6 +24,7 @@ text:
   - platform: template
     name: "Connection: Server URL"
     id: immich_url
+    internal: true
     entity_category: config
     optimistic: false
     restore_value: true
@@ -42,6 +43,7 @@ text:
   - platform: template
     name: "Connection: API Key"
     id: immich_api_key_text
+    internal: true
     entity_category: config
     optimistic: false
     restore_value: true

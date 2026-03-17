@@ -52,10 +52,11 @@
   var S = {
     clock_options: ["24 Hour", "12 Hour"],
     tz_options: TIMEZONES,
-    interval_min: 5,
-    interval_max: 300,
-    interval_step: 5,
-    interval: 30,
+    interval: "15 seconds",
+    interval_options: [
+      "10 seconds", "15 seconds", "20 seconds", "30 seconds", "45 seconds",
+      "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes"
+    ],
     brightness: 100,
     backlight_on: true,
     show_clock: true,
@@ -76,6 +77,7 @@
     schedule_enabled: false,
     schedule_on_hour: 6,
     schedule_off_hour: 23,
+    brightness_current: 0,
     brightness_day: 100,
     brightness_night: 75,
     sunrise: "",
@@ -102,7 +104,7 @@
     api_key: eid("text", "Connection: API Key"),
     clock_format: eid("select", "Clock: Format"),
     timezone: eid("select", "Clock: Timezone"),
-    interval: eid("number", "Photos: Slideshow Interval"),
+    interval: eid("select", "Photos: Slideshow Interval"),
     backlight: eid("light", "Screen: Backlight"),
     show_clock: eid("switch", "Clock: Show"),
     firmware: eid("text_sensor", "Firmware: Version"),
@@ -113,6 +115,7 @@
     schedule_enabled: eid("switch", "Screen: Schedule"),
     schedule_on_hour: eid("number", "Screen: Schedule On"),
     schedule_off_hour: eid("number", "Screen: Schedule Off"),
+    brightness_current: eid("sensor", "Screen: Brightness"),
     brightness_day: eid("number", "Screen: Daytime Brightness"),
     brightness_night: eid("number", "Screen: Nighttime Brightness"),
     sunrise: eid("text_sensor", "Screen: Sunrise"),
@@ -171,11 +174,9 @@
     } else if (id === "select/Clock: Timezone") {
       S.timezone = d.value || "";
       if (d.option && d.option.length) S.tz_options = d.option;
-    } else if (id === "number/Photos: Slideshow Interval") {
-      S.interval = d.value != null ? d.value : 30;
-      if (d.min_value != null) S.interval_min = d.min_value;
-      if (d.max_value != null) S.interval_max = d.max_value;
-      if (d.step != null) S.interval_step = d.step;
+    } else if (id === "select/Photos: Slideshow Interval") {
+      S.interval = d.value || "15 seconds";
+      if (d.option && d.option.length) S.interval_options = d.option;
     } else if (id === "light/Screen: Backlight") {
       S.backlight_on = d.state === "ON";
       if (d.brightness != null)
@@ -208,6 +209,8 @@
       S.schedule_on_hour = d.value != null ? d.value : 6;
     } else if (id === "number/Screen: Schedule Off") {
       S.schedule_off_hour = d.value != null ? d.value : 23;
+    } else if (id === "sensor/Screen: Brightness") {
+      S.brightness_current = d.value != null ? d.value : 0;
     } else if (id === "number/Screen: Daytime Brightness") {
       S.brightness_day = d.value != null ? d.value : 100;
     } else if (id === "number/Screen: Nighttime Brightness") {
@@ -593,24 +596,20 @@
     disp.innerHTML = "<h3>Frequency</h3>";
 
     var f3 = field("Slideshow Interval");
-    var rw = el("div", "range-wrap");
-    var slider = document.createElement("input");
-    slider.type = "range";
-    slider.min = S.interval_min;
-    slider.max = S.interval_max;
-    slider.step = S.interval_step;
-    slider.value = S.interval;
-    var valLabel = el("span", "range-val");
-    valLabel.textContent = S.interval + "s";
-    slider.oninput = function () {
-      valLabel.textContent = slider.value + "s";
+    var intSel = document.createElement("select");
+    intSel.className = "select";
+    S.interval_options.forEach(function (opt) {
+      var o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      if (opt === S.interval) o.selected = true;
+      intSel.appendChild(o);
+    });
+    intSel.onchange = function () {
+      S.interval = intSel.value;
+      post(endpoints.interval + "/set", { option: intSel.value });
     };
-    slider.onchange = function () {
-      post(endpoints.interval + "/set", { value: slider.value });
-    };
-    rw.appendChild(slider);
-    rw.appendChild(valLabel);
-    f3.appendChild(rw);
+    f3.appendChild(intSel);
     disp.appendChild(f3);
 
     wrap.appendChild(disp);
@@ -618,6 +617,14 @@
     // Screen Brightness
     var dnCard = el("div", "card");
     dnCard.innerHTML = "<h3>Screen Brightness</h3>";
+
+    var fCurBrt = field("Current Brightness");
+    var curBrtVal = el("span");
+    curBrtVal.id = "current-brightness";
+    curBrtVal.style.cssText = "font-size:1.1rem;font-weight:500";
+    curBrtVal.textContent = Math.round(S.brightness_current) + "%";
+    fCurBrt.appendChild(curBrtVal);
+    dnCard.appendChild(fCurBrt);
 
     var dnDetails = el("div");
 
@@ -1020,6 +1027,10 @@
         S.brightness = Math.round((d.brightness / 255) * 100);
     } else if (id === "switch/Clock: Show") {
       S.show_clock = d.state === "ON" || d.value === true;
+    } else if (id === "sensor/Screen: Brightness") {
+      S.brightness_current = d.value != null ? d.value : 0;
+      var cb = document.getElementById("current-brightness");
+      if (cb) cb.textContent = Math.round(S.brightness_current) + "%";
     } else if (id === "text_sensor/Screen: Sunrise" || id === "text_sensor/Screen: Sunset") {
       var el = document.getElementById("sun-info");
       if (el) {

@@ -15,6 +15,7 @@ update:
   - platform: http_request
     id: firmware_update
     name: "Firmware: Update"
+    internal: true
     source: https://jtenniswood.github.io/espframe/firmware/manifest.json
     update_interval: never
     on_update_available:
@@ -28,6 +29,7 @@ update:
   - platform: http_request
     id: firmware_update_beta
     name: "Firmware: Update Beta"
+    internal: true
     source: https://jtenniswood.github.io/espframe/firmware/beta/manifest.json
     update_interval: never
 

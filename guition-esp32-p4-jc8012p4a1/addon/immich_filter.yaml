@@ -28,6 +28,7 @@ text:
   - platform: template
     name: "Photos: Album IDs"
     id: immich_album_ids
+    internal: true
     optimistic: false
     restore_value: true
     min_length: 0
@@ -43,6 +44,7 @@ text:
   - platform: template
     name: "Photos: Person IDs"
     id: immich_person_ids
+    internal: true
     optimistic: false
     restore_value: true
     min_length: 0

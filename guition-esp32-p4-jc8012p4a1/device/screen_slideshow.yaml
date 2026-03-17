@@ -7,7 +7,7 @@
 # =============================================================================
 
 substitutions:
-  immich_slide_interval_seconds: "15"
+  immich_slide_interval: "15 seconds"
   slideshow_check_interval: "5s"
 
 # =============================================================================
@@ -158,17 +158,24 @@ lvgl:
 # USER-CONFIGURABLE SETTINGS
 # =============================================================================
 
-number:
+select:
   - platform: template
     name: "Photos: Slideshow Interval"
     id: slideshow_interval
-    min_value: 5
-    max_value: 300
-    step: 5
-    initial_value: ${immich_slide_interval_seconds}
+    options:
+      - "10 seconds"
+      - "15 seconds"
+      - "20 seconds"
+      - "30 seconds"
+      - "45 seconds"
+      - "1 minute"
+      - "2 minutes"
+      - "3 minutes"
+      - "5 minutes"
+      - "10 minutes"
+    initial_option: ${immich_slide_interval}
     optimistic: true
     restore_value: true
-    unit_of_measurement: "s"
     icon: "mdi:timer-outline"
 
 
@@ -184,8 +191,10 @@ interval:
             lambda: |-
               if (!id(immich_fetch_started)) return false;
               if (id(backlight_paused)) return false;
-              uint32_t interval_ms = (uint32_t)(id(slideshow_interval).state * 1000);
-              return (millis() - id(immich_last_advance_ms)) >= interval_ms;
+              std::string opt = id(slideshow_interval).state;
+              int num = atoi(opt.c_str());
+              uint32_t seconds = (opt.find("minute") != std::string::npos) ? num * 60 : num;
+              return (millis() - id(immich_last_advance_ms)) >= (seconds * 1000);
           then:
             - script.execute: immich_advance_forward
 

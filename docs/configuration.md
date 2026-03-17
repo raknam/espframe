@@ -48,7 +48,7 @@ Changes to photo source settings are applied automatically — the frame flushes
 
 | Setting | Default | Description |
 |---|---|---|
-| **Slideshow Interval** | 15s | Time between photos (5–300 seconds) |
+| **Slideshow Interval** | 15 seconds | Time between photos (10 seconds – 10 minutes) |
 
 ### Screen Schedule
 

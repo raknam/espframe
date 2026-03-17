@@ -62,7 +62,7 @@ These substitutions can be added to the `substitutions:` block in your configura
 | `friendly_name` | — | Display name shown in the web UI (required) |
 | `immich_base_url` | *(empty)* | Pre-fill the Immich server URL to skip the setup screen on first boot |
 | `immich_api_key` | *(empty)* | Pre-fill the API key to skip the setup screen on first boot |
-| `immich_slide_interval_seconds` | `15` | Default slideshow interval in seconds |
+| `immich_slide_interval` | `15 seconds` | Default slideshow interval (e.g. `30 seconds`, `2 minutes`) |
 | `immich_verify_ssl` | `false` | Set to `true` to enforce TLS certificate verification |
 
 ::: tip
