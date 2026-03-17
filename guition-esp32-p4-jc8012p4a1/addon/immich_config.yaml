@@ -22,8 +22,10 @@ esphome:
 
 text:
   - platform: template
-    name: "Immich URL"
+    name: "Connection: Server URL"
     id: immich_url
+    object_id: immich_url
+    entity_category: config
     optimistic: false
     restore_value: true
     min_length: 0
@@ -39,8 +41,10 @@ text:
       - script.execute: immich_check_config_ready
 
   - platform: template
-    name: "Immich API Key"
+    name: "Connection: API Key"
     id: immich_api_key_text
+    object_id: immich_api_key
+    entity_category: config
     optimistic: false
     restore_value: true
     min_length: 0

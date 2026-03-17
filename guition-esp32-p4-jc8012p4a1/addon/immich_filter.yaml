@@ -7,8 +7,9 @@
 
 select:
   - platform: template
-    name: "Photo Source"
+    name: "Photos: Source"
     id: photo_source_select
+    object_id: photo_source
     options:
       - "All Photos"
       - "Favorites"
@@ -21,11 +22,14 @@ select:
     on_value:
       then:
         - lambda: 'ESP_LOGI("immich", "Photo source: %s", x.c_str());'
+        - script.execute: auto_apply_photo_source
 
 text:
   - platform: template
-    name: "Album IDs"
+    name: "Photos: Album IDs"
     id: immich_album_ids
+    object_id: album_ids
+    entity_category: config
     optimistic: false
     restore_value: true
     min_length: 0
@@ -36,10 +40,13 @@ text:
       - lambda: |-
           id(immich_album_ids).publish_state(x);
           ESP_LOGI("immich", "Album IDs configured (%d chars)", x.length());
+      - script.execute: auto_apply_photo_source
 
   - platform: template
-    name: "Person IDs"
+    name: "Photos: Person IDs"
     id: immich_person_ids
+    object_id: person_ids
+    entity_category: config
     optimistic: false
     restore_value: true
     min_length: 0
@@ -50,13 +57,16 @@ text:
       - lambda: |-
           id(immich_person_ids).publish_state(x);
           ESP_LOGI("immich", "Person IDs configured (%d chars)", x.length());
+      - script.execute: auto_apply_photo_source
 
 button:
   - platform: template
     name: "Apply Photo Source"
     id: apply_photo_source
+    internal: true
     icon: "mdi:check-circle"
     on_press:
+      - script.stop: auto_apply_photo_source
       - lambda: |-
           id(slot0).ready = false;
           id(slot1).ready = false;
@@ -67,4 +77,21 @@ button:
           id(active_slot_displayed) = false;
           id(target_slot) = id(active_slot);
           ESP_LOGI("immich", "Photo source applied — flushing all slots");
+      - script.execute: immich_fetch_into_slot
+
+script:
+  - id: auto_apply_photo_source
+    mode: restart
+    then:
+      - delay: 1s
+      - lambda: |-
+          id(slot0).ready = false;
+          id(slot1).ready = false;
+          id(slot2).ready = false;
+          id(portrait_preload_slot) = -1;
+          id(portrait_preload_left_ready) = false;
+          id(portrait_preload_right_ready) = false;
+          id(active_slot_displayed) = false;
+          id(target_slot) = id(active_slot);
+          ESP_LOGI("immich", "Photo source auto-applied — flushing all slots");
       - script.execute: immich_fetch_into_slot

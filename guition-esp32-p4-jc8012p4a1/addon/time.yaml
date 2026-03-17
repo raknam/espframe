@@ -1,7 +1,8 @@
 select:
   - platform: template
-    name: "Clock Format"
+    name: "Clock: Format"
     id: clock_format_select
+    object_id: clock_format
     options:
       - "24 Hour"
       - "12 Hour"
@@ -13,8 +14,10 @@ select:
         - script.execute: update_clock_display
 
   - platform: template
-    name: "Timezone"
+    name: "Clock: Timezone"
     id: timezone_select
+    object_id: timezone
+    entity_category: config
     options:
       - "Pacific/Midway (GMT-11)"
       - "Pacific/Pago_Pago (GMT-11)"
@@ -159,8 +162,9 @@ select:
 
 switch:
   - platform: template
-    name: "Show Clock"
+    name: "Clock: Show"
     id: show_clock
+    object_id: show_clock
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     icon: "mdi:clock-outline"

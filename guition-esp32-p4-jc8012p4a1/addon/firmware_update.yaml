@@ -14,7 +14,8 @@ ota:
 update:
   - platform: http_request
     id: firmware_update
-    name: Firmware Update
+    name: "Firmware: Update"
+    object_id: firmware_update
     source: https://jtenniswood.github.io/espframe/firmware/manifest.json
     update_interval: never
     on_update_available:
@@ -27,22 +28,27 @@ update:
 
   - platform: http_request
     id: firmware_update_beta
-    name: Firmware Update Beta
+    name: "Firmware: Update Beta"
+    object_id: firmware_update_beta
     source: https://jtenniswood.github.io/espframe/firmware/beta/manifest.json
     update_interval: never
 
 switch:
   - platform: template
-    name: "Auto Update"
+    name: "Firmware: Auto Update"
     id: auto_update_switch
+    object_id: auto_update
+    entity_category: config
     icon: "mdi:update"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
 
 select:
   - platform: template
-    name: "Update Frequency"
+    name: "Firmware: Update Frequency"
     id: update_frequency_select
+    object_id: update_frequency
+    entity_category: config
     icon: "mdi:timer-outline"
     options:
       - "Hourly"
@@ -69,15 +75,19 @@ interval:
 
 text_sensor:
   - platform: template
-    name: Firmware Version
+    name: "Firmware: Version"
     id: firmware_version_sensor
+    object_id: firmware_version
+    entity_category: diagnostic
     icon: "mdi:tag"
     update_interval: 5s
     lambda: 'return {"${firmware_version}"};'
 
 button:
   - platform: template
-    name: Check for Update
+    name: "Firmware: Check for Update"
+    object_id: check_for_update
+    entity_category: config
     icon: "mdi:update"
     on_press:
       - component.update: firmware_update
