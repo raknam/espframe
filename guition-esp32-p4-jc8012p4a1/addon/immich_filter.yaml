@@ -14,6 +14,7 @@ select:
       - "Favorites"
       - "Album"
       - "Person"
+      - "Memories"
     initial_option: "All Photos"
     optimistic: true
     restore_value: true

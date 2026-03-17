@@ -9,6 +9,9 @@ globals:
   - id: immich_api_retries
     type: int
     initial_value: '0'
+  - id: immich_memory_fallback
+    type: bool
+    initial_value: 'false'
 
 script:
   # ---------------------------------------------------------------------------
@@ -23,6 +26,185 @@ script:
             id(active_slot_displayed) = true;
             id(immich_display_current).execute();
           }
+
+  # ---------------------------------------------------------------------------
+  # Fetch a memory-lane photo ("on this day") into target_slot
+  # ---------------------------------------------------------------------------
+  - id: immich_fetch_memory_into_slot
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(immich_url).state.empty() || id(immich_api_key_text).state.empty();'
+          then:
+            - script.stop: immich_fetch_memory_into_slot
+      - http_request.get:
+          id: http_req
+          url: !lambda |-
+            auto now = id(sntp_time).now();
+            return id(immich_url).state + "/api/memories/memory-lane?day="
+                   + std::to_string(now.day_of_month) + "&month=" + std::to_string(now.month);
+          capture_response: true
+          max_response_buffer_size: 32kB
+          request_headers:
+            Accept: application/json
+            x-api-key: !lambda 'return id(immich_api_key_text).state.c_str();'
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("immich", "Memory lane HTTP %d — falling back to random", response->status_code);
+                    id(immich_memory_fallback) = true;
+                    id(immich_fetch_into_slot).execute();
+                    return;
+                  }
+
+                  auto doc = json::parse_json(body);
+                  if (doc.isNull() || !doc.is<JsonArray>()) {
+                    ESP_LOGI("immich", "No memories for today — falling back to random");
+                    id(immich_memory_fallback) = true;
+                    id(immich_fetch_into_slot).execute();
+                    return;
+                  }
+
+                  JsonArray groups = doc.as<JsonArray>();
+                  int total = 0;
+                  for (size_t g = 0; g < groups.size(); g++) {
+                    JsonObject group = groups[g].as<JsonObject>();
+                    if (!group.isNull() && group["assets"].is<JsonArray>())
+                      total += group["assets"].as<JsonArray>().size();
+                  }
+                  if (total == 0) {
+                    ESP_LOGI("immich", "Memory lane empty — falling back to random");
+                    id(immich_memory_fallback) = true;
+                    id(immich_fetch_into_slot).execute();
+                    return;
+                  }
+
+                  int pick = rand() % total;
+                  int idx = 0;
+                  JsonObject asset;
+                  for (size_t g = 0; g < groups.size(); g++) {
+                    JsonObject group = groups[g].as<JsonObject>();
+                    if (group.isNull() || !group["assets"].is<JsonArray>()) continue;
+                    JsonArray assets = group["assets"].as<JsonArray>();
+                    for (size_t a = 0; a < assets.size(); a++) {
+                      if (idx == pick) {
+                        asset = assets[a].as<JsonObject>();
+                        break;
+                      }
+                      idx++;
+                    }
+                    if (!asset.isNull()) break;
+                  }
+
+                  if (asset.isNull() || !asset["id"].is<const char *>()) {
+                    ESP_LOGW("immich", "Memory asset parse failed — falling back to random");
+                    id(immich_memory_fallback) = true;
+                    id(immich_fetch_into_slot).execute();
+                    return;
+                  }
+
+                  id(immich_fetch_started) = true;
+                  id(immich_api_retries) = 0;
+
+                  std::string asset_id = asset["id"].as<std::string>();
+                  std::string photo_date, photo_location, photo_person, local_datetime;
+                  int photo_year = 0, photo_month = 0;
+                  bool is_portrait = false;
+                  uint16_t slot_zoom = ZOOM_IDENTITY;
+
+                  if (asset["localDateTime"].is<const char *>()) {
+                    std::string raw = asset["localDateTime"].as<std::string>();
+                    local_datetime = raw;
+                    if (raw.size() >= 10) {
+                      photo_year = atoi(raw.substr(0, 4).c_str());
+                      photo_month = atoi(raw.substr(5, 2).c_str());
+                      photo_date = format_photo_date(photo_year, photo_month);
+                    }
+                  }
+
+                  JsonObject exif = asset["exifInfo"].as<JsonObject>();
+                  if (!exif.isNull()) {
+                    std::string city, country;
+                    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
+                    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
+                    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
+                    else if (!city.empty()) photo_location = city;
+                    else if (!country.empty()) photo_location = country;
+
+                    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
+                      std::string raw = exif["dateTimeOriginal"].as<std::string>();
+                      if (raw.size() >= 10) {
+                        photo_year = atoi(raw.substr(0, 4).c_str());
+                        photo_month = atoi(raw.substr(5, 2).c_str());
+                        photo_date = format_photo_date(photo_year, photo_month);
+                      }
+                    }
+
+                    int exif_w = 0, exif_h = 0;
+                    if (exif["exifImageWidth"].is<int>()) exif_w = exif["exifImageWidth"].as<int>();
+                    if (exif["exifImageHeight"].is<int>()) exif_h = exif["exifImageHeight"].as<int>();
+                    std::string orientation;
+                    if (exif["orientation"].is<const char *>()) orientation = exif["orientation"].as<std::string>();
+                    if (orientation == "5" || orientation == "6" || orientation == "7" || orientation == "8")
+                      std::swap(exif_w, exif_h);
+                    if (exif_w > 0 && exif_h > 0) {
+                      is_portrait = (exif_h > exif_w);
+                      if (!is_portrait) {
+                        float aspect = (float)exif_w / (float)exif_h;
+                        if (aspect > PANORAMA_MIN_ASPECT && aspect <= PANORAMA_MAX_ASPECT) {
+                          float decoded_h = 1280.0f / aspect;
+                          slot_zoom = (uint16_t)((float)ZOOM_IDENTITY * 800.0f / decoded_h);
+                        }
+                      }
+                    }
+                  }
+
+                  if (asset["people"].is<JsonArray>()) {
+                    JsonArray people = asset["people"].as<JsonArray>();
+                    if (people.size() > 0) {
+                      JsonObject person = people[0].as<JsonObject>();
+                      if (person["name"].is<const char *>())
+                        photo_person = person["name"].as<std::string>();
+                    }
+                  }
+
+                  std::string img_url = id(immich_url).state + "/api/assets/" + asset_id + "/thumbnail?size=preview";
+                  int slot = id(target_slot);
+                  ESP_LOGI("immich", "Memory slot %d fetched: %s | %s | %s | %s | portrait=%d zoom=%u",
+                           slot, asset_id.c_str(), photo_date.c_str(),
+                           photo_person.c_str(), photo_location.c_str(), is_portrait, slot_zoom);
+
+                  if (id(portrait_preload_slot) == slot) {
+                    id(portrait_preload_slot) = -1;
+                    id(portrait_preload_left_ready) = false;
+                    id(portrait_preload_right_ready) = false;
+                  }
+
+                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
+                  meta.asset_id = asset_id;
+                  meta.image_url = img_url;
+                  meta.date = photo_date;
+                  meta.location = photo_location;
+                  meta.year = photo_year;
+                  meta.month = photo_month;
+                  meta.person = photo_person;
+                  meta.is_portrait = is_portrait;
+                  meta.datetime = local_datetime;
+                  meta.companion_url = "";
+                  meta.zoom = slot_zoom;
+                  meta.pending_asset_id = asset_id;
+
+                  if (slot == 0) { id(immich_img_0).set_url(img_url); id(immich_img_0).update(); }
+                  else if (slot == 1) { id(immich_img_1).set_url(img_url); id(immich_img_1).update(); }
+                  else { id(immich_img_2).set_url(img_url); id(immich_img_2).update(); }
+          on_error:
+            then:
+              - lambda: |-
+                  ESP_LOGW("immich", "Memory lane request failed — falling back to random");
+                  id(immich_memory_fallback) = true;
+              - script.execute: immich_fetch_into_slot
 
   # ---------------------------------------------------------------------------
   # Fetch API metadata and start image download into target_slot
@@ -48,6 +230,13 @@ script:
                 tag: immich
                 format: "Fetch paused (backlight off)"
             - script.stop: immich_fetch_into_slot
+      - if:
+          condition:
+            lambda: 'return id(photo_source_select).state == "Memories" && !id(immich_memory_fallback);'
+          then:
+            - script.execute: immich_fetch_memory_into_slot
+            - script.stop: immich_fetch_into_slot
+      - lambda: 'id(immich_memory_fallback) = false;'
       - http_request.post:
           id: http_req
           url: !lambda 'return id(immich_url).state + "/api/search/random";'
