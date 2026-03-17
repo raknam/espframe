@@ -28,7 +28,6 @@ text:
   - platform: template
     name: "Photos: Album IDs"
     id: immich_album_ids
-    object_id: album_ids
     entity_category: config
     optimistic: false
     restore_value: true
@@ -45,7 +44,6 @@ text:
   - platform: template
     name: "Photos: Person IDs"
     id: immich_person_ids
-    object_id: person_ids
     entity_category: config
     optimistic: false
     restore_value: true
