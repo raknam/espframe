@@ -13,7 +13,12 @@ Control **which** photos the frame displays.
 
 | Feature | Status |
 |---|---|
-| Immich Memories | Planned |
+| Filter by album | Done |
+| Filter by person / face | Done |
+| Favourite-only mode | Done |
+| Immich Memories ("on this day") | Done |
+| Date-range filter (e.g. "this month in history") | Planned |
+| Exclude videos / motion photos | Planned |
 
 ## Offline Storage
 

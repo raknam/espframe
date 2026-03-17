@@ -19,8 +19,10 @@ hero:
       link: https://github.com/jtenniswood/espframe
 
 features:
+  - title: Photo Filtering
+    details: Show all photos, favorites only, specific albums, specific people, or "on this day" memories from previous years.
   - title: Portrait Pairing
-    details: Automatically pairs portrait photos taken on the same day for a side-by-side widescreen display.
+    details: Automatically pairs portrait photos taken on the same day for a side-by-side display that fills the screen edge-to-edge.
   - title: Accent Color Fill
     details: Replaces black letterbox bars with a muted color sampled from the photo itself.
   - title: Clock Overlay

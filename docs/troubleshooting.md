@@ -31,7 +31,7 @@ description: Solutions for common Immich Frame issues including HTTP 401 errors,
 ## Known Limitations
 
 - You can only swipe back **one photo**. There's no deep history.
-- Standard landscape images are resized to 1280x960. Portrait pairs are resized to 640x1200 each.
+- Standard landscape images are resized to 1280x960. Portrait pairs are resized to 640x800 each and cropped to fill the frame.
 - Very wide panoramas (wider than 2:1 aspect ratio) are shown with letterboxing rather than zoomed.
 - The companion portrait search picks from up to 10 random same-day photos — it doesn't guarantee the best pairing.
 

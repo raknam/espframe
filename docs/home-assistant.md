@@ -31,14 +31,39 @@ If the device doesn't appear automatically:
 
 Once added, the frame exposes its settings as Home Assistant entities. You can view and control them from the device page under **Settings → Devices & Services → ESPHome**.
 
-### Controls
+### Photos
 
 | Entity | Type | Description |
 |---|---|---|
-| **Slideshow Interval** | Number | Time between photos (5–300 seconds) |
-| **Show Clock** | Switch | Toggle the clock overlay |
-| **Clock Format** | Select | `24 Hour` or `12 Hour` |
-| **Timezone** | Select | Device timezone |
+| **Photos: Slideshow Interval** | Number | Time between photos (5–300 seconds) |
+| **Photos: Source** | Select | Which photos to display (`All Photos`, `Favorites`, `Album`, `Person`, `Memories`) |
+| **Photos: Album IDs** | Text | Comma-separated album UUIDs (used when Source is `Album`) |
+| **Photos: Person IDs** | Text | Comma-separated person UUIDs (used when Source is `Person`) |
+
+### Screen
+
+| Entity | Type | Description |
+|---|---|---|
+| **Screen: Schedule** | Switch | Toggle scheduled backlight on/off |
+| **Screen: Schedule On** | Number | Hour the backlight turns on (0–23) |
+| **Screen: Schedule Off** | Number | Hour the backlight turns off (0–23) |
+| **Screen: Daytime Brightness** | Number | Brightness during the day (10–100%) |
+| **Screen: Nighttime Brightness** | Number | Brightness at night (10–100%) |
+
+### Clock
+
+| Entity | Type | Description |
+|---|---|---|
+| **Clock: Show** | Switch | Toggle the clock overlay |
+| **Clock: Format** | Select | `24 Hour` or `12 Hour` |
+| **Clock: Timezone** | Select | Device timezone |
+
+### Firmware
+
+| Entity | Type | Description |
+|---|---|---|
+| **Firmware: Auto Update** | Switch | Automatically install firmware updates |
+| **Firmware: Update Frequency** | Select | How often to check: `Hourly`, `Daily`, or `Weekly` |
 
 ### Sensors
 
@@ -46,6 +71,9 @@ Once added, the frame exposes its settings as Home Assistant entities. You can v
 |---|---|---|
 | **WiFi Signal** | Sensor | Current signal strength (dBm) |
 | **Uptime** | Sensor | Time since last reboot |
+| **Screen: Sunrise** | Text Sensor | Today's calculated sunrise time |
+| **Screen: Sunset** | Text Sensor | Today's calculated sunset time |
+| **Firmware: Version** | Text Sensor | Currently installed firmware version |
 
 ## OTA Updates
 
@@ -57,6 +85,7 @@ You can also trigger OTA updates from **Settings → Devices & Services → ESPH
 
 Because the frame is a native ESPHome device, you can use it in Home Assistant automations like any other entity. A few ideas:
 
-- **Turn off the clock at night** — disable the clock overlay during sleeping hours
-- **Adjust slideshow speed** — slow the interval in the evening for a more relaxed pace
+- **Turn off the clock at night** — toggle `Clock: Show` during sleeping hours
+- **Adjust slideshow speed** — slow the `Photos: Slideshow Interval` in the evening for a more relaxed pace
+- **Switch to memories on weekends** — change `Photos: Source` to `Memories` on Saturday mornings
 - **Notify on disconnect** — send an alert if the frame goes offline

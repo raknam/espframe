@@ -11,6 +11,7 @@ Built with [ESPHome](https://esphome.io/) on the ESP32-P4, the frame connects di
 ## Features
 
 - **Fully standalone** — runs on bare hardware, no hub or cloud service needed
+- **Photo filtering** — show all photos, favourites, specific albums, specific people, or "on this day" memories
 - **Smart portrait pairing** — detects portrait photos and pairs them side-by-side from the same day
 - **Accent colour fill** — letterboxed areas are tinted with a colour sampled from the photo
 - **Configuration options** — change Immich URL, API key, slideshow interval, and more via the built-in web UI
@@ -32,6 +33,6 @@ You'll need a USB-C data cable and Chrome or Edge on desktop.
 
 ## Documentation
 
-Getting started, configuration, and troubleshooting gudies are available at:
+Getting started, configuration, and troubleshooting guides are available at:
 
 **[jtenniswood.github.io/espframe](https://jtenniswood.github.io/espframe/)**
