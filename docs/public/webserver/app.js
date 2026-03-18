@@ -920,7 +920,7 @@
     versionBlock.appendChild(checkHint);
     fwBody.appendChild(versionBlock);
 
-    var updateRow = el("div", "mb-8");
+    var updateRow = el("div", "mb-24");
     fwBody.appendChild(updateRow);
     var betaRow = el("div", "mb-12");
     fwBody.appendChild(betaRow);
