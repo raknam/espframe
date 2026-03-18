@@ -96,4 +96,17 @@ When auto update is enabled, the device periodically checks for new firmware and
 
 See **[Firmware Update](/firmware-update)** for how OTA and auto-update work, and for manual check.
 
+---
+
+## Related pages
+
+| Topic | Page |
+|-------|------|
+| Immich URL and API key | [API Key](/api-key) |
+| Albums, people, and photo sources | [Photo Sources](/photo-sources) |
+| Slideshow interval options | [Frequency](/frequency) |
+| Brightness, schedule, and display | [Screen](/screen) |
+| Colour temperature and warm tone | [Screen Tone](/screen-tone) |
+| OTA and auto-update | [Firmware Update](/firmware-update) |
+
 See **[Firmware Update](/firmware-update)** for details on all firmware controls and how updates work.
