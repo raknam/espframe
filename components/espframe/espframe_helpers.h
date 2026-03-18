@@ -7,6 +7,7 @@
 
 static constexpr int MAX_ERROR_RETRIES = 3;
 static constexpr int ACCENT_GRID_SIZE = 20;
+static constexpr int WARM_TONE_LEAD_MINUTES = 60;
 
 struct PhotoMeta {
   std::string asset_id, image_url, date, location, person;

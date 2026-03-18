@@ -34,7 +34,7 @@ Automatically adjust display output based on ambient light conditions.
 
 | Feature | Status |
 |---|---|
-| Automatic white balance based on time/season | Planned |
+| Automatic white balance based on time/season | Done |
 
 ## Photo Metadata
 

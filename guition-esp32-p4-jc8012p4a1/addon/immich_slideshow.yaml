@@ -406,6 +406,7 @@ script:
           lv_img_set_zoom(id(slideshow_img), meta.zoom);
           if (!meta.is_portrait) id(active_slot_displayed) = true;
       - script.execute: extract_accent_color
+      - script.execute: apply_warm_tones
       - if:
           condition:
             lambda: |-
@@ -430,6 +431,7 @@ script:
                 id: portrait_right_img
                 src: immich_portrait_preload_right
             - script.execute: extract_accent_color
+            - script.execute: apply_warm_tones
       - if:
           condition:
             lambda: |-
@@ -589,6 +591,7 @@ script:
           id: portrait_right_img
           src: immich_portrait_right
       - script.execute: extract_accent_color
+      - script.execute: apply_warm_tones
       - script.execute: delayed_prefetch_chain
 
   # ---------------------------------------------------------------------------

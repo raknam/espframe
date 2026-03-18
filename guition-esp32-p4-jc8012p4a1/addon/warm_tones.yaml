@@ -1,0 +1,119 @@
+# =============================================================================
+# WARM TONES - Sun-based display color temperature
+# =============================================================================
+# Shifts displayed photos toward warm tones (reduced blue, slight red boost)
+# as sunset approaches, mimicking the golden hour effect. Uses the existing
+# sunrise/sunset globals from backlight_schedule.yaml.
+#
+# The warmth curve ramps linearly over 60 minutes before sunset, stays full
+# warm through the night, then ramps back to neutral over 60 minutes after
+# sunrise. The tint is applied directly to the RGB565 image buffer after
+# accent color extraction, using precomputed lookup tables for speed.
+# =============================================================================
+
+switch:
+  - platform: template
+    name: "Screen: Warm Tones"
+    id: warm_tones_enabled
+    internal: true
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:weather-sunset"
+
+number:
+  - platform: template
+    name: "Screen: Warm Tone Intensity"
+    id: warm_tone_intensity
+    internal: true
+    min_value: 10
+    max_value: 100
+    step: 5
+    initial_value: 50
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "%"
+    icon: "mdi:palette"
+
+script:
+  - id: apply_warm_tones
+    mode: restart
+    then:
+      - lambda: |-
+          if (!id(warm_tones_enabled).state) return;
+          if (!id(sunrise_sunset_valid)) return;
+
+          auto now = id(sntp_time).now();
+          if (!now.is_valid()) return;
+
+          int now_min = now.hour * 60 + now.minute;
+          int rise_min = id(sunrise_hour) * 60 + id(sunrise_minute);
+          int set_min  = id(sunset_hour)  * 60 + id(sunset_minute);
+
+          float warmth = 0.0f;
+          if (now_min >= set_min) {
+            warmth = 1.0f;
+          } else if (now_min >= set_min - WARM_TONE_LEAD_MINUTES) {
+            warmth = (float)(now_min - (set_min - WARM_TONE_LEAD_MINUTES)) / WARM_TONE_LEAD_MINUTES;
+          } else if (now_min < rise_min) {
+            warmth = 1.0f;
+          } else if (now_min < rise_min + WARM_TONE_LEAD_MINUTES) {
+            warmth = 1.0f - (float)(now_min - rise_min) / WARM_TONE_LEAD_MINUTES;
+          }
+
+          float w = warmth * (id(warm_tone_intensity).state / 100.0f);
+          if (w < 0.01f) return;
+
+          ESP_LOGI("warm", "Warmth=%.2f (intensity=%d%%, w=%.2f)", warmth, (int)id(warm_tone_intensity).state, w);
+
+          uint8_t r_lut[32], g_lut[64], b_lut[32];
+          for (int i = 0; i < 32; i++) {
+            int v = (i << 3) | (i >> 2);
+            int nv = (int)(v * (1.0f + w * 0.06f));
+            r_lut[i] = (uint8_t)((nv > 255 ? 255 : nv) >> 3);
+          }
+          for (int i = 0; i < 64; i++) {
+            int v = (i << 2) | (i >> 4);
+            int nv = (int)(v * (1.0f - w * 0.07f));
+            g_lut[i] = (uint8_t)((nv < 0 ? 0 : nv) >> 2);
+          }
+          for (int i = 0; i < 32; i++) {
+            int v = (i << 3) | (i >> 2);
+            int nv = (int)(v * (1.0f - w * 0.28f));
+            b_lut[i] = (uint8_t)((nv < 0 ? 0 : nv) >> 3);
+          }
+
+          auto tint_buffer = [&](esphome::image::Image *img) {
+            if (!img) return;
+            lv_img_dsc_t *dsc = img->get_lv_img_dsc();
+            if (!dsc || !dsc->data) return;
+            uint8_t *buf = const_cast<uint8_t*>(dsc->data);
+            int total = img->get_width() * img->get_height();
+            for (int i = 0; i < total; i++) {
+              int pos = i * 2;
+              uint16_t px = buf[pos] | (buf[pos + 1] << 8);
+              uint8_t r5 = r_lut[(px >> 11) & 0x1F];
+              uint8_t g6 = g_lut[(px >> 5) & 0x3F];
+              uint8_t b5 = b_lut[px & 0x1F];
+              uint16_t out = (r5 << 11) | (g6 << 5) | b5;
+              buf[pos]     = out & 0xFF;
+              buf[pos + 1] = (out >> 8) & 0xFF;
+            }
+          };
+
+          if (id(immich_is_portrait_pair)) {
+            if (id(portrait_using_preload)) {
+              tint_buffer(id(immich_portrait_preload_left));
+              tint_buffer(id(immich_portrait_preload_right));
+            } else {
+              tint_buffer(id(immich_portrait_left));
+              tint_buffer(id(immich_portrait_right));
+            }
+            lv_obj_invalidate(id(portrait_pair_container));
+          } else {
+            int s = id(active_slot);
+            esphome::image::Image *img = (s == 0) ? id(immich_img_0)
+                                       : (s == 1) ? id(immich_img_1)
+                                       :            id(immich_img_2);
+            tint_buffer(img);
+            lv_obj_invalidate(id(slideshow_img));
+          }
