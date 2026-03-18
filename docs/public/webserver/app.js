@@ -232,23 +232,23 @@
     applyEntityToState(d);
   }
 
+  // Single source for settings fetched on load; KEY_TO_ENTITY_ID derived from ENTITY_STATE_MAP.
   var INITIAL_FETCH_KEYS = [
     "photo_source", "album_ids", "person_ids", "interval",
     "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
     "sunrise", "sunset"
   ];
-
-  var KEY_TO_ENTITY_ID = {
-    photo_source: "select/Photos: Source",
-    album_ids: "text/Photos: Album IDs",
-    person_ids: "text/Photos: Person IDs",
-    interval: "select/Photos: Slideshow Interval",
-    schedule_enabled: "switch/Screen: Schedule",
-    schedule_on_hour: "number/Screen: Schedule On",
-    schedule_off_hour: "number/Screen: Schedule Off",
-    sunrise: "text_sensor/Screen: Sunrise",
-    sunset: "text_sensor/Screen: Sunset"
-  };
+  function getEntityIdForStateKey(key) {
+    for (var id in ENTITY_STATE_MAP) {
+      if (ENTITY_STATE_MAP[id].key === key) return id;
+    }
+    return null;
+  }
+  var KEY_TO_ENTITY_ID = {};
+  INITIAL_FETCH_KEYS.forEach(function (k) {
+    var id = getEntityIdForStateKey(k);
+    if (id) KEY_TO_ENTITY_ID[k] = id;
+  });
 
   function fetchDeviceSettingsState() {
     var urls = INITIAL_FETCH_KEYS.map(function (k) { return safeGet(endpoints[k]); });
@@ -477,9 +477,8 @@
 
     // Connection
     var connBody = el("div");
-    var connStatus = el("div", "status");
+    var connStatus = el("div", "status mb-12");
     connStatus.id = "conn-status";
-    connStatus.style.marginBottom = "12px";
 
     function showSaved(msg) {
       connStatus.innerHTML = '<span class="dot green"></span> ' + (msg || "Saved");
@@ -584,9 +583,8 @@
     personField.appendChild(personHint);
     personField.style.display = S.photo_source === "Person" ? "" : "none";
 
-    var applyBtn = el("button", "btn btn-primary btn-block");
+    var applyBtn = el("button", "btn btn-primary btn-block mt-12");
     applyBtn.textContent = "Apply";
-    applyBtn.style.marginTop = "12px";
     applyBtn.onclick = function () {
       albumError.textContent = "";
       personError.textContent = "";
@@ -796,11 +794,9 @@
     versionRow.appendChild(checkWrap);
     fwBody.appendChild(versionRow);
 
-    var updateRow = el("div");
-    updateRow.style.marginBottom = "8px";
+    var updateRow = el("div", "mb-8");
     fwBody.appendChild(updateRow);
-    var betaRow = el("div");
-    betaRow.style.marginBottom = "12px";
+    var betaRow = el("div", "mb-12");
     fwBody.appendChild(betaRow);
 
     function renderUpdateRow() {

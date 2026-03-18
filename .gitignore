@@ -5,3 +5,5 @@ docs/.vitepress/cache
 .esphome/
 **/dev.yaml
 **/secrets.yaml
+__pycache__/
+*.pyc

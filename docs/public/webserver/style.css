@@ -162,3 +162,7 @@ select option{background:var(--surface);color:var(--text)}
 .log-output .log-info{color:var(--success)}
 .log-output .log-warning{color:#fdd835}
 .log-output .log-error{color:var(--danger)}
+
+.mb-8{margin-bottom:8px}
+.mb-12{margin-bottom:12px}
+.mt-12{margin-top:12px}
