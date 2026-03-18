@@ -35,13 +35,20 @@ lvgl:
                     } else {
                       id(backlight_hold_timer).execute();
                     }
-            on_long_press:
+            on_short_click:
               then:
                 - if:
                     condition:
                       lambda: 'return !id(touch_started_while_off);'
                     then:
-                      - script.execute: immich_advance_forward
+                      - lambda: |-
+                          uint32_t now = millis();
+                          if (id(last_short_tap_ms) != 0 && (now - id(last_short_tap_ms)) < 400) {
+                            id(last_short_tap_ms) = 0;
+                            id(immich_advance_forward).execute();
+                          } else {
+                            id(last_short_tap_ms) = now;
+                          }
             on_release:
               then:
                 - script.stop: backlight_hold_timer
@@ -69,13 +76,20 @@ lvgl:
                     } else {
                       id(backlight_hold_timer).execute();
                     }
-            on_long_press:
+            on_short_click:
               then:
                 - if:
                     condition:
                       lambda: 'return !id(touch_started_while_off);'
                     then:
-                      - script.execute: immich_advance_forward
+                      - lambda: |-
+                          uint32_t now = millis();
+                          if (id(last_short_tap_ms) != 0 && (now - id(last_short_tap_ms)) < 400) {
+                            id(last_short_tap_ms) = 0;
+                            id(immich_advance_forward).execute();
+                          } else {
+                            id(last_short_tap_ms) = now;
+                          }
             on_release:
               then:
                 - script.stop: backlight_hold_timer

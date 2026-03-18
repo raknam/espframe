@@ -3,7 +3,7 @@ title: Screen Settings
 description: Screen brightness, tone, and schedule — the display controls available in the device Settings menu.
 ---
 
-# Screen
+# Screen Settings
 
 In the device **Settings** menu you’ll see three display-related sections:
 

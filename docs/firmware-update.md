@@ -5,7 +5,7 @@ description: Over-the-air and HTTP firmware updates from GitHub — auto-update,
 
 # Firmware Update
 
-The device supports **OTA (over-the-air)** and **HTTP-based** firmware updates. It checks a manifest hosted on GitHub Pages for stable and optional beta builds and can auto-update when new versions are available. All controls are in the device web UI at `http://<device-ip>/` under the **Firmware** card (and in Home Assistant under the device’s **Config** entities).
+This page explains how Espframe checks for and applies firmware updates: over-the-air (OTA) and HTTP-based updates from GitHub, with optional auto-update and beta channels. The device supports **OTA (over-the-air)** and **HTTP-based** firmware updates. It checks a manifest hosted on GitHub Pages for stable and optional beta builds and can auto-update when new versions are available. All controls are in the device web UI at `http://<device-ip>/` under the **Firmware** card (and in Home Assistant under the device’s **Config** entities).
 
 ## How updates work
 

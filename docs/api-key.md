@@ -5,6 +5,8 @@ description: Create a scoped Immich API key with minimal read-only permissions f
 
 # Immich API Key
 
+This page explains how to create a read-only Immich API key for Espframe and which permissions to enable. Espframe only needs read access; it never modifies or uploads to your library.
+
 In your Immich web UI, go to **Account Settings → API Keys → New API Key**.
 
 Immich lets you scope API keys to specific permissions. Espframe only needs read access — it never modifies, deletes, or uploads anything in your library. Deselect all permissions first, then enable only the ones below.

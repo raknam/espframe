@@ -5,7 +5,7 @@ description: Install Espframe firmware via the ESPHome dashboard for full contro
 
 # Manual Setup
 
-Install the espframe firmware via the ESPHome dashboard instead of the web installer. This gives you full control over substitutions and lets you customise behaviour that the web installer leaves at defaults.
+This page is for advanced users who want to install Espframe firmware via the ESPHome dashboard instead of the web installer. You get full control over substitutions and YAML configuration. This gives you full control over substitutions and lets you customise behaviour that the web installer leaves at defaults.
 
 ## Create a configuration
 

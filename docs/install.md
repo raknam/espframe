@@ -5,7 +5,7 @@ description: Flash Espframe for Immich firmware to your ESP32-P4 directly from t
 
 # Install
 
-Flash Espframe for Immich directly from your browser.
+This page explains how to install Espframe for Immich on a Guition ESP32-P4 10" display. You can flash the firmware directly from your browser using the web installer — no desktop toolchain or ESPHome install required.
 
 ## What You'll Need
 

@@ -5,7 +5,7 @@ description: Choose where your frame gets its images — all photos, favorites, 
 
 # Photo Sources
 
-The frame can display photos from your Immich library in several ways. You choose the **Source** in the device web UI at `http://<device-ip>/` under **Photo Source**. Some sources need extra setup (album or person IDs); others work as soon as you select them.
+This page explains how to choose where Espframe gets its images: All Photos, Favorites, Album, Person, or Memories ("on this day"). The frame displays photos from your Immich library in several ways. You choose the **Source** in the device web UI at `http://<device-ip>/` under **Photo Source**. Some sources need extra setup (album or person IDs); others work as soon as you select them.
 
 ## Overview
 

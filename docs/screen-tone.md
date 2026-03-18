@@ -5,7 +5,7 @@ description: Adjust display colour temperature to correct blue cast and automati
 
 # Screen Tone
 
-The Screen Tone feature lets you adjust the colour temperature of displayed photos. It can correct the display's cool/blue cast and automatically shift to warmer tones in the evening, mimicking how natural light changes throughout the day.
+This page explains Screen Tone in Espframe: how to adjust display colour temperature and use night tone (warmer tones between sunset and sunrise). The Screen Tone feature lets you adjust the colour temperature of displayed photos. It can correct the display's cool/blue cast and automatically shift to warmer tones in the evening, mimicking how natural light changes throughout the day.
 
 All settings are found under the **Screen Tone** card in the web UI.
 

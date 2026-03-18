@@ -3,9 +3,9 @@ title: Home Assistant Integration
 description: Optionally integrate Espframe for Immich with Home Assistant for OTA updates and dashboard controls.
 ---
 
-# Home Assistant
+# Home Assistant Integration
 
-Home Assistant is **not required** to use Espframe for Immich — the device works fully standalone with its built-in web UI. However, if you already run [Home Assistant](https://www.home-assistant.io/), you can add the frame as an ESPHome device to manage updates and change settings from your dashboard instead.
+This page explains how to optionally integrate Espframe for Immich with Home Assistant for OTA updates and dashboard controls. Home Assistant is **not required** — the device works fully standalone with its built-in web UI. However, if you already run [Home Assistant](https://www.home-assistant.io/), you can add the frame as an ESPHome device to manage updates and change settings from your dashboard instead.
 
 ## Adding the Device
 

@@ -39,6 +39,9 @@ globals:
   - id: immich_last_advance_ms
     type: uint32_t
     initial_value: '0'
+  - id: last_short_tap_ms
+    type: uint32_t
+    initial_value: '0'
   - id: last_downloaded_slot
     type: int
     initial_value: '-1'
