@@ -18,6 +18,9 @@ globals:
   - id: warm_tone_last_w
     type: float
     initial_value: '0.0f'
+  - id: warm_tone_retint
+    type: bool
+    initial_value: 'false'
 
 switch:
   - platform: template
@@ -37,12 +40,27 @@ switch:
     icon: "mdi:weather-night"
     on_turn_on:
       then:
+        - lambda: 'id(warm_tone_retint) = true;'
         - script.execute: apply_warm_tones
     on_turn_off:
       then:
+        - lambda: 'id(warm_tone_retint) = true;'
         - script.execute: apply_warm_tones
 
 number:
+  - platform: template
+    name: "Screen: Display Tone"
+    id: base_tone
+    internal: true
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 0
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "%"
+    icon: "mdi:thermometer"
+
   - platform: template
     name: "Screen: Warm Tone Intensity"
     id: warm_tone_intensity
@@ -61,39 +79,43 @@ script:
     mode: restart
     then:
       - lambda: |-
+          bool retint = id(warm_tone_retint);
+          id(warm_tone_retint) = false;
+
+          // Base tone: always-on correction for display blue cast
+          float base_w = id(base_tone).state / 100.0f;
+
+          // Night warmth: sun-based or manual override
+          float night_w = 0.0f;
           bool override_on = id(warm_tone_override).state;
-
-          if (!override_on && !id(warm_tones_enabled).state) return;
-
-          float warmth = 0.0f;
           if (override_on) {
-            warmth = 1.0f;
-          } else if (id(sunrise_sunset_valid)) {
+            night_w = id(warm_tone_intensity).state / 100.0f;
+          } else if (id(warm_tones_enabled).state && id(sunrise_sunset_valid)) {
             auto now = id(sntp_time).now();
-            if (!now.is_valid()) return;
-
-            int now_min = now.hour * 60 + now.minute;
-            int rise_min = id(sunrise_hour) * 60 + id(sunrise_minute);
-            int set_min  = id(sunset_hour)  * 60 + id(sunset_minute);
-
-            if (now_min >= set_min) {
-              warmth = 1.0f;
-            } else if (now_min >= set_min - WARM_TONE_LEAD_MINUTES) {
-              warmth = (float)(now_min - (set_min - WARM_TONE_LEAD_MINUTES)) / WARM_TONE_LEAD_MINUTES;
-            } else if (now_min < rise_min) {
-              warmth = 1.0f;
-            } else if (now_min < rise_min + WARM_TONE_LEAD_MINUTES) {
-              warmth = 1.0f - (float)(now_min - rise_min) / WARM_TONE_LEAD_MINUTES;
+            if (!now.is_valid() && base_w < 0.01f) return;
+            if (now.is_valid()) {
+              int now_min = now.hour * 60 + now.minute;
+              int rise_min = id(sunrise_hour) * 60 + id(sunrise_minute);
+              int set_min  = id(sunset_hour)  * 60 + id(sunset_minute);
+              float warmth = 0.0f;
+              if (now_min >= set_min) {
+                warmth = 1.0f;
+              } else if (now_min >= set_min - WARM_TONE_LEAD_MINUTES) {
+                warmth = (float)(now_min - (set_min - WARM_TONE_LEAD_MINUTES)) / WARM_TONE_LEAD_MINUTES;
+              } else if (now_min < rise_min) {
+                warmth = 1.0f;
+              } else if (now_min < rise_min + WARM_TONE_LEAD_MINUTES) {
+                warmth = 1.0f - (float)(now_min - rise_min) / WARM_TONE_LEAD_MINUTES;
+              }
+              night_w = warmth * (id(warm_tone_intensity).state / 100.0f);
             }
-          } else {
-            return;
           }
 
-          float w = warmth * (id(warm_tone_intensity).state / 100.0f);
+          float w = base_w + night_w;
 
-          // For the normal pipeline (new image), buffer is fresh so last_w is 0.
-          // For override toggle changes, buffer may already be tinted.
-          float last_w = override_on ? id(warm_tone_last_w) : 0.0f;
+          // When called from a toggle change, buffer already has a tint applied.
+          // When called from the normal pipeline (new image), buffer is fresh.
+          float last_w = retint ? id(warm_tone_last_w) : 0.0f;
 
           // Skip if the buffer already has the target warmth applied
           if (fabsf(w - last_w) < 0.01f) return;

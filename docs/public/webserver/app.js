@@ -86,6 +86,7 @@
     photo_source_options: ["All Photos", "Favorites", "Album", "Person", "Memories"],
     album_ids: "",
     person_ids: "",
+    base_tone: 0,
     warm_tones_enabled: false,
     warm_tone_intensity: 50,
     warm_tone_override: false,
@@ -125,6 +126,7 @@
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
     person_ids: eid("text", "Photos: Person IDs"),
+    base_tone: eid("number", "Screen: Display Tone"),
     warm_tones_enabled: eid("switch", "Screen: Night Tone Adjustment"),
     warm_tone_intensity: eid("number", "Screen: Warm Tone Intensity"),
     warm_tone_override: eid("switch", "Screen: Warm Tone Override"),
@@ -191,6 +193,7 @@
     "select/Photos: Source": { key: "photo_source", optionsKey: "photo_source_options", default: "All Photos" },
     "text/Photos: Album IDs": { key: "album_ids" },
     "text/Photos: Person IDs": { key: "person_ids" },
+    "number/Screen: Display Tone": { key: "base_tone", default: 0, number: true },
     "switch/Screen: Night Tone Adjustment": { key: "warm_tones_enabled", boolFromState: true },
     "number/Screen: Warm Tone Intensity": { key: "warm_tone_intensity", default: 50, number: true },
     "switch/Screen: Warm Tone Override": { key: "warm_tone_override", boolFromState: true }
@@ -246,7 +249,7 @@
     "photo_source", "album_ids", "person_ids", "interval",
     "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
     "sunrise", "sunset",
-    "warm_tones_enabled", "warm_tone_intensity", "warm_tone_override"
+    "base_tone", "warm_tones_enabled", "warm_tone_intensity", "warm_tone_override"
   ];
   function getEntityIdForStateKey(key) {
     for (var id in ENTITY_STATE_MAP) {
@@ -697,6 +700,31 @@
 
     // Screen Tone
     var warmBody = el("div");
+
+    var fBaseTone = field("Display Tone");
+    var rwBase = el("div", "range-wrap");
+    var baseSlider = document.createElement("input");
+    baseSlider.type = "range";
+    baseSlider.min = 0;
+    baseSlider.max = 100;
+    baseSlider.step = 5;
+    baseSlider.value = S.base_tone;
+    var baseVal = el("span", "range-val");
+    baseVal.textContent = Math.round(S.base_tone) + "%";
+    baseSlider.oninput = function () {
+      baseVal.textContent = baseSlider.value + "%";
+    };
+    baseSlider.onchange = function () {
+      post(endpoints.base_tone + "/set", { value: baseSlider.value });
+    };
+    rwBase.appendChild(baseSlider);
+    rwBase.appendChild(baseVal);
+    fBaseTone.appendChild(rwBase);
+    var baseHint = el("div");
+    baseHint.className = "field-hint";
+    baseHint.textContent = "Corrects blue display cast. Applied to all photos.";
+    fBaseTone.appendChild(baseHint);
+    warmBody.appendChild(fBaseTone);
 
     var fWarmToggle = field("");
     var warmTr = el("div", "toggle-row");
