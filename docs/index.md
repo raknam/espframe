@@ -19,7 +19,7 @@ A standalone digital photo frame that displays your Immich photo library on a 10
 - **Backlight Schedules** — Control brightness across day and night, with optional auto-off scheduling.
 - **No Hub Required** — Connects directly to your Immich server over HTTP — no Home Assistant, cloud service, or extra software needed.
 
-## Using the frame
+## Where to Buy
 
-- **Touch** — Tap to advance to the next photo. Long-press (about 3 seconds) to turn the backlight off (sleep); tap again to wake and resume the slideshow.
-- **First run** — After boot you see a loading screen. If the device has no WiFi, it shows WiFi setup (connect to the **immich-frame-10inch** hotspot and use the captive portal). Once on the network, if Immich URL or API key are missing, the screen prompts you to open the device’s IP address in a browser to configure them. When configured, the slideshow starts automatically.
+- **Panel:** [AliExpress](https://s.click.aliexpress.com/e/_c4LLo3rH)
+- **Stand:** [MakerWorld](https://makerworld.com/en/models/2490049-guition-p4-10inch-screen-stand#profileId-2736046)
