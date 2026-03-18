@@ -2,14 +2,22 @@
 # SCREEN: LOADING
 # =============================================================================
 # Boot screen with progress bar. Must be the first page included in
-# packages.yaml so LVGL shows it at startup.
+# packages.yaml so LVGL shows it at startup. on_boot advances the bar and
+# status text; after a grace period, if WiFi is not connected, switches to
+# wifi_setup_page.
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Boot grace period (delay before showing WiFi setup on disconnect)
+# -----------------------------------------------------------------------------
 globals:
   - id: boot_grace_period
     type: bool
     initial_value: 'true'
 
+# -----------------------------------------------------------------------------
+# Loading page: title, status label, progress bar
+# -----------------------------------------------------------------------------
 lvgl:
   pages:
     - id: loading_page
@@ -58,6 +66,9 @@ lvgl:
                     bg_color: 0xFFFFFF
                     radius: 3
 
+# -----------------------------------------------------------------------------
+# Boot sequence: progress steps, backlight on, then show WiFi setup if not connected
+# -----------------------------------------------------------------------------
 esphome:
   on_boot:
     - priority: -200

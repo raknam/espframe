@@ -5,6 +5,9 @@
 # Values persist across reboots via NVS flash. Configure via http://<device-ip>/
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Boot flag and URL normalization on boot
+# -----------------------------------------------------------------------------
 globals:
   - id: immich_fetch_started
     type: bool
@@ -20,6 +23,9 @@ esphome:
             id(immich_url).publish_state(url);
           }
 
+# -----------------------------------------------------------------------------
+# Server URL and API key (persisted via NVS)
+# -----------------------------------------------------------------------------
 text:
   - platform: template
     name: "Connection: Server URL"
@@ -58,6 +64,9 @@ text:
           ESP_LOGI("immich", "Immich API key configured (%d chars)", x.length());
       - script.execute: immich_check_config_ready
 
+# -----------------------------------------------------------------------------
+# When URL + key are set, show slideshow and start fetch if needed
+# -----------------------------------------------------------------------------
 script:
   - id: immich_check_config_ready
     mode: restart

@@ -1,4 +1,15 @@
-# Network status and diagnostics — exposed to Home Assistant and webserver
+# =============================================================================
+# NETWORK - Status and diagnostics
+# =============================================================================
+# Exposes connectivity and WiFi state to Home Assistant and the device
+# webserver: online status, WiFi signal (dB and percent strength), and
+# current IP address. All entities are diagnostic so they do not clutter
+# the main UI unless needed.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Connectivity and WiFi sensors
+# -----------------------------------------------------------------------------
 binary_sensor:
   - platform: status
     name: "Network: Online"
@@ -24,6 +35,9 @@ sensor:
     icon: mdi:wifi
     entity_category: diagnostic
 
+# -----------------------------------------------------------------------------
+# WiFi info (IP address)
+# -----------------------------------------------------------------------------
 text_sensor:
   - platform: wifi_info
     ip_address:

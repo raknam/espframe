@@ -1,13 +1,30 @@
+# =============================================================================
+# FIRMWARE UPDATE - OTA and HTTP update from GitHub
+# =============================================================================
+# Provides OTA (over-the-air) and HTTP-based firmware updates. The device
+# checks a manifest on GitHub (stable and optional beta) and can auto-update
+# when new versions are available. Update checks run on an interval (hourly,
+# daily, or weekly) when auto-update is enabled; a manual "Check for Update"
+# button triggers an immediate check. Version is exposed as a text sensor for
+# diagnostics.
+# =============================================================================
+
 esphome:
   project:
     name: jtenniswood.immich-frame
     version: "${firmware_version}"
 
+# -----------------------------------------------------------------------------
+# State for update check interval
+# -----------------------------------------------------------------------------
 globals:
   - id: update_check_counter
     type: int
     initial_value: '0'
 
+# -----------------------------------------------------------------------------
+# OTA and HTTP update sources (stable + beta manifest)
+# -----------------------------------------------------------------------------
 ota:
   - platform: http_request
 
@@ -33,6 +50,9 @@ update:
     source: https://jtenniswood.github.io/espframe/firmware/beta/manifest.json
     update_interval: never
 
+# -----------------------------------------------------------------------------
+# User controls: auto-update and check frequency
+# -----------------------------------------------------------------------------
 switch:
   - platform: template
     name: "Firmware: Auto Update"
@@ -56,6 +76,9 @@ select:
     optimistic: true
     restore_value: true
 
+# -----------------------------------------------------------------------------
+# Periodic update check (hourly / daily / weekly when auto-update on)
+# -----------------------------------------------------------------------------
 interval:
   - interval: 1h
     then:
@@ -71,6 +94,9 @@ interval:
           }
           id(update_check_counter) = counter + 1;
 
+# -----------------------------------------------------------------------------
+# Exposed version and manual check button
+# -----------------------------------------------------------------------------
 text_sensor:
   - platform: template
     name: "Firmware: Version"

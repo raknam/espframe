@@ -1,7 +1,15 @@
 # =============================================================================
 # HARDWARE CONFIGURATION - Guition ESP32-P4-JC8012P4A1
 # =============================================================================
+# Base device config: ESP32-P4 host, ESP32-C6 coprocessor (WiFi/BT over SDIO),
+# PSRAM, display (MIPI DSI JC8012P4A1), touch (GSL3680), backlight, I2C. Also
+# API, logger, web server, OTA, and espframe external components. Display is
+# 800×1280 logical (rotation 90); OTA dims backlight before apply.
+# =============================================================================
 
+# -----------------------------------------------------------------------------
+# Build and log
+# -----------------------------------------------------------------------------
 substitutions:
   package_ref: "main"
   log_level: "INFO"
@@ -22,7 +30,9 @@ esphome:
     build_flags:
       - "-DCONFIG_COMPILER_OPTIMIZATION_PERF=y"
 
-# ESP32-C6 coprocessor for WiFi and Bluetooth via SDIO
+# -----------------------------------------------------------------------------
+# ESP32-C6 coprocessor (WiFi and Bluetooth via SDIO)
+# -----------------------------------------------------------------------------
 esp32_hosted:
   variant: esp32c6
   reset_pin: GPIO54
@@ -34,10 +44,16 @@ esp32_hosted:
   d3_pin: GPIO17
   active_high: true
 
+# -----------------------------------------------------------------------------
+# PSRAM (hex mode, 200 MHz)
+# -----------------------------------------------------------------------------
 psram:
   mode: hex
   speed: 200MHz
 
+# -----------------------------------------------------------------------------
+# API, logger, JSON, web server, OTA
+# -----------------------------------------------------------------------------
 api:
 
 logger:
@@ -60,6 +76,9 @@ ota:
             transition_length: 300ms
         - delay: 350ms
 
+# -----------------------------------------------------------------------------
+# External components (espframe: gsl3680, remote_image, espframe)
+# -----------------------------------------------------------------------------
 external_components:
   - source:
       type: git
@@ -71,7 +90,9 @@ external_components:
 
 espframe:
 
-# DSI PHY power rail
+# -----------------------------------------------------------------------------
+# DSI PHY power rail, backlight output, I2C
+# -----------------------------------------------------------------------------
 esp_ldo:
   - channel: 3
     id: dsi_phy_enable
@@ -92,6 +113,9 @@ i2c:
     sda_pullup_enabled: false
     scl_pullup_enabled: false
 
+# -----------------------------------------------------------------------------
+# MIPI DSI display (JC8012P4A1, 800×1280, rotation 90)
+# -----------------------------------------------------------------------------
 display:
   - platform: mipi_dsi
     model: JC8012P4A1
@@ -105,6 +129,9 @@ display:
       width: 800
       height: 1280
 
+# -----------------------------------------------------------------------------
+# Touch (GSL3680, transform for orientation)
+# -----------------------------------------------------------------------------
 touchscreen:
   - platform: gsl3680
     id: tft_touch

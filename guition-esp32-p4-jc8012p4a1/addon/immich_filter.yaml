@@ -5,6 +5,9 @@
 # specific albums, or specific people. Values persist across reboots via NVS.
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Photo source (All / Favorites / Album / Person / Memories)
+# -----------------------------------------------------------------------------
 select:
   - platform: template
     name: "Photos: Source"
@@ -24,6 +27,9 @@ select:
         - lambda: 'ESP_LOGI("immich", "Photo source: %s", x.c_str());'
         - script.execute: auto_apply_photo_source
 
+# -----------------------------------------------------------------------------
+# Album IDs and Person IDs (used when source is Album or Person)
+# -----------------------------------------------------------------------------
 text:
   - platform: template
     name: "Photos: Album IDs"
@@ -57,6 +63,9 @@ text:
           ESP_LOGI("immich", "Person IDs configured (%d chars)", x.length());
       - script.execute: auto_apply_photo_source
 
+# -----------------------------------------------------------------------------
+# Manual apply and auto-apply (flush slots and refetch)
+# -----------------------------------------------------------------------------
 button:
   - platform: template
     name: "Apply Photo Source"
@@ -77,6 +86,9 @@ button:
           ESP_LOGI("immich", "Photo source applied — flushing all slots");
       - script.execute: immich_fetch_into_slot
 
+# -----------------------------------------------------------------------------
+# Delayed auto-apply after source/album/person change
+# -----------------------------------------------------------------------------
 script:
   - id: auto_apply_photo_source
     mode: restart

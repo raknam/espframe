@@ -1,17 +1,18 @@
 # =============================================================================
 # IMMICH SLIDESHOW - Ring buffer, display, and navigation
 # =============================================================================
-# 3-slot ring buffer of remote_image components for instant swiping.
-# Two images are prefetched ahead. Portrait pairs are detected and displayed
-# side-by-side. Backward navigation re-downloads from a stored URL.
+# 3-slot ring buffer of remote_image components for instant swiping. Two
+# images are prefetched ahead; touch/swipe advances or goes back. Portrait
+# pairs are detected and displayed side-by-side; backward navigation
+# re-downloads from stored URL. Slot and display state use custom structs
+# (SlotMeta, DisplayMeta) defined in device config.
 # =============================================================================
 
-# =============================================================================
-# GLOBALS
-# =============================================================================
-
+# -----------------------------------------------------------------------------
+# Globals: per-slot metadata, display state, ring buffer, portrait state
+# -----------------------------------------------------------------------------
 globals:
-  # --- Per-slot metadata (struct replaces 60+ individual globals) ---
+  # Per-slot metadata (struct replaces 60+ individual globals)
   - id: slot0
     type: SlotMeta
   - id: slot1
@@ -19,13 +20,13 @@ globals:
   - id: slot2
     type: SlotMeta
 
-  # --- Current and previous display metadata ---
+  # Current and previous display metadata
   - id: current_display
     type: DisplayMeta
   - id: prev_display
     type: DisplayMeta
 
-  # --- Ring buffer state ---
+  # Ring buffer state
   - id: active_slot
     type: int
     initial_value: '0'
@@ -44,7 +45,7 @@ globals:
   - id: immich_download_retries
     type: int
     initial_value: '0'
-  # --- Portrait pair state ---
+  # Portrait pair state
   - id: portrait_left_ready
     type: bool
     initial_value: 'false'
@@ -70,7 +71,7 @@ globals:
     type: std::string
     initial_value: '""'
 
-  # --- Portrait preload state ---
+  # Portrait preload state
   - id: portrait_preload_slot
     type: int
     initial_value: '-1'
@@ -84,10 +85,9 @@ globals:
     type: bool
     initial_value: 'false'
 
-# =============================================================================
-# 3-SLOT IMAGE RING BUFFER
-# =============================================================================
-
+# -----------------------------------------------------------------------------
+# 3-slot full-size ring buffer and portrait pair / preload remote_image components
+# -----------------------------------------------------------------------------
 remote_image:
   - id: immich_img_0
     url: "https://via.placeholder.com/1x1.jpg"
@@ -215,7 +215,7 @@ remote_image:
         - lambda: 'id(last_downloaded_slot) = 2;'
         - script.execute: handle_slot_download_error
 
-  # --- Portrait pair half-width image components (640x1200 each) ---
+  # Portrait pair half-width components (640x800 each, side-by-side)
   - id: immich_portrait_left
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
@@ -283,7 +283,7 @@ remote_image:
               id(immich_display_current).execute();
             }
 
-  # --- Portrait preload components (downloaded during prefetch) ---
+  # Portrait preload components (downloaded during prefetch for instant pair display)
   - id: immich_portrait_preload_left
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
@@ -328,14 +328,11 @@ remote_image:
             ESP_LOGE("immich", "Portrait preload right failed");
             id(portrait_preload_right_ready) = false;
 
-# =============================================================================
-# SCRIPTS
-# =============================================================================
-
+# -----------------------------------------------------------------------------
+# Scripts: download error handler, display, advance, previous, prefetch
+# -----------------------------------------------------------------------------
 script:
-  # ---------------------------------------------------------------------------
-  # Shared handler for any slot's on_error
-  # ---------------------------------------------------------------------------
+  # Shared handler for any slot's on_error (retry up to MAX_ERROR_RETRIES)
   - id: handle_slot_download_error
     mode: restart
     then:
@@ -351,9 +348,7 @@ script:
           else:
             - lambda: 'id(immich_download_retries) = 0;'
 
-  # ---------------------------------------------------------------------------
-  # Start portrait pair download for the active slot
-  # ---------------------------------------------------------------------------
+  # Start portrait pair download for the active slot (left then right or companion search)
   - id: immich_start_portrait_active
     mode: restart
     then:
@@ -387,9 +382,7 @@ script:
           then:
             - script.execute: immich_fetch_portrait_companion
 
-  # ---------------------------------------------------------------------------
-  # Display whichever slot is active
-  # ---------------------------------------------------------------------------
+  # Display whichever slot is active (single image or portrait pair; accent + warm tones)
   - id: immich_display_current
     mode: single
     then:
@@ -441,9 +434,7 @@ script:
           then:
             - script.execute: immich_start_portrait_active
 
-  # ---------------------------------------------------------------------------
-  # Advance forward: move ring index, display if ready, else fetch fresh
-  # ---------------------------------------------------------------------------
+  # Advance forward: move ring index, display if ready, else fetch into slot
   - id: immich_advance_forward
     mode: single
     then:
@@ -523,9 +514,7 @@ script:
                       ESP_LOGI("immich", "Slot %d not ready, fetching fresh", id(active_slot));
                   - script.execute: immich_fetch_into_slot
 
-  # ---------------------------------------------------------------------------
-  # Show previous image (swipe right)
-  # ---------------------------------------------------------------------------
+  # Show previous image (swipe back); re-downloads into slot from stored URL
   - id: immich_show_previous
     mode: single
     then:
@@ -571,9 +560,7 @@ script:
                 else { id(immich_img_2).set_url(url); id(immich_img_2).update(); }
                 ESP_LOGI("immich", "Showing previous in slot %d: %s", prev_slot, id(current_display).asset_id.c_str());
 
-  # ---------------------------------------------------------------------------
-  # Display portrait pair (called when both left and right are ready)
-  # ---------------------------------------------------------------------------
+  # Display portrait pair when both left and right images are ready
   - id: immich_display_portrait_pair
     mode: single
     then:
@@ -594,9 +581,7 @@ script:
       - script.execute: apply_warm_tones
       - script.execute: delayed_prefetch_chain
 
-  # ---------------------------------------------------------------------------
-  # Prefetch chain: fill the next empty slot(s) ahead of active_slot
-  # ---------------------------------------------------------------------------
+  # Prefetch chain: fill the next empty slot(s) ahead of active_slot (skipped when backlight paused)
   - id: immich_prefetch_chain
     mode: single
     then:
@@ -621,10 +606,7 @@ script:
             ESP_LOGI("immich", "Prefetch chain: all slots filled");
           }
 
-  # ---------------------------------------------------------------------------
-  # Run prefetch after a short delay to avoid socket exhaustion when many
-  # downloads/HTTP callbacks fire at once (e.g. after switching to Favorites).
-  # ---------------------------------------------------------------------------
+  # Run prefetch after short delay to avoid socket exhaustion when many callbacks fire at once
   - id: delayed_prefetch_chain
     mode: single
     then:

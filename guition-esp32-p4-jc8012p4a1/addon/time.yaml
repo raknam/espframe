@@ -1,3 +1,16 @@
+# =============================================================================
+# TIME & CLOCK - Timezone, format, and on-screen clock
+# =============================================================================
+# SNTP time sync plus user-configurable timezone (long list with GMT labels)
+# and 12/24 hour format. The on-screen clock is updated on sync and every
+# 60 seconds; timezone changes also trigger sunrise/sunset recalculation for
+# backlight schedule. The "Clock: Show" switch controls visibility of the
+# clock overlay.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Clock format (12/24h) and timezone selection
+# -----------------------------------------------------------------------------
 select:
   - platform: template
     name: "Clock: Format"
@@ -160,6 +173,9 @@ select:
         - script.execute: update_clock_display
         - script.execute: backlight_recalc_sunrise_sunset
 
+# -----------------------------------------------------------------------------
+# Clock visibility and display update script
+# -----------------------------------------------------------------------------
 switch:
   - platform: template
     name: "Clock: Show"
@@ -169,6 +185,9 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     icon: "mdi:clock-outline"
 
+# -----------------------------------------------------------------------------
+# Refresh clock label from current time; show/hide based on switch
+# -----------------------------------------------------------------------------
 script:
   - id: update_clock_display
     mode: single
@@ -193,6 +212,9 @@ script:
             lv_obj_add_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
           }
 
+# -----------------------------------------------------------------------------
+# SNTP time source; sync triggers clock and schedule updates
+# -----------------------------------------------------------------------------
 time:
   - platform: sntp
     id: sntp_time
@@ -203,6 +225,9 @@ time:
         - script.execute: backlight_recalc_sunrise_sunset
         - script.execute: backlight_check_schedule
 
+# -----------------------------------------------------------------------------
+# Periodic clock refresh (every 60s)
+# -----------------------------------------------------------------------------
 interval:
   - interval: 60s
     then:

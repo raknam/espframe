@@ -14,6 +14,9 @@
 # auto-disables after sunrise the next morning.
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Last applied warmth (for retint skip) and retint flag
+# -----------------------------------------------------------------------------
 globals:
   - id: warm_tone_last_w
     type: float
@@ -22,7 +25,11 @@ globals:
     type: bool
     initial_value: 'false'
 
+# -----------------------------------------------------------------------------
+# Switches: base tone (display blue correction), night tone (sun-based), override (warm until sunrise)
+# -----------------------------------------------------------------------------
 switch:
+  # Base tone: correct display blue cast (manual warm tint)
   - platform: template
     name: "Screen: Tone Adjustment"
     id: base_tone_enabled
@@ -39,6 +46,7 @@ switch:
         - lambda: 'id(warm_tone_retint) = true;'
         - script.execute: apply_warm_tones
 
+  # Night tone: sun-based ramp (sunset → sunrise) when enabled
   - platform: template
     name: "Screen: Night Tone Adjustment"
     id: warm_tones_enabled
@@ -47,6 +55,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     icon: "mdi:weather-sunset"
 
+  # Override: force full warmth now; auto-off after next sunrise (interval below)
   - platform: template
     name: "Screen: Warm Tone Override"
     id: warm_tone_override
@@ -63,7 +72,11 @@ switch:
         - lambda: 'id(warm_tone_retint) = true;'
         - script.execute: apply_warm_tones
 
+# -----------------------------------------------------------------------------
+# Numbers: base tone strength (0–100%), night warmth intensity (10–100%)
+# -----------------------------------------------------------------------------
 number:
+  # Base tone strength (0–100%); used only when "Tone Adjustment" is on
   - platform: template
     name: "Screen: Display Tone"
     id: base_tone
@@ -81,6 +94,7 @@ number:
         - lambda: 'id(warm_tone_retint) = true;'
         - script.execute: apply_warm_tones
 
+  # Night/override warmth strength (10–100%); scales the sun-based or override amount
   - platform: template
     name: "Screen: Warm Tone Intensity"
     id: warm_tone_intensity
@@ -94,6 +108,9 @@ number:
     unit_of_measurement: "%"
     icon: "mdi:palette"
 
+# -----------------------------------------------------------------------------
+# Apply warmth to current image buffer (LUT-based RGB565 tint; portrait pair or single slot)
+# -----------------------------------------------------------------------------
 script:
   - id: apply_warm_tones
     mode: restart
@@ -207,6 +224,9 @@ script:
 
           id(warm_tone_last_w) = w;
 
+# -----------------------------------------------------------------------------
+# Override auto-off: turn off "Warm until sunrise" when sunrise has passed
+# -----------------------------------------------------------------------------
 interval:
   - interval: 60s
     then:

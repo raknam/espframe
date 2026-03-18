@@ -1,5 +1,9 @@
 # =============================================================================
-# BACKLIGHT
+# BACKLIGHT - Display brightness control
+# =============================================================================
+# Single monochromatic light entity driving the panel backlight output.
+# Used by the backlight schedule and manual brightness controls; restore_mode
+# ALWAYS_ON keeps the last brightness across reboots.
 # =============================================================================
 
 light:
