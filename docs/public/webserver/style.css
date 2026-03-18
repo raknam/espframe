@@ -152,3 +152,6 @@ select option{background:var(--surface);color:var(--text)}
   font-size:.75rem;line-height:1.5;color:#b0b0b0;overflow-x:auto;overflow-y:auto;
   max-height:60vh;white-space:pre;word-break:break-all;
 }
+.log-output .log-info{color:var(--success)}
+.log-output .log-warning{color:#fdd835}
+.log-output .log-error{color:var(--danger)}
