@@ -10,11 +10,6 @@ A standalone digital photo frame that displays your Immich photo library on a 10
 
 <img src="/immich-frame.png" alt="Espframe displaying photos on a 10-inch touchscreen" style="max-width: 100%; border-radius: 8px; margin: 1.5rem 0;" />
 
-<div style="display: flex; gap: 0.75rem; margin: 1.5rem 0;">
-  <a href="/install" class="VPButton medium brand" style="text-decoration: none;">Get Started</a>
-  <a href="https://github.com/jtenniswood/espframe" class="VPButton medium alt" style="text-decoration: none;">GitHub</a>
-</div>
-
 ## Features
 
 - **Photo Filtering** — Show all photos, favorites only, specific albums, specific people, or "on this day" memories from previous years.

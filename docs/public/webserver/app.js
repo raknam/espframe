@@ -86,6 +86,11 @@
     photo_source_options: ["All Photos", "Favorites", "Album", "Person", "Memories"],
     album_ids: "",
     person_ids: "",
+    ip_address: "",
+    wifi_strength: "",
+    wifi_signal_db: "",
+    uptime: "",
+    online: false,
   };
 
   var app = document.getElementById("app");
@@ -122,6 +127,11 @@
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
     person_ids: eid("text", "Photos: Person IDs"),
+    network_online: eid("binary_sensor", "Network: Online"),
+    network_uptime: eid("sensor", "Network: Uptime"),
+    network_wifi_strength: eid("sensor", "Network: WiFi Strength"),
+    network_wifi_signal_db: eid("sensor", "Network: WiFi Signal dB"),
+    network_ip: eid("text_sensor", "Network: IP Address"),
   };
 
   function post(url, params) {
@@ -225,6 +235,16 @@
       S.album_ids = d.value || d.state || "";
     } else if (id === "text/Photos: Person IDs") {
       S.person_ids = d.value || d.state || "";
+    } else if (id === "binary_sensor/Network: Online") {
+      S.online = d.value === true || d.state === "ON";
+    } else if (id === "sensor/Network: Uptime") {
+      S.uptime = d.value || d.state || "";
+    } else if (id === "sensor/Network: WiFi Strength") {
+      S.wifi_strength = d.value != null ? String(d.value) : (d.state != null ? d.state : "");
+    } else if (id === "sensor/Network: WiFi Signal dB") {
+      S.wifi_signal_db = d.value != null ? String(d.value) : (d.state != null ? d.state : "");
+    } else if (id === "text_sensor/Network: IP Address") {
+      S.ip_address = d.value || d.state || "";
     }
   }
 
@@ -238,7 +258,12 @@
       safeGet(endpoints.schedule_on_hour),
       safeGet(endpoints.schedule_off_hour),
       safeGet(endpoints.sunrise),
-      safeGet(endpoints.sunset)
+      safeGet(endpoints.sunset),
+      safeGet(endpoints.network_online),
+      safeGet(endpoints.network_uptime),
+      safeGet(endpoints.network_wifi_strength),
+      safeGet(endpoints.network_wifi_signal_db),
+      safeGet(endpoints.network_ip)
     ]).then(function (res) {
       if (res[0] && (res[0].value != null || res[0].state != null))
         S.photo_source = res[0].value || res[0].state || "All Photos";
@@ -258,6 +283,11 @@
         S.schedule_off_hour = Math.round(Number(res[6].value));
       if (res[7]) S.sunrise = res[7].value || res[7].state || "";
       if (res[8]) S.sunset = res[8].value || res[8].state || "";
+      if (res[9]) S.online = res[9].value === true || res[9].state === "ON";
+      if (res[10]) S.uptime = res[10].value || res[10].state || "";
+      if (res[11]) S.wifi_strength = res[11].value != null ? String(res[11].value) : (res[11].state != null ? res[11].state : "");
+      if (res[12]) S.wifi_signal_db = res[12].value != null ? String(res[12].value) : (res[12].state != null ? res[12].state : "");
+      if (res[13]) S.ip_address = res[13].value || res[13].state || "";
     });
   }
 

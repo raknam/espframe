@@ -1,0 +1,37 @@
+# Network status and diagnostics — exposed to Home Assistant and webserver
+binary_sensor:
+  - platform: status
+    name: "Network: Online"
+    id: ink_ha_connected
+    icon: mdi:check-network
+    entity_category: diagnostic
+
+sensor:
+  - platform: uptime
+    name: "Network: Uptime"
+    id: uptime_sensor
+    entity_category: diagnostic
+    icon: mdi:clock-outline
+
+  - platform: wifi_signal
+    name: "Network: WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: diagnostic
+    icon: mdi:wifi
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "Network: WiFi Strength"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    icon: mdi:wifi
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "Network: IP Address"
+      icon: mdi:ip-network
+      entity_category: diagnostic

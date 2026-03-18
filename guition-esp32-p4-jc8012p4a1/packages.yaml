@@ -17,3 +17,4 @@ packages:
   immich_slide:    !include addon/immich_slideshow.yaml
   screen_slide:    !include device/screen_slideshow.yaml
   fw_update:       !include addon/firmware_update.yaml
+  network:         !include addon/network.yaml
