@@ -487,9 +487,7 @@
     wrap.innerHTML = '<h1>Espframe</h1><h2>Settings</h2>';
 
     // Connection
-    var conn = el("div", "card");
-    conn.innerHTML = "<h3>Connection</h3>";
-
+    var connBody = el("div");
     var connStatus = el("div", "status");
     connStatus.id = "conn-status";
     connStatus.style.marginBottom = "12px";
@@ -509,7 +507,7 @@
       showSaved("URL saved");
     };
     f1.appendChild(urlInput);
-    conn.appendChild(f1);
+    connBody.appendChild(f1);
 
     var f2 = field("API Key");
     var keyConfigured = S.api_key && S.api_key.length > 0;
@@ -563,10 +561,10 @@
     }
 
     f2.appendChild(keyWrap);
-    conn.appendChild(f2);
+    connBody.appendChild(f2);
 
-    conn.appendChild(connStatus);
-    wrap.appendChild(conn);
+    connBody.appendChild(connStatus);
+    wrap.appendChild(makeCollapsibleCard("Connection", connBody, true));
 
     // Photo Source
     var src = el("div", "card");
@@ -1140,6 +1138,24 @@
     var e = document.createElement(tag);
     if (cls) e.className = cls;
     return e;
+  }
+
+  function makeCollapsibleCard(title, bodyElement, defaultCollapsed) {
+    var card = el("div", "card");
+    var header = el("div", "card-header");
+    var h3 = document.createElement("h3");
+    h3.textContent = title;
+    var chevron = el("span", "card-chevron");
+    chevron.textContent = "\u25BE";
+    header.appendChild(h3);
+    header.appendChild(chevron);
+    var body = el("div", "card-body");
+    body.appendChild(bodyElement);
+    card.appendChild(header);
+    card.appendChild(body);
+    if (defaultCollapsed) card.classList.add("collapsed");
+    header.onclick = function () { card.classList.toggle("collapsed"); };
+    return card;
   }
 
   function field(labelText) {
