@@ -43,6 +43,8 @@ api:
 logger:
   level: ${log_level}
 
+json:
+
 web_server:
   port: 80
   version: 3

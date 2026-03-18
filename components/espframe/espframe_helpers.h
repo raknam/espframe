@@ -112,6 +112,119 @@ inline std::string build_immich_search_body(int size, bool with_people,
 }
 
 // ============================================================================
+// Immich asset parser — parse JSON asset and fill slot meta
+// ============================================================================
+// Single implementation for both memory-asset and random fetch responses.
+// body: JSON string (single asset object or array with one object).
+// base_url: Immich server base URL (no trailing slash).
+// slot: target slot index (0, 1, or 2).
+// s0, s1, s2: references to the three SlotMeta globals.
+// Returns the image URL on success, empty string on parse failure.
+// Caller remains responsible for portrait_preload_slot clearing and
+// calling set_url/update on the correct immich_img_*.
+
+#ifdef USE_JSON
+#include "esphome/components/json/json_util.h"
+
+inline std::string parse_immich_asset_and_fill_slot(const std::string &body,
+                                                    const std::string &base_url,
+                                                    int slot,
+                                                    SlotMeta &s0, SlotMeta &s1, SlotMeta &s2) {
+  auto doc = json::parse_json(body);
+  JsonObject asset;
+  if (!doc.isNull()) {
+    if (doc.is<JsonArray>()) {
+      JsonArray arr = doc.as<JsonArray>();
+      if (arr.size() > 0) asset = arr[0].as<JsonObject>();
+    } else if (doc.is<JsonObject>()) {
+      asset = doc.as<JsonObject>();
+    }
+  }
+  if (asset.isNull() || !asset["id"].is<const char *>())
+    return "";
+
+  std::string asset_id = asset["id"].as<std::string>();
+  std::string photo_date, photo_location, photo_person, local_datetime;
+  int photo_year = 0, photo_month = 0;
+  bool is_portrait = false;
+  uint16_t slot_zoom = ZOOM_IDENTITY;
+
+  if (asset["localDateTime"].is<const char *>()) {
+    std::string raw = asset["localDateTime"].as<std::string>();
+    local_datetime = raw;
+    if (raw.size() >= 10) {
+      photo_year = atoi(raw.substr(0, 4).c_str());
+      photo_month = atoi(raw.substr(5, 2).c_str());
+      photo_date = format_photo_date(photo_year, photo_month);
+    }
+  }
+
+  JsonObject exif = asset["exifInfo"].as<JsonObject>();
+  if (!exif.isNull()) {
+    std::string city, country;
+    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
+    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
+    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
+    else if (!city.empty()) photo_location = city;
+    else if (!country.empty()) photo_location = country;
+
+    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
+      std::string raw = exif["dateTimeOriginal"].as<std::string>();
+      if (raw.size() >= 10) {
+        photo_year = atoi(raw.substr(0, 4).c_str());
+        photo_month = atoi(raw.substr(5, 2).c_str());
+        photo_date = format_photo_date(photo_year, photo_month);
+      }
+    }
+
+    int exif_w = 0, exif_h = 0;
+    if (exif["exifImageWidth"].is<int>()) exif_w = exif["exifImageWidth"].as<int>();
+    if (exif["exifImageHeight"].is<int>()) exif_h = exif["exifImageHeight"].as<int>();
+    std::string orientation;
+    if (exif["orientation"].is<const char *>()) orientation = exif["orientation"].as<std::string>();
+    if (orientation == "5" || orientation == "6" || orientation == "7" || orientation == "8")
+      std::swap(exif_w, exif_h);
+    if (exif_w > 0 && exif_h > 0) {
+      is_portrait = (exif_h > exif_w);
+      if (!is_portrait) {
+        float aspect = (float)exif_w / (float)exif_h;
+        if (aspect > PANORAMA_MIN_ASPECT && aspect <= PANORAMA_MAX_ASPECT) {
+          float decoded_h = 1280.0f / aspect;
+          slot_zoom = (uint16_t)((float)ZOOM_IDENTITY * 800.0f / decoded_h);
+        }
+      }
+    }
+  }
+
+  if (asset["people"].is<JsonArray>()) {
+    JsonArray people = asset["people"].as<JsonArray>();
+    if (people.size() > 0) {
+      JsonObject person = people[0].as<JsonObject>();
+      if (person["name"].is<const char *>())
+        photo_person = person["name"].as<std::string>();
+    }
+  }
+
+  std::string img_url = base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview";
+  SlotMeta *meta = (slot == 0) ? &s0 : (slot == 1) ? &s1 : &s2;
+  meta->asset_id = asset_id;
+  meta->image_url = img_url;
+  meta->date = photo_date;
+  meta->location = photo_location;
+  meta->year = photo_year;
+  meta->month = photo_month;
+  meta->person = photo_person;
+  meta->is_portrait = is_portrait;
+  meta->datetime = local_datetime;
+  meta->companion_url = "";
+  meta->zoom = slot_zoom;
+  meta->pending_asset_id = asset_id;
+  return img_url;
+}
+
+#endif  // USE_JSON
+
+// ============================================================================
 // Timezone coordinate lookup table
 // ============================================================================
 // Representative city lat/lon for each timezone in the selection list.

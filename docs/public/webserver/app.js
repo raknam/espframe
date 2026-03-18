@@ -125,15 +125,8 @@
   };
 
   function post(url, params) {
-    var qs = params
-      ? "?" +
-        Object.keys(params)
-          .map(function (k) {
-            return k + "=" + encodeURIComponent(params[k]);
-          })
-          .join("&")
-      : "";
-    return fetch(url + qs, { method: "POST" }).catch(function () {});
+    var fullUrl = params ? url + "?" + new URLSearchParams(params).toString() : url;
+    return fetch(fullUrl, { method: "POST" }).catch(function () {});
   }
 
   var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -162,6 +155,7 @@
   var logLines = [];
   var logPreRef = null;
   var logMaxLines = 200;
+  var logListenerAttached = false;
 
   function logLevelClass(line) {
     if (/\[E\]/.test(line)) return "log-error";
@@ -170,104 +164,105 @@
     return "";
   }
 
-  function collectState(d) {
+  // Entity id -> state key mapping; optional optionsKey and default.
+  var ENTITY_STATE_MAP = {
+    "text/Connection: Server URL": { key: "immich_url" },
+    "text/Connection: API Key": { key: "api_key" },
+    "select/Clock: Format": { key: "clock_format", optionsKey: "clock_options", default: "24 Hour" },
+    "select/Clock: Timezone": { key: "timezone", optionsKey: "tz_options", default: "" },
+    "select/Photos: Slideshow Interval": { key: "interval", optionsKey: "interval_options", default: "15 seconds" },
+    "switch/Clock: Show": { key: "show_clock", boolFromState: true },
+    "text_sensor/Firmware: Version": { key: "firmware" },
+    "switch/Firmware: Auto Update": { key: "auto_update", boolFromState: true },
+    "select/Firmware: Update Frequency": { key: "update_frequency", optionsKey: "update_freq_options", default: "Daily" },
+    "switch/Screen: Schedule": { key: "schedule_enabled", boolFromState: true },
+    "number/Screen: Schedule On": { key: "schedule_on_hour", default: 6, number: true },
+    "number/Screen: Schedule Off": { key: "schedule_off_hour", default: 23, number: true },
+    "number/Screen: Daytime Brightness": { key: "brightness_day", default: 100, number: true },
+    "number/Screen: Nighttime Brightness": { key: "brightness_night", default: 75, number: true },
+    "text_sensor/Screen: Sunrise": { key: "sunrise" },
+    "text_sensor/Screen: Sunset": { key: "sunset" },
+    "select/Photos: Source": { key: "photo_source", optionsKey: "photo_source_options", default: "All Photos" },
+    "text/Photos: Album IDs": { key: "album_ids" },
+    "text/Photos: Person IDs": { key: "person_ids" }
+  };
+
+  function applyEntityToState(d) {
     if (!d || !d.id) return;
     var id = d.id;
-    if (id === "text/Connection: Server URL") {
-      S.immich_url = d.value || d.state || "";
-    } else if (id === "text/Connection: API Key") {
-      S.api_key = d.value || d.state || "";
-    } else if (id === "select/Clock: Format") {
-      S.clock_format = d.value || "24 Hour";
-      if (d.option && d.option.length) S.clock_options = d.option;
-    } else if (id === "select/Clock: Timezone") {
-      S.timezone = d.value || "";
-      if (d.option && d.option.length) S.tz_options = d.option;
-    } else if (id === "select/Photos: Slideshow Interval") {
-      S.interval = d.value || "15 seconds";
-      if (d.option && d.option.length) S.interval_options = d.option;
-    } else if (id === "light/Screen: Backlight") {
+    if (id === "light/Screen: Backlight") {
       S.backlight_on = d.state === "ON";
       if (d.brightness != null) {
         S.brightness = Math.round((d.brightness / 255) * 100);
         S.brightness_current = S.brightness;
       }
-    } else if (id === "switch/Clock: Show") {
-      S.show_clock = d.value === true || d.state === "ON";
-    } else if (id === "text_sensor/Firmware: Version") {
-      S.firmware = d.value || d.state || "";
-    } else if (id === "update/Firmware: Update") {
+      return;
+    }
+    if (id === "update/Firmware: Update") {
       S.installed_version = d.current_version || "";
       S.latest_version = d.latest_version || "";
       S.update_available =
         S.installed_version &&
         S.latest_version &&
         S.installed_version !== S.latest_version;
-    } else if (id === "update/Firmware: Update Beta") {
+      return;
+    }
+    if (id === "update/Firmware: Update Beta") {
       S.beta_version = d.latest_version || "";
       S.beta_available =
         S.beta_version &&
         d.current_version &&
         S.beta_version !== d.current_version;
-    } else if (id === "switch/Firmware: Auto Update") {
-      S.auto_update = d.value === true || d.state === "ON";
-    } else if (id === "select/Firmware: Update Frequency") {
-      S.update_frequency = d.value || "Daily";
-      if (d.option && d.option.length) S.update_freq_options = d.option;
-    } else if (id === "switch/Screen: Schedule") {
-      S.schedule_enabled = d.value === true || d.state === "ON";
-    } else if (id === "number/Screen: Schedule On") {
-      S.schedule_on_hour = d.value != null ? d.value : 6;
-    } else if (id === "number/Screen: Schedule Off") {
-      S.schedule_off_hour = d.value != null ? d.value : 23;
-    } else if (id === "number/Screen: Daytime Brightness") {
-      S.brightness_day = d.value != null ? d.value : 100;
-    } else if (id === "number/Screen: Nighttime Brightness") {
-      S.brightness_night = d.value != null ? d.value : 75;
-    } else if (id === "text_sensor/Screen: Sunrise") {
-      S.sunrise = d.value || d.state || "";
-    } else if (id === "text_sensor/Screen: Sunset") {
-      S.sunset = d.value || d.state || "";
-    } else if (id === "select/Photos: Source") {
-      S.photo_source = d.value || "All Photos";
-      if (d.option && d.option.length) S.photo_source_options = d.option;
-    } else if (id === "text/Photos: Album IDs") {
-      S.album_ids = d.value || d.state || "";
-    } else if (id === "text/Photos: Person IDs") {
-      S.person_ids = d.value || d.state || "";
+      return;
     }
+    var spec = ENTITY_STATE_MAP[id];
+    if (!spec) return;
+    var v = d.value != null ? d.value : d.state;
+    if (spec.boolFromState) {
+      S[spec.key] = v === true || v === "ON";
+    } else if (spec.number) {
+      S[spec.key] = v != null ? Math.round(Number(v)) : (spec.default !== undefined ? spec.default : 0);
+    } else {
+      S[spec.key] = v !== undefined && v !== null ? String(v) : (spec.default !== undefined ? spec.default : "");
+    }
+    if (spec.optionsKey && d.option && d.option.length) S[spec.optionsKey] = d.option;
   }
 
+  function collectState(d) {
+    applyEntityToState(d);
+  }
+
+  var INITIAL_FETCH_KEYS = [
+    "photo_source", "album_ids", "person_ids", "interval",
+    "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
+    "sunrise", "sunset"
+  ];
+
+  var KEY_TO_ENTITY_ID = {
+    photo_source: "select/Photos: Source",
+    album_ids: "text/Photos: Album IDs",
+    person_ids: "text/Photos: Person IDs",
+    interval: "select/Photos: Slideshow Interval",
+    schedule_enabled: "switch/Screen: Schedule",
+    schedule_on_hour: "number/Screen: Schedule On",
+    schedule_off_hour: "number/Screen: Schedule Off",
+    sunrise: "text_sensor/Screen: Sunrise",
+    sunset: "text_sensor/Screen: Sunset"
+  };
+
   function fetchDeviceSettingsState() {
-    return Promise.all([
-      safeGet(endpoints.photo_source),
-      safeGet(endpoints.album_ids),
-      safeGet(endpoints.person_ids),
-      safeGet(endpoints.interval),
-      safeGet(endpoints.schedule_enabled),
-      safeGet(endpoints.schedule_on_hour),
-      safeGet(endpoints.schedule_off_hour),
-      safeGet(endpoints.sunrise),
-      safeGet(endpoints.sunset)
-    ]).then(function (res) {
-      if (res[0] && (res[0].value != null || res[0].state != null))
-        S.photo_source = res[0].value || res[0].state || "All Photos";
-      if (res[0] && res[0].option && res[0].option.length)
-        S.photo_source_options = res[0].option;
-      if (res[1]) S.album_ids = res[1].value || res[1].state || "";
-      if (res[2]) S.person_ids = res[2].value || res[2].state || "";
-      if (res[3] && (res[3].value != null || res[3].state != null))
-        S.interval = res[3].value || res[3].state || "15 seconds";
-      if (res[3] && res[3].option && res[3].option.length)
-        S.interval_options = res[3].option;
-      if (res[4])
-        S.schedule_enabled = res[4].value === true || res[4].state === "ON";
-      if (res[5] && res[5].value != null)
-        S.schedule_on_hour = Math.round(Number(res[5].value));
-      if (res[6] && res[6].value != null)
-        S.schedule_off_hour = Math.round(Number(res[6].value));
-      if (res[7]) S.sunrise = res[7].value || res[7].state || "";
-      if (res[8]) S.sunset = res[8].value || res[8].state || "";
+    var urls = INITIAL_FETCH_KEYS.map(function (k) { return safeGet(endpoints[k]); });
+    return Promise.all(urls).then(function (res) {
+      for (var i = 0; i < res.length; i++) {
+        var data = res[i];
+        if (!data) continue;
+        applyEntityToState({
+          id: KEY_TO_ENTITY_ID[INITIAL_FETCH_KEYS[i]],
+          value: data.value,
+          state: data.state,
+          option: data.option
+        });
+      }
     });
   }
 
@@ -309,21 +304,24 @@
         }
       });
 
-      evtSource.addEventListener("log", function (e) {
-        var line = e.data;
-        logLines.push(line);
-        if (logLines.length > logMaxLines) logLines.shift();
-        if (logPreRef) {
-          var parts = [];
-          for (var i = 0; i < logLines.length; i++) {
-            var ln = logLines[i];
-            var cls = logLevelClass(ln);
-            parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
+      if (!logListenerAttached) {
+        logListenerAttached = true;
+        evtSource.addEventListener("log", function (e) {
+          var line = e.data;
+          logLines.push(line);
+          if (logLines.length > logMaxLines) logLines.shift();
+          if (logPreRef) {
+            var parts = [];
+            for (var i = 0; i < logLines.length; i++) {
+              var ln = logLines[i];
+              var cls = logLevelClass(ln);
+              parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
+            }
+            logPreRef.innerHTML = parts.join("\n");
+            logPreRef.scrollTop = logPreRef.scrollHeight;
           }
-          logPreRef.innerHTML = parts.join("\n");
-          logPreRef.scrollTop = logPreRef.scrollHeight;
-        }
-      });
+        });
+      }
 
       evtSource.onerror = function () {
         if (!rendered) {
@@ -508,9 +506,7 @@
       keyWrap.innerHTML = "";
       var row = el("div", "input-group");
       var mask = el("div");
-      mask.style.cssText =
-        "flex:1;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);" +
-        "border-radius:6px;color:var(--text2);font-size:.9rem;letter-spacing:2px";
+      mask.className = "key-mask";
       mask.textContent = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
       var cb = el("button", "btn btn-secondary");
       cb.textContent = "Change";
@@ -570,7 +566,7 @@
     var albumInput = input("text", S.album_ids, "Paste album IDs, comma-separated");
     var albumError = el("div", "field-error");
     var albumHint = el("div");
-    albumHint.style.cssText = "font-size:.75rem;color:var(--text2);margin-top:4px";
+    albumHint.className = "field-hint";
     albumHint.textContent = "Find IDs in your Immich server URL bar";
     albumField.appendChild(albumInput);
     albumField.appendChild(albumError);
@@ -581,7 +577,7 @@
     var personInput = input("text", S.person_ids, "Paste person IDs, comma-separated");
     var personError = el("div", "field-error");
     var personHint = el("div");
-    personHint.style.cssText = "font-size:.75rem;color:var(--text2);margin-top:4px";
+    personHint.className = "field-hint";
     personHint.textContent = "Find IDs in your Immich server URL bar";
     personField.appendChild(personInput);
     personField.appendChild(personError);
@@ -785,20 +781,16 @@
 
     // Firmware
     var fwBody = el("div");
-    var fwRowStyle = "display:flex;align-items:center;justify-content:space-between;min-height:36px";
-    var versionRow = el("div", "field");
-    versionRow.style.cssText = fwRowStyle;
-    var versionLabel = el("span");
-    versionLabel.style.cssText = "font-size:.9rem";
+    var versionRow = el("div", "field fw-row");
+    var versionLabel = el("span", "fw-label");
     versionLabel.innerHTML = '<span style="color:var(--text2)">Installed</span> ' +
       esc(S.firmware || S.installed_version || "unknown");
     var checkBtn = el("button", "btn btn-secondary btn-sm");
     checkBtn.textContent = "Check for Update";
-    var statusMsg = el("span");
-    statusMsg.style.cssText = "font-size:.8rem;color:var(--text2)";
+    var statusMsg = el("span", "fw-status");
     versionRow.appendChild(versionLabel);
     var checkWrap = el("div");
-    checkWrap.style.cssText = "display:flex;align-items:center;gap:8px;flex-shrink:0";
+    checkWrap.className = "check-wrap";
     checkWrap.appendChild(statusMsg);
     checkWrap.appendChild(checkBtn);
     versionRow.appendChild(checkWrap);
@@ -814,10 +806,8 @@
     function renderUpdateRow() {
       updateRow.innerHTML = "";
       if (!S.update_available) return;
-      var row = el("div", "field");
-      row.style.cssText = fwRowStyle;
-      var label = el("span");
-      label.style.cssText = "font-size:.9rem";
+      var row = el("div", "field fw-row");
+      var label = el("span", "fw-label");
       label.innerHTML = '<span style="color:var(--text2)">Stable</span> ' + esc(S.latest_version);
       var installBtn = el("button", "btn btn-primary btn-sm");
       installBtn.textContent = "Install";
@@ -834,10 +824,8 @@
     function renderBetaRow() {
       betaRow.innerHTML = "";
       if (!S.beta_opt_in || !S.beta_available) return;
-      var row = el("div", "field");
-      row.style.cssText = fwRowStyle;
-      var label = el("span");
-      label.style.cssText = "font-size:.9rem";
+      var row = el("div", "field fw-row");
+      var label = el("span", "fw-label");
       label.innerHTML = '<span style="color:var(--text2)">Pre-release</span> ' + esc(S.beta_version);
       var betaBtn = el("button", "btn btn-secondary btn-sm");
       betaBtn.textContent = "Install";

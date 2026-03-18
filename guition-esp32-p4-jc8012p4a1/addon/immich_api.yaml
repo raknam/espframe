@@ -132,107 +132,24 @@ script:
                     id(immich_fetch_into_slot).execute();
                     return;
                   }
-
                   id(immich_fetch_started) = true;
                   id(immich_api_retries) = 0;
-
-                  auto doc = json::parse_json(body);
-                  JsonObject asset = doc.as<JsonObject>();
-                  if (asset.isNull() || !asset["id"].is<const char *>()) {
+                  std::string img_url = parse_immich_asset_and_fill_slot(body, id(immich_url).state, id(target_slot), id(slot0), id(slot1), id(slot2));
+                  if (img_url.empty()) {
                     ESP_LOGW("immich", "Memory asset parse failed — falling back to random");
                     id(immich_memory_fallback) = true;
                     id(immich_fetch_into_slot).execute();
                     return;
                   }
-
-                  std::string asset_id = asset["id"].as<std::string>();
-                  std::string photo_date, photo_location, photo_person, local_datetime;
-                  int photo_year = 0, photo_month = 0;
-                  bool is_portrait = false;
-                  uint16_t slot_zoom = ZOOM_IDENTITY;
-
-                  if (asset["localDateTime"].is<const char *>()) {
-                    std::string raw = asset["localDateTime"].as<std::string>();
-                    local_datetime = raw;
-                    if (raw.size() >= 10) {
-                      photo_year = atoi(raw.substr(0, 4).c_str());
-                      photo_month = atoi(raw.substr(5, 2).c_str());
-                      photo_date = format_photo_date(photo_year, photo_month);
-                    }
-                  }
-
-                  JsonObject exif = asset["exifInfo"].as<JsonObject>();
-                  if (!exif.isNull()) {
-                    std::string city, country;
-                    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
-                    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
-                    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
-                    else if (!city.empty()) photo_location = city;
-                    else if (!country.empty()) photo_location = country;
-
-                    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
-                      std::string raw = exif["dateTimeOriginal"].as<std::string>();
-                      if (raw.size() >= 10) {
-                        photo_year = atoi(raw.substr(0, 4).c_str());
-                        photo_month = atoi(raw.substr(5, 2).c_str());
-                        photo_date = format_photo_date(photo_year, photo_month);
-                      }
-                    }
-
-                    int exif_w = 0, exif_h = 0;
-                    if (exif["exifImageWidth"].is<int>()) exif_w = exif["exifImageWidth"].as<int>();
-                    if (exif["exifImageHeight"].is<int>()) exif_h = exif["exifImageHeight"].as<int>();
-                    std::string orientation;
-                    if (exif["orientation"].is<const char *>()) orientation = exif["orientation"].as<std::string>();
-                    if (orientation == "5" || orientation == "6" || orientation == "7" || orientation == "8")
-                      std::swap(exif_w, exif_h);
-                    if (exif_w > 0 && exif_h > 0) {
-                      is_portrait = (exif_h > exif_w);
-                      if (!is_portrait) {
-                        float aspect = (float)exif_w / (float)exif_h;
-                        if (aspect > PANORAMA_MIN_ASPECT && aspect <= PANORAMA_MAX_ASPECT) {
-                          float decoded_h = 1280.0f / aspect;
-                          slot_zoom = (uint16_t)((float)ZOOM_IDENTITY * 800.0f / decoded_h);
-                        }
-                      }
-                    }
-                  }
-
-                  if (asset["people"].is<JsonArray>()) {
-                    JsonArray people = asset["people"].as<JsonArray>();
-                    if (people.size() > 0) {
-                      JsonObject person = people[0].as<JsonObject>();
-                      if (person["name"].is<const char *>())
-                        photo_person = person["name"].as<std::string>();
-                    }
-                  }
-
-                  std::string img_url = id(immich_url).state + "/api/assets/" + asset_id + "/thumbnail?size=preview";
                   int slot = id(target_slot);
+                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
                   ESP_LOGI("immich", "Memory slot %d fetched: %s | %s | %s | %s | portrait=%d zoom=%u",
-                           slot, asset_id.c_str(), photo_date.c_str(),
-                           photo_person.c_str(), photo_location.c_str(), is_portrait, slot_zoom);
-
+                           slot, meta.asset_id.c_str(), meta.date.c_str(), meta.person.c_str(), meta.location.c_str(), meta.is_portrait, meta.zoom);
                   if (id(portrait_preload_slot) == slot) {
                     id(portrait_preload_slot) = -1;
                     id(portrait_preload_left_ready) = false;
                     id(portrait_preload_right_ready) = false;
                   }
-
-                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
-                  meta.asset_id = asset_id;
-                  meta.image_url = img_url;
-                  meta.date = photo_date;
-                  meta.location = photo_location;
-                  meta.year = photo_year;
-                  meta.month = photo_month;
-                  meta.person = photo_person;
-                  meta.is_portrait = is_portrait;
-                  meta.datetime = local_datetime;
-                  meta.companion_url = "";
-                  meta.zoom = slot_zoom;
-                  meta.pending_asset_id = asset_id;
-
                   if (slot == 0) { id(immich_img_0).set_url(img_url); id(immich_img_0).update(); }
                   else if (slot == 1) { id(immich_img_1).set_url(img_url); id(immich_img_1).update(); }
                   else { id(immich_img_2).set_url(img_url); id(immich_img_2).update(); }
@@ -294,110 +211,20 @@ script:
                   }
                   id(immich_fetch_started) = true;
                   id(immich_api_retries) = 0;
-
-                  std::string asset_id, photo_date, photo_location, photo_person, local_datetime;
-                  int photo_year = 0, photo_month = 0;
-                  bool is_portrait = false;
-                  uint16_t slot_zoom = ZOOM_IDENTITY;
-
-                  auto doc = json::parse_json(body);
-                  JsonObject asset;
-                  if (!doc.isNull()) {
-                    if (doc.is<JsonArray>()) {
-                      JsonArray arr = doc.as<JsonArray>();
-                      if (arr.size() > 0) asset = arr[0].as<JsonObject>();
-                    } else if (doc.is<JsonObject>()) {
-                      asset = doc.as<JsonObject>();
-                    }
-                  }
-                  if (asset.isNull() || !asset["id"].is<const char *>()) {
+                  std::string img_url = parse_immich_asset_and_fill_slot(body, id(immich_url).state, id(target_slot), id(slot0), id(slot1), id(slot2));
+                  if (img_url.empty()) {
                     ESP_LOGW("immich", "No valid asset in response");
                     return;
                   }
-                  asset_id = asset["id"].as<std::string>();
-
-                  if (asset["localDateTime"].is<const char *>()) {
-                    std::string raw = asset["localDateTime"].as<std::string>();
-                    local_datetime = raw;
-                    if (raw.size() >= 10) {
-                      photo_year = atoi(raw.substr(0, 4).c_str());
-                      photo_month = atoi(raw.substr(5, 2).c_str());
-                      photo_date = format_photo_date(photo_year, photo_month);
-                    }
-                  }
-
-                  JsonObject exif = asset["exifInfo"].as<JsonObject>();
-                  if (!exif.isNull()) {
-                    std::string city, country;
-                    if (exif["city"].is<const char *>()) city = exif["city"].as<std::string>();
-                    if (exif["country"].is<const char *>()) country = exif["country"].as<std::string>();
-                    if (!city.empty() && !country.empty()) photo_location = city + ", " + country;
-                    else if (!city.empty()) photo_location = city;
-                    else if (!country.empty()) photo_location = country;
-
-                    if (photo_date.empty() && exif["dateTimeOriginal"].is<const char *>()) {
-                      std::string raw = exif["dateTimeOriginal"].as<std::string>();
-                      if (raw.size() >= 10) {
-                        photo_year = atoi(raw.substr(0, 4).c_str());
-                        photo_month = atoi(raw.substr(5, 2).c_str());
-                        photo_date = format_photo_date(photo_year, photo_month);
-                      }
-                    }
-
-                    int exif_w = 0, exif_h = 0;
-                    if (exif["exifImageWidth"].is<int>()) exif_w = exif["exifImageWidth"].as<int>();
-                    if (exif["exifImageHeight"].is<int>()) exif_h = exif["exifImageHeight"].as<int>();
-                    std::string orientation;
-                    if (exif["orientation"].is<const char *>()) orientation = exif["orientation"].as<std::string>();
-                    if (orientation == "5" || orientation == "6" || orientation == "7" || orientation == "8")
-                      std::swap(exif_w, exif_h);
-                    if (exif_w > 0 && exif_h > 0) {
-                      is_portrait = (exif_h > exif_w);
-                      if (!is_portrait) {
-                        float aspect = (float)exif_w / (float)exif_h;
-                        if (aspect > PANORAMA_MIN_ASPECT && aspect <= PANORAMA_MAX_ASPECT) {
-                          float decoded_h = 1280.0f / aspect;
-                          slot_zoom = (uint16_t)((float)ZOOM_IDENTITY * 800.0f / decoded_h);
-                        }
-                      }
-                    }
-                  }
-
-                  if (asset["people"].is<JsonArray>()) {
-                    JsonArray people = asset["people"].as<JsonArray>();
-                    if (people.size() > 0) {
-                      JsonObject person = people[0].as<JsonObject>();
-                      if (person["name"].is<const char *>())
-                        photo_person = person["name"].as<std::string>();
-                    }
-                  }
-
-                  std::string img_url = id(immich_url).state + "/api/assets/" + asset_id + "/thumbnail?size=preview";
                   int slot = id(target_slot);
+                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
                   ESP_LOGI("immich", "Slot %d fetched: %s | %s | %s | %s | portrait=%d zoom=%u",
-                           slot, asset_id.c_str(), photo_date.c_str(),
-                           photo_person.c_str(), photo_location.c_str(), is_portrait, slot_zoom);
-
+                           slot, meta.asset_id.c_str(), meta.date.c_str(), meta.person.c_str(), meta.location.c_str(), meta.is_portrait, meta.zoom);
                   if (id(portrait_preload_slot) == slot) {
                     id(portrait_preload_slot) = -1;
                     id(portrait_preload_left_ready) = false;
                     id(portrait_preload_right_ready) = false;
                   }
-
-                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
-                  meta.asset_id = asset_id;
-                  meta.image_url = img_url;
-                  meta.date = photo_date;
-                  meta.location = photo_location;
-                  meta.year = photo_year;
-                  meta.month = photo_month;
-                  meta.person = photo_person;
-                  meta.is_portrait = is_portrait;
-                  meta.datetime = local_datetime;
-                  meta.companion_url = "";
-                  meta.zoom = slot_zoom;
-                  meta.pending_asset_id = asset_id;
-
                   if (slot == 0) { id(immich_img_0).set_url(img_url); id(immich_img_0).update(); }
                   else if (slot == 1) { id(immich_img_1).set_url(img_url); id(immich_img_1).update(); }
                   else { id(immich_img_2).set_url(img_url); id(immich_img_2).update(); }

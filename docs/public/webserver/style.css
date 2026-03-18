@@ -142,6 +142,13 @@ select option{background:var(--surface);color:var(--text)}
 
 .version{text-align:center;font-size:.75rem;color:var(--text2);margin-top:8px;opacity:.6}
 
+.fw-row{display:flex;align-items:center;justify-content:space-between;min-height:36px}
+.fw-label{font-size:.9rem}
+.fw-status{font-size:.8rem;color:var(--text2)}
+.field-hint{font-size:.75rem;color:var(--text2);margin-top:4px}
+.key-mask{flex:1;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:.9rem;letter-spacing:2px}
+.check-wrap{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
 .card-logs{
   width:100vw;position:relative;left:50%;transform:translateX(-50%);
   max-width:none;border-radius:0;
