@@ -99,7 +99,7 @@ Implementation order: do **2a → 2b → 2c → 2d → 2e** so duplication is re
 **Steps:**
 
 1. Add a new ESPHome custom component (e.g. `components/immich_parser` or under [components/espframe](components/espframe)) that exposes a C++ function callable from YAML lambdas, e.g. `parse_immich_asset_and_fill_slot(const std::string& body, int slot)`.
-2. Implement that function to parse the JSON, compute exif/portrait/zoom, fill the slot meta (asset_id, image_url, date, location, etc.) by writing to the existing globals (e.g. `id(slot0)` / `slot1` / `slot2`), and set the image URL on the correct `immich_img_`*. Mirror the logic of the current inline lambdas so behavior is unchanged.
+2. Implement that function to parse the JSON, compute exif/portrait/zoom, fill the slot meta (asset_id, image_url, date, location, etc.) by writing to the existing globals (e.g. `id(slot0)` / `slot1` / `slot2`), and set the image URL on the correct `immich_img`_*. Mirror the logic of the current inline lambdas so behavior is unchanged.
 3. In [immich_api.yaml](guition-esp32-p4-jc8012p4a1/addon/immich_api.yaml), in both `immich_fetch_memory_asset` and `immich_fetch_into_slot` `on_response` blocks, replace the long lambda with a short one that calls this helper (e.g. `parse_immich_asset_and_fill_slot(body, id(target_slot));`).
 4. Note: ESPHome lambdas can only call C++ that is exposed via a custom component (or global), so the helper must live in a component and be registered appropriately.
 

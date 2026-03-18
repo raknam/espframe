@@ -1003,6 +1003,12 @@
     wrap.appendChild(makeCollapsibleCard("Firmware", fwBody, true));
 
     // Logs
+    function logLevelClass(line) {
+      if (/\[E\]/.test(line)) return "log-error";
+      if (/\[W\]/.test(line)) return "log-warning";
+      if (/\[I\]/.test(line)) return "log-info";
+      return "";
+    }
     var logsBody = el("div");
     var logPre = document.createElement("pre");
     logPre.className = "log-output";
@@ -1019,7 +1025,13 @@
         var line = e.data;
         logLines.push(line);
         if (logLines.length > maxLines) logLines.shift();
-        logPre.textContent = logLines.join("\n");
+        var parts = [];
+        for (var i = 0; i < logLines.length; i++) {
+          var ln = logLines[i];
+          var cls = logLevelClass(ln);
+          parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
+        }
+        logPre.innerHTML = parts.join("\n");
         logPre.scrollTop = logPre.scrollHeight;
       });
     }
