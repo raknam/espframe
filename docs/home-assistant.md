@@ -25,18 +25,18 @@ If the device doesn't appear automatically:
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **ESPHome**
-3. Enter the device's IP address (shown on the frame's screen) and click **Submit**
+3. Enter the device's IP address (shown on the frame's screen or in the web UI) and click **Submit**
 
-## What You Get
+## Exposed Entities
 
-Once added, the frame exposes its settings as Home Assistant entities. You can view and control them from the device page under **Settings → Devices & Services → ESPHome**.
+Once added, the frame exposes the following entities in Home Assistant. You can view and control them from the device page under **Settings → Devices & Services → ESPHome**. Settings that are only in the built-in web UI (e.g. clock, schedule, connection URL) are not exposed as entities.
 
 ### Photos
 
 | Entity | Type | Description |
 |---|---|---|
-| **Photos: Slideshow Interval** | Select | Time between photos (10 seconds – 10 minutes) |
-| **Photos: Source** | Select | Which photos to display — see [Photo Sources](/photo-sources) for options and setup |
+| **Photos: Source** | Select | Which photos to display: All Photos, Favorites, Album, Person, or Memories — see [Photo Sources](/photo-sources) for setup |
+| **Photos: Slideshow Interval** | Select | Time between photos: 10 seconds, 15 seconds, 20 seconds, 30 seconds, 45 seconds, 1–10 minutes |
 
 ### Lights
 
@@ -48,26 +48,26 @@ Once added, the frame exposes its settings as Home Assistant entities. You can v
 
 | Entity | Type | Description |
 |---|---|---|
-| **Firmware: Auto Update** | Switch | Automatically install firmware updates |
+| **Firmware: Auto Update** | Switch | Automatically install firmware updates when available |
 | **Firmware: Update Frequency** | Select | How often to check: `Hourly`, `Daily`, or `Weekly` |
+| **Firmware: Check for Update** | Button | Manually trigger a check for updates (stable and beta) |
+| **Firmware: Version** | Text Sensor | Currently installed firmware version |
 
-### Sensors
+### Network (diagnostics)
 
 | Entity | Type | Description |
 |---|---|---|
-| **WiFi Signal** | Sensor | Current signal strength (dBm) |
-| **Firmware: Version** | Text Sensor | Currently installed firmware version |
+| **Network: Online** | Binary Sensor | Whether the device is connected (diagnostic) |
+| **Network: WiFi Strength** | Sensor | WiFi signal strength as a percentage (0–100%) |
+| **Network: WiFi Signal dB** | Sensor | Raw WiFi signal in dBm (diagnostic, disabled by default — enable in entity settings if needed) |
+| **Network: IP Address** | Text Sensor | Device IP address (diagnostic) |
 
 ## Automations
 
-Because the frame is a native ESPHome device, you can use it in Home Assistant automations like any other entity. A few ideas:
+Because the frame is a native ESPHome device, you can use its entities in Home Assistant automations. Some ideas:
 
-- **Turn off the clock at night** — toggle `Clock: Show` during sleeping hours
-- **Control screen brightness** — use the `Screen: Backlight` light to turn the display on/off or set brightness in automations
-- **Adjust slideshow speed** — slow the `Photos: Slideshow Interval` in the evening for a more relaxed pace
-- **Switch to memories on weekends** — set `Photos: Source` to `Memories` (see [Photo Sources](/photo-sources))
-- **Notify on disconnect** — send an alert if the frame goes offline
-
-## What's next
-
-For more planned Home Assistant features, check the [Roadmap](/roadmap). If you prefer to manage settings without Home Assistant, see the [Configuration](/configuration) guide for the built-in web UI.
+- **Control screen from presence** — turn `Screen: Backlight` on when someone arrives and off when everyone leaves
+- **Adjust slideshow speed** — change `Photos: Slideshow Interval` in the evening for a slower pace
+- **Switch photo source** — set `Photos: Source` to `Memories` on weekends (see [Photo Sources](/photo-sources))
+- **Notify on disconnect** — trigger when the frame or `Network: Online` goes unavailable
+- **Manual update check** — call the `Firmware: Check for Update` button from a script or automation

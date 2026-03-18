@@ -86,10 +86,6 @@
     photo_source_options: ["All Photos", "Favorites", "Album", "Person", "Memories"],
     album_ids: "",
     person_ids: "",
-    ip_address: "",
-    wifi_strength: "",
-    wifi_signal_db: "",
-    online: false,
   };
 
   var app = document.getElementById("app");
@@ -126,10 +122,6 @@
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
     person_ids: eid("text", "Photos: Person IDs"),
-    network_online: eid("binary_sensor", "Network: Online"),
-    network_wifi_strength: eid("sensor", "Network: WiFi Strength"),
-    network_wifi_signal_db: eid("sensor", "Network: WiFi Signal dB"),
-    network_ip: eid("text_sensor", "Network: IP Address"),
   };
 
   function post(url, params) {
@@ -243,14 +235,6 @@
       S.album_ids = d.value || d.state || "";
     } else if (id === "text/Photos: Person IDs") {
       S.person_ids = d.value || d.state || "";
-    } else if (id === "binary_sensor/Network: Online") {
-      S.online = d.value === true || d.state === "ON";
-    } else if (id === "sensor/Network: WiFi Strength") {
-      S.wifi_strength = d.value != null ? String(d.value) : (d.state != null ? d.state : "");
-    } else if (id === "sensor/Network: WiFi Signal dB") {
-      S.wifi_signal_db = d.value != null ? String(d.value) : (d.state != null ? d.state : "");
-    } else if (id === "text_sensor/Network: IP Address") {
-      S.ip_address = d.value || d.state || "";
     }
   }
 
@@ -264,11 +248,7 @@
       safeGet(endpoints.schedule_on_hour),
       safeGet(endpoints.schedule_off_hour),
       safeGet(endpoints.sunrise),
-      safeGet(endpoints.sunset),
-      safeGet(endpoints.network_online),
-      safeGet(endpoints.network_wifi_strength),
-      safeGet(endpoints.network_wifi_signal_db),
-      safeGet(endpoints.network_ip)
+      safeGet(endpoints.sunset)
     ]).then(function (res) {
       if (res[0] && (res[0].value != null || res[0].state != null))
         S.photo_source = res[0].value || res[0].state || "All Photos";
