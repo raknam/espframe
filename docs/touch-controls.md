@@ -11,7 +11,7 @@ The frame uses a **GSL3680** capacitive touchscreen. On the slideshow screen you
 
 | Gesture | When backlight is **off** | When backlight is **on** |
 |--------|----------------------------|---------------------------|
-| **Tap** | Turns the backlight on (wake). If a [screen schedule](/screen#screen-schedule) is enabled and the current time is outside the on/off window, tap does nothing. | Starts a 3-second hold timer. |
+| **Tap** | Turns the backlight on (wake). If a [screen schedule](/screen-settings#screen-schedule) is enabled and the current time is outside the on/off window, tap does nothing. | Starts a 3-second hold timer. |
 | **Release** | — | If you release before 3 seconds, the timer is cancelled and the backlight stays on. |
 | **Hold 3 seconds** | — | Turns the backlight off (manual sleep). The display fades out over 500 ms and photo downloads pause until you tap to wake. |
 | **Long press** | — | Advances to the **next** photo in the slideshow. |
@@ -32,6 +32,6 @@ So in practice:
 
 | Topic | Page |
 |-------|------|
-| Brightness and schedule | [Screen](/screen) |
+| Brightness and schedule | [Screen](/screen-settings) |
 | Slideshow timing | Device web UI |
 | All settings | Device web UI |

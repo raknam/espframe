@@ -16,11 +16,15 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/espframe/favicon.svg' }],
+    ['meta', { name: 'keywords', content: 'Espframe, Immich, digital photo frame, ESP32, ESP32-P4, ESPHome, photo frame, self-hosted' }],
     ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:locale', content: 'en_US' }],
     ['meta', { property: 'og:site_name', content: 'Espframe for Immich' }],
     ['meta', { property: 'og:image', content: `${hostname}immich-frame.png` }],
+    ['meta', { property: 'og:image:alt', content: 'Espframe displaying Immich photos on a 10-inch touchscreen' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:image', content: `${hostname}immich-frame.png` }],
+    ['meta', { name: 'twitter:image:alt', content: 'Espframe displaying Immich photos on a 10-inch touchscreen' }],
     ['script', {
       'data-name': 'BMC-Widget',
       'data-cfasync': 'false',
@@ -35,19 +39,32 @@ export default defineConfig({
     }],
     ['script', { type: 'application/ld+json' }, JSON.stringify({
       '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'Espframe for Immich',
-      applicationCategory: 'MultimediaApplication',
-      operatingSystem: 'ESP32',
-      description: 'Standalone Immich-powered digital photo frame on ESP32-P4',
-      url: hostname,
-      image: `${hostname}immich-frame.png`,
-      author: {
-        '@type': 'Person',
-        name: 'jtenniswood',
-        url: 'https://github.com/jtenniswood',
-      },
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      '@graph': [
+        {
+          '@type': 'WebSite',
+          '@id': `${hostname}#website`,
+          url: hostname,
+          name: 'Espframe for Immich',
+          description: 'Standalone Immich-powered digital photo frame on ESP32-P4. No hub, cloud, or extra software required.',
+          inLanguage: 'en-US',
+        },
+        {
+          '@type': 'SoftwareApplication',
+          '@id': `${hostname}#software`,
+          name: 'Espframe for Immich',
+          applicationCategory: 'MultimediaApplication',
+          operatingSystem: 'ESP32',
+          description: 'Standalone Immich-powered digital photo frame on ESP32-P4. Displays your Immich photo library on a 10" touchscreen over HTTP.',
+          url: hostname,
+          image: `${hostname}immich-frame.png`,
+          author: {
+            '@type': 'Person',
+            name: 'jtenniswood',
+            url: 'https://github.com/jtenniswood',
+          },
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        },
+      ],
     })],
   ],
 
@@ -68,6 +85,30 @@ export default defineConfig({
       ['meta', { name: 'twitter:title', content: title }],
       ['meta', { name: 'twitter:description', content: description }],
     )
+
+    // Per-page Article schema for docs (helps search and AI understanding)
+    if (pageData.relativePath !== 'index.md' && title && description) {
+      const isHowTo = pageData.relativePath === 'install.md'
+      const articleSchema: Record<string, unknown> = {
+        '@context': 'https://schema.org',
+        '@type': isHowTo ? 'HowTo' : 'TechArticle',
+        name: title,
+        description,
+        url: canonicalUrl,
+        isPartOf: { '@id': `${hostname}#website` },
+        author: { '@type': 'Person', name: 'jtenniswood', url: 'https://github.com/jtenniswood' },
+      }
+      if (isHowTo) {
+        articleSchema.step = [
+          { '@type': 'HowToStep', name: 'Connect device via USB-C' },
+          { '@type': 'HowToStep', name: 'Flash firmware with Web Installer' },
+          { '@type': 'HowToStep', name: 'Configure WiFi and Immich' },
+        ]
+      }
+      pageData.frontmatter.head.push(
+        ['script', { type: 'application/ld+json' }, JSON.stringify(articleSchema)],
+      )
+    }
   },
 
   themeConfig: {

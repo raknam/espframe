@@ -6,7 +6,7 @@ description: Standalone Immich-powered digital photo frame on ESP32-P4. No hub, 
 
 # Espframe for Immich
 
-A standalone digital photo frame that displays your Immich photo library on a 10" touchscreen — no hub, cloud, or extra software required.
+**Espframe** is a standalone digital photo frame that displays your [Immich](https://immich.app/) photo library on a 10" touchscreen. It runs on ESP32-P4 hardware with [ESPHome](https://esphome.io/) and connects directly to your self-hosted Immich server over HTTP — no hub, cloud, or extra software required.
 
 <img src="/immich-frame.png" alt="Espframe displaying photos on a 10-inch touchscreen" style="max-width: 100%; border-radius: 8px; margin: 1.5rem 0;" />
 
