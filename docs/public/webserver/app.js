@@ -1132,7 +1132,7 @@
     var h3 = document.createElement("h3");
     h3.textContent = title;
     var chevron = el("span", "card-chevron");
-    chevron.textContent = "\u25BE";
+    chevron.innerHTML = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg>";
     header.appendChild(h3);
     header.appendChild(chevron);
     var body = el("div", "card-body");
