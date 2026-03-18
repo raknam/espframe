@@ -9,7 +9,15 @@
 # warm through the night, then ramps back to neutral over 60 minutes after
 # sunrise. The tint is applied directly to the RGB565 image buffer after
 # accent color extraction, using precomputed lookup tables for speed.
+#
+# The Preview button applies warm tones at full intensity to the current
+# image regardless of time of day, so the effect can be judged visually.
 # =============================================================================
+
+globals:
+  - id: warm_tone_preview
+    type: bool
+    initial_value: 'false'
 
 switch:
   - platform: template
@@ -19,6 +27,17 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
     icon: "mdi:weather-sunset"
+
+button:
+  - platform: template
+    name: "Screen: Warm Tone Preview"
+    id: warm_tone_preview_btn
+    internal: true
+    icon: "mdi:eye"
+    on_press:
+      then:
+        - lambda: 'id(warm_tone_preview) = true;'
+        - script.execute: apply_warm_tones
 
 number:
   - platform: template
@@ -39,25 +58,33 @@ script:
     mode: restart
     then:
       - lambda: |-
-          if (!id(warm_tones_enabled).state) return;
-          if (!id(sunrise_sunset_valid)) return;
+          bool preview = id(warm_tone_preview);
+          id(warm_tone_preview) = false;
 
-          auto now = id(sntp_time).now();
-          if (!now.is_valid()) return;
-
-          int now_min = now.hour * 60 + now.minute;
-          int rise_min = id(sunrise_hour) * 60 + id(sunrise_minute);
-          int set_min  = id(sunset_hour)  * 60 + id(sunset_minute);
+          if (!preview && !id(warm_tones_enabled).state) return;
 
           float warmth = 0.0f;
-          if (now_min >= set_min) {
+          if (preview) {
             warmth = 1.0f;
-          } else if (now_min >= set_min - WARM_TONE_LEAD_MINUTES) {
-            warmth = (float)(now_min - (set_min - WARM_TONE_LEAD_MINUTES)) / WARM_TONE_LEAD_MINUTES;
-          } else if (now_min < rise_min) {
-            warmth = 1.0f;
-          } else if (now_min < rise_min + WARM_TONE_LEAD_MINUTES) {
-            warmth = 1.0f - (float)(now_min - rise_min) / WARM_TONE_LEAD_MINUTES;
+          } else if (id(sunrise_sunset_valid)) {
+            auto now = id(sntp_time).now();
+            if (!now.is_valid()) return;
+
+            int now_min = now.hour * 60 + now.minute;
+            int rise_min = id(sunrise_hour) * 60 + id(sunrise_minute);
+            int set_min  = id(sunset_hour)  * 60 + id(sunset_minute);
+
+            if (now_min >= set_min) {
+              warmth = 1.0f;
+            } else if (now_min >= set_min - WARM_TONE_LEAD_MINUTES) {
+              warmth = (float)(now_min - (set_min - WARM_TONE_LEAD_MINUTES)) / WARM_TONE_LEAD_MINUTES;
+            } else if (now_min < rise_min) {
+              warmth = 1.0f;
+            } else if (now_min < rise_min + WARM_TONE_LEAD_MINUTES) {
+              warmth = 1.0f - (float)(now_min - rise_min) / WARM_TONE_LEAD_MINUTES;
+            }
+          } else {
+            return;
           }
 
           float w = warmth * (id(warm_tone_intensity).state / 100.0f);

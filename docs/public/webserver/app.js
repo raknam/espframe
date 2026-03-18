@@ -126,6 +126,7 @@
     person_ids: eid("text", "Photos: Person IDs"),
     warm_tones_enabled: eid("switch", "Screen: Warm Tones"),
     warm_tone_intensity: eid("number", "Screen: Warm Tone Intensity"),
+    warm_tone_preview: eid("button", "Screen: Warm Tone Preview"),
   };
 
   function post(url, params) {
@@ -694,22 +695,6 @@
 
     // Warm Tones
     var warmBody = el("div");
-    var fWarmToggle = field("");
-    var warmTr = el("div", "toggle-row");
-    warmTr.innerHTML = "<span>Enable Warm Tones</span>";
-    var warmTog = el("div", S.warm_tones_enabled ? "toggle on" : "toggle");
-    var warmDetails = el("div");
-    warmDetails.style.display = S.warm_tones_enabled ? "" : "none";
-
-    warmTog.onclick = function () {
-      S.warm_tones_enabled = !S.warm_tones_enabled;
-      warmTog.className = S.warm_tones_enabled ? "toggle on" : "toggle";
-      warmDetails.style.display = S.warm_tones_enabled ? "" : "none";
-      post(endpoints.warm_tones_enabled + (S.warm_tones_enabled ? "/turn_on" : "/turn_off"));
-    };
-    warmTr.appendChild(warmTog);
-    fWarmToggle.appendChild(warmTr);
-    warmBody.appendChild(fWarmToggle);
 
     var fWarmInt = field("Intensity");
     var rwWarm = el("div", "range-wrap");
@@ -730,14 +715,40 @@
     rwWarm.appendChild(warmSlider);
     rwWarm.appendChild(warmVal);
     fWarmInt.appendChild(rwWarm);
-    warmDetails.appendChild(fWarmInt);
+    warmBody.appendChild(fWarmInt);
+
+    var previewBtn = el("button", "btn btn-secondary btn-block");
+    previewBtn.textContent = "Preview";
+    previewBtn.onclick = function () {
+      previewBtn.disabled = true;
+      previewBtn.textContent = "Applying\u2026";
+      post(endpoints.warm_tone_preview + "/press").then(function () {
+        setTimeout(function () {
+          previewBtn.disabled = false;
+          previewBtn.textContent = "Preview";
+        }, 1500);
+      });
+    };
+    warmBody.appendChild(previewBtn);
+
+    var fWarmToggle = field("");
+    var warmTr = el("div", "toggle-row");
+    warmTr.innerHTML = "<span>Auto (sunset/sunrise)</span>";
+    var warmTog = el("div", S.warm_tones_enabled ? "toggle on" : "toggle");
+    warmTog.onclick = function () {
+      S.warm_tones_enabled = !S.warm_tones_enabled;
+      warmTog.className = S.warm_tones_enabled ? "toggle on" : "toggle";
+      post(endpoints.warm_tones_enabled + (S.warm_tones_enabled ? "/turn_on" : "/turn_off"));
+    };
+    warmTr.appendChild(warmTog);
+    fWarmToggle.appendChild(warmTr);
+    warmBody.appendChild(fWarmToggle);
 
     var warmHint = el("div");
     warmHint.className = "field-hint";
     warmHint.textContent = "Shifts photos to warm tones near sunset, neutral during the day";
-    warmDetails.appendChild(warmHint);
+    warmBody.appendChild(warmHint);
 
-    warmBody.appendChild(warmDetails);
     wrap.appendChild(makeCollapsibleCard("Warm Tones", warmBody, true));
 
     // Schedule
