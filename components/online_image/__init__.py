@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 
 from esphome import automation
 import esphome.codegen as cg
@@ -27,7 +28,7 @@ from esphome.const import (
     CONF_TYPE,
     CONF_URL,
 )
-from esphome.core import Lambda
+from esphome.core import CORE, Lambda
 
 AUTO_LOAD = ["image"]
 DEPENDENCIES = ["display", "http_request"]
@@ -72,9 +73,6 @@ class JPEGFormat(Format):
 
     def actions(self):
         cg.add_define("USE_ONLINE_IMAGE_JPEG_SUPPORT")
-        import shutil
-        from esphome.core import CORE
-
         # Copy libjpeg-turbo as an IDF component into the build directory.
         # Skip if dest already exists and CMakeLists.txt mtimes match (avoid
         # redundant copies on incremental builds).

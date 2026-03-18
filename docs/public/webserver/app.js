@@ -167,6 +167,16 @@
   var evtSource = null;
   var rendered = false;
   var renderTimer = null;
+  var logLines = [];
+  var logPreRef = null;
+  var logMaxLines = 200;
+
+  function logLevelClass(line) {
+    if (/\[E\]/.test(line)) return "log-error";
+    if (/\[W\]/.test(line)) return "log-warning";
+    if (/\[I\]/.test(line)) return "log-info";
+    return "";
+  }
 
   function collectState(d) {
     if (!d || !d.id) return;
@@ -323,17 +333,30 @@
         }
       });
 
+      evtSource.addEventListener("log", function (e) {
+        var line = e.data;
+        logLines.push(line);
+        if (logLines.length > logMaxLines) logLines.shift();
+        if (logPreRef) {
+          var parts = [];
+          for (var i = 0; i < logLines.length; i++) {
+            var ln = logLines[i];
+            var cls = logLevelClass(ln);
+            parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
+          }
+          logPreRef.innerHTML = parts.join("\n");
+          logPreRef.scrollTop = logPreRef.scrollHeight;
+        }
+      });
+
       evtSource.onerror = function () {
-        setStatus(false);
         if (!rendered) {
           clearTimeout(renderTimer);
           renderTimer = setTimeout(tryRender, 1000);
         }
       };
 
-      evtSource.onopen = function () {
-        setStatus(true);
-      };
+      evtSource.onopen = function () {};
     } catch (_) {
       tryRender();
     }
@@ -433,20 +456,12 @@
       card.innerHTML = "<h3>Clock & Timezone</h3>";
 
       var f1 = field("Clock Format");
-      var fmtSel = document.createElement("select");
-      fmtSel.className = "select";
-      S.clock_options.forEach(function (opt) {
-        var o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        if (opt === S.clock_format) o.selected = true;
-        fmtSel.appendChild(o);
-      });
-      fmtSel.onchange = function () {
-        S.clock_format = fmtSel.value;
-        post(endpoints.clock_format + "/set", { option: fmtSel.value });
-      };
-      f1.appendChild(fmtSel);
+      f1.appendChild(
+        selectFromOptions(S.clock_options, S.clock_format, function (v) {
+          S.clock_format = v;
+          post(endpoints.clock_format + "/set", { option: v });
+        })
+      );
       card.appendChild(f1);
 
       var f2 = field("Timezone");
@@ -566,17 +581,21 @@
     connBody.appendChild(connStatus);
     wrap.appendChild(makeCollapsibleCard("Connection", connBody, true));
 
+    // Network
+    var netBody = el("div");
+    var netDetails = el("div", "field");
+    netDetails.id = "network-info";
+    updateNetworkInfoElement(netDetails);
+    netBody.appendChild(netDetails);
+    wrap.appendChild(makeCollapsibleCard("Network", netBody, true));
+
     // Photo Source
     var srcBody = el("div");
     var fSrc = field("Source");
-    var srcSel = document.createElement("select");
-    srcSel.className = "select";
-    S.photo_source_options.forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      if (opt === S.photo_source) o.selected = true;
-      srcSel.appendChild(o);
+    var srcSel = selectFromOptions(S.photo_source_options, S.photo_source, function (v) {
+      S.photo_source = v;
+      albumField.style.display = v === "Album" ? "" : "none";
+      personField.style.display = v === "Person" ? "" : "none";
     });
 
     var albumField = field("Album IDs");
@@ -600,12 +619,6 @@
     personField.appendChild(personError);
     personField.appendChild(personHint);
     personField.style.display = S.photo_source === "Person" ? "" : "none";
-
-    srcSel.onchange = function () {
-      S.photo_source = srcSel.value;
-      albumField.style.display = srcSel.value === "Album" ? "" : "none";
-      personField.style.display = srcSel.value === "Person" ? "" : "none";
-    };
 
     var applyBtn = el("button", "btn btn-primary btn-block");
     applyBtn.textContent = "Apply";
@@ -646,20 +659,12 @@
     // Frequency
     var dispBody = el("div");
     var f3 = field("Slideshow Interval");
-    var intSel = document.createElement("select");
-    intSel.className = "select";
-    S.interval_options.forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      if (opt === S.interval) o.selected = true;
-      intSel.appendChild(o);
-    });
-    intSel.onchange = function () {
-      S.interval = intSel.value;
-      post(endpoints.interval + "/set", { option: intSel.value });
-    };
-    f3.appendChild(intSel);
+    f3.appendChild(
+      selectFromOptions(S.interval_options, S.interval, function (v) {
+        S.interval = v;
+        post(endpoints.interval + "/set", { option: v });
+      })
+    );
     dispBody.appendChild(f3);
     wrap.appendChild(makeCollapsibleCard("Frequency", dispBody, true));
 
@@ -711,13 +716,7 @@
     var fSunInfo = el("div", "field sun-info");
     fSunInfo.id = "sun-info";
     function updateSunInfo() {
-      if (!S.sunrise && !S.sunset) { fSunInfo.style.display = "none"; return; }
-      fSunInfo.style.display = "";
-      var t = "";
-      if (S.sunrise) t += "Sunrise: " + esc(S.sunrise);
-      if (S.sunrise && S.sunset) t += " \u00a0/\u00a0 ";
-      if (S.sunset) t += "Sunset: " + esc(S.sunset);
-      fSunInfo.innerHTML = t;
+      updateSunInfoElement(fSunInfo);
     }
     updateSunInfo();
     dnDetails.appendChild(fSunInfo);
@@ -798,20 +797,12 @@
     clkBody.appendChild(f5);
 
     var f6 = field("Format");
-    var fmtSel = document.createElement("select");
-    fmtSel.className = "select";
-    S.clock_options.forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      if (opt === S.clock_format) o.selected = true;
-      fmtSel.appendChild(o);
-    });
-    fmtSel.onchange = function () {
-      S.clock_format = fmtSel.value;
-      post(endpoints.clock_format + "/set", { option: fmtSel.value });
-    };
-    f6.appendChild(fmtSel);
+    f6.appendChild(
+      selectFromOptions(S.clock_options, S.clock_format, function (v) {
+        S.clock_format = v;
+        post(endpoints.clock_format + "/set", { option: v });
+      })
+    );
     clkBody.appendChild(f6);
 
     var f7 = field("Timezone");
@@ -983,58 +974,35 @@
     fwBody.appendChild(fAutoUpd);
 
     var freqField = field("Update Frequency");
-    var freqSel = document.createElement("select");
-    freqSel.className = "select";
-    S.update_freq_options.forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      if (opt === S.update_frequency) o.selected = true;
-      freqSel.appendChild(o);
-    });
-    freqSel.onchange = function () {
-      S.update_frequency = freqSel.value;
-      post(endpoints.update_frequency + "/set", { option: freqSel.value });
-    };
-    freqField.appendChild(freqSel);
+    freqField.appendChild(
+      selectFromOptions(S.update_freq_options, S.update_frequency, function (v) {
+        S.update_frequency = v;
+        post(endpoints.update_frequency + "/set", { option: v });
+      })
+    );
     freqField.style.display = S.auto_update ? "" : "none";
     fwBody.appendChild(freqField);
 
     wrap.appendChild(makeCollapsibleCard("Firmware", fwBody, true));
 
     // Logs
-    function logLevelClass(line) {
-      if (/\[E\]/.test(line)) return "log-error";
-      if (/\[W\]/.test(line)) return "log-warning";
-      if (/\[I\]/.test(line)) return "log-info";
-      return "";
-    }
     var logsBody = el("div");
     var logPre = document.createElement("pre");
     logPre.className = "log-output";
-    var logLines = [];
-    var maxLines = 200;
+    logPreRef = logPre;
+    var parts = [];
+    for (var i = 0; i < logLines.length; i++) {
+      var ln = logLines[i];
+      var cls = logLevelClass(ln);
+      parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
+    }
+    logPre.innerHTML = parts.join("\n");
+    logPre.scrollTop = logPre.scrollHeight;
 
     logsBody.appendChild(logPre);
     var logsCard = makeCollapsibleCard("Device Logs", logsBody, true);
     logsCard.classList.add("card-logs");
     wrap.appendChild(logsCard);
-
-    if (evtSource) {
-      evtSource.addEventListener("log", function (e) {
-        var line = e.data;
-        logLines.push(line);
-        if (logLines.length > maxLines) logLines.shift();
-        var parts = [];
-        for (var i = 0; i < logLines.length; i++) {
-          var ln = logLines[i];
-          var cls = logLevelClass(ln);
-          parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
-        }
-        logPre.innerHTML = parts.join("\n");
-        logPre.scrollTop = logPre.scrollHeight;
-      });
-    }
 
     app.appendChild(wrap);
 
@@ -1060,32 +1028,43 @@
       S.show_clock = d.state === "ON" || d.value === true;
     } else if (id === "text_sensor/Screen: Sunrise") {
       S.sunrise = d.value || d.state || "";
-      var el = document.getElementById("sun-info");
-      if (el) {
-        if (!S.sunrise && !S.sunset) { el.style.display = "none"; return; }
-        el.style.display = "";
-        var t = "";
-        if (S.sunrise) t += "Sunrise: " + esc(S.sunrise);
-        if (S.sunrise && S.sunset) t += " \u00a0/\u00a0 ";
-        if (S.sunset) t += "Sunset: " + esc(S.sunset);
-        el.innerHTML = t;
-      }
+      updateSunInfoElement(document.getElementById("sun-info"));
     } else if (id === "text_sensor/Screen: Sunset") {
       S.sunset = d.value || d.state || "";
-      var el = document.getElementById("sun-info");
-      if (el) {
-        if (!S.sunrise && !S.sunset) { el.style.display = "none"; return; }
-        el.style.display = "";
-        var t = "";
-        if (S.sunrise) t += "Sunrise: " + esc(S.sunrise);
-        if (S.sunrise && S.sunset) t += " \u00a0/\u00a0 ";
-        if (S.sunset) t += "Sunset: " + esc(S.sunset);
-        el.innerHTML = t;
-      }
+      updateSunInfoElement(document.getElementById("sun-info"));
+    } else if (
+      id === "binary_sensor/Network: Online" ||
+      id === "sensor/Network: WiFi Strength" ||
+      id === "sensor/Network: WiFi Signal dB" ||
+      id === "text_sensor/Network: IP Address"
+    ) {
+      updateNetworkInfoElement(document.getElementById("network-info"));
     }
   }
 
-  function setStatus() {}
+  function updateSunInfoElement(el) {
+    if (!el) return;
+    if (!S.sunrise && !S.sunset) {
+      el.style.display = "none";
+      return;
+    }
+    el.style.display = "";
+    var t = "";
+    if (S.sunrise) t += "Sunrise: " + esc(S.sunrise);
+    if (S.sunrise && S.sunset) t += " \u00a0/\u00a0 ";
+    if (S.sunset) t += "Sunset: " + esc(S.sunset);
+    el.innerHTML = t;
+  }
+
+  function updateNetworkInfoElement(netEl) {
+    if (!netEl) return;
+    var parts = [];
+    parts.push(S.online ? "Online" : "Offline");
+    if (S.ip_address) parts.push("IP: " + esc(S.ip_address));
+    if (S.wifi_strength) parts.push(esc(S.wifi_strength));
+    if (S.wifi_signal_db) parts.push(esc(S.wifi_signal_db) + " dB");
+    netEl.innerHTML = parts.join(" \u00a0/\u00a0 ");
+  }
 
   // --- Hour formatting ---
 
@@ -1097,15 +1076,16 @@
     return (h - 12) + ":00 PM";
   }
 
-  // --- Timezone Select ---
+  // --- Select helpers ---
 
-  function timezoneSelect(options, current, onChange) {
+  function selectFromOptions(options, current, onChange, optionDisplayFn) {
+    var display = optionDisplayFn || function (o) { return o; };
     var sel = document.createElement("select");
     sel.className = "select";
     options.forEach(function (o) {
       var opt = document.createElement("option");
       opt.value = o;
-      opt.textContent = o.replace(/_/g, " ");
+      opt.textContent = display(o);
       if (o === current) opt.selected = true;
       sel.appendChild(opt);
     });
@@ -1113,6 +1093,12 @@
       onChange(sel.value);
     };
     return sel;
+  }
+
+  function timezoneSelect(options, current, onChange) {
+    return selectFromOptions(options, current, onChange, function (o) {
+      return o.replace(/_/g, " ");
+    });
   }
 
   // --- Helpers ---

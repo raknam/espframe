@@ -3,6 +3,9 @@
     <div v-if="!supported" class="unsupported">
       Your browser does not support WebSerial. Use Chrome or Edge on desktop.
     </div>
+    <div v-else-if="loadError" class="unsupported">
+      Failed to load installer. {{ loadError }}
+    </div>
     <div v-else class="install-button">
       <esp-web-install-button :manifest="manifestUrl">
         <button slot="activate" class="brand-button">Install Espframe for Immich</button>
@@ -15,11 +18,17 @@
 import { ref, onMounted } from 'vue'
 
 const manifestUrl = './firmware/manifest.json'
-const supported = ref(true)
+const supported = ref(false)
+const loadError = ref(null)
 
 onMounted(async () => {
   supported.value = 'serial' in navigator
-  await import('https://unpkg.com/esp-web-tools@10/dist/web/install-button.js')
+  if (!supported.value) return
+  try {
+    await import('https://unpkg.com/esp-web-tools@10/dist/web/install-button.js')
+  } catch (err) {
+    loadError.value = err?.message || 'Network or script load error.'
+  }
 })
 </script>
 
