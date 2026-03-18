@@ -2,12 +2,12 @@
 
 #include "image_decoder.h"
 #include "esphome/core/defines.h"
-#ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
 #include <jpeglib.h>
 #include <csetjmp>
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 struct JpegErrorMgr {
   jpeg_error_mgr pub;
@@ -43,7 +43,7 @@ class JpegDecoder : public ImageDecoder {
   static constexpr int SCANLINES_PER_CHUNK = 100;
 };
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_JPEG_SUPPORT

@@ -1,15 +1,15 @@
 #include "png_image.h"
-#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
 
 #include "esphome/components/display/display_buffer.h"
 #include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-static const char *const TAG = "online_image.png";
+static const char *const TAG = "remote_image.png";
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 /**
  * @brief Callback method that will be called by the PNGLE engine when the basic
@@ -99,7 +99,7 @@ int HOT PngDecoder::decode(uint8_t *buffer, size_t size) {
   return fed;
 }
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_PNG_SUPPORT

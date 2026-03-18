@@ -1,15 +1,15 @@
 #include "bmp_image.h"
 
-#ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
 
 #include "esphome/components/display/display.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
-static const char *const TAG = "online_image.bmp";
+static const char *const TAG = "remote_image.bmp";
 
 int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
   size_t index = 0;
@@ -133,7 +133,7 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
   return size;
 };
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_BMP_SUPPORT
+#endif  // USE_REMOTE_IMAGE_BMP_SUPPORT

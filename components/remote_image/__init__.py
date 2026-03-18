@@ -42,9 +42,9 @@ CONF_UPDATE = "update"
 
 _LOGGER = logging.getLogger(__name__)
 
-online_image_ns = cg.esphome_ns.namespace("online_image")
+remote_image_ns = cg.esphome_ns.namespace("remote_image")
 
-ImageFormat = online_image_ns.enum("ImageFormat")
+ImageFormat = remote_image_ns.enum("ImageFormat")
 
 
 class Format:
@@ -64,7 +64,7 @@ class BMPFormat(Format):
         super().__init__("BMP")
 
     def actions(self):
-        cg.add_define("USE_ONLINE_IMAGE_BMP_SUPPORT")
+        cg.add_define("USE_REMOTE_IMAGE_BMP_SUPPORT")
 
 
 class JPEGFormat(Format):
@@ -72,7 +72,7 @@ class JPEGFormat(Format):
         super().__init__("JPEG")
 
     def actions(self):
-        cg.add_define("USE_ONLINE_IMAGE_JPEG_SUPPORT")
+        cg.add_define("USE_REMOTE_IMAGE_JPEG_SUPPORT")
         # Copy libjpeg-turbo as an IDF component into the build directory.
         # Skip if dest already exists and CMakeLists.txt mtimes match (avoid
         # redundant copies on incremental builds).
@@ -98,7 +98,7 @@ class PNGFormat(Format):
         super().__init__("PNG")
 
     def actions(self):
-        cg.add_define("USE_ONLINE_IMAGE_PNG_SUPPORT")
+        cg.add_define("USE_REMOTE_IMAGE_PNG_SUPPORT")
         cg.add_library("pngle", "1.1.0")
 
 
@@ -112,21 +112,21 @@ IMAGE_FORMATS = {
 }
 IMAGE_FORMATS.update({"JPG": IMAGE_FORMATS["JPEG"]})
 
-OnlineImage = online_image_ns.class_("OnlineImage", cg.PollingComponent, Image_)
+OnlineImage = remote_image_ns.class_("OnlineImage", cg.PollingComponent, Image_)
 
 # Actions
-SetUrlAction = online_image_ns.class_(
+SetUrlAction = remote_image_ns.class_(
     "OnlineImageSetUrlAction", automation.Action, cg.Parented.template(OnlineImage)
 )
-ReleaseImageAction = online_image_ns.class_(
+ReleaseImageAction = remote_image_ns.class_(
     "OnlineImageReleaseAction", automation.Action, cg.Parented.template(OnlineImage)
 )
 
 # Triggers
-DownloadFinishedTrigger = online_image_ns.class_(
+DownloadFinishedTrigger = remote_image_ns.class_(
     "DownloadFinishedTrigger", automation.Trigger.template()
 )
-DownloadErrorTrigger = online_image_ns.class_(
+DownloadErrorTrigger = remote_image_ns.class_(
     "DownloadErrorTrigger", automation.Trigger.template()
 )
 
@@ -134,7 +134,7 @@ DownloadErrorTrigger = online_image_ns.class_(
 def remove_options(*options):
     return {
         cv.Optional(option): cv.invalid(
-            f"{option} is an invalid option for online_image"
+            f"{option} is an invalid option for remote_image"
         )
         for option in options
     }
@@ -202,11 +202,11 @@ RELEASE_IMAGE_SCHEMA = automation.maybe_simple_id(
 )
 
 
-@automation.register_action("online_image.set_url", SetUrlAction, SET_URL_SCHEMA)
+@automation.register_action("remote_image.set_url", SetUrlAction, SET_URL_SCHEMA)
 @automation.register_action(
-    "online_image.release", ReleaseImageAction, RELEASE_IMAGE_SCHEMA
+    "remote_image.release", ReleaseImageAction, RELEASE_IMAGE_SCHEMA
 )
-async def online_image_action_to_code(config, action_id, template_arg, args):
+async def remote_image_action_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
 

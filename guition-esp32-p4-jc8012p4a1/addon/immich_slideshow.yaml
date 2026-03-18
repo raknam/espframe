@@ -1,7 +1,7 @@
 # =============================================================================
 # IMMICH SLIDESHOW - Ring buffer, display, and navigation
 # =============================================================================
-# 3-slot ring buffer of online_image components for instant swiping.
+# 3-slot ring buffer of remote_image components for instant swiping.
 # Two images are prefetched ahead. Portrait pairs are detected and displayed
 # side-by-side. Backward navigation re-downloads from a stored URL.
 # =============================================================================
@@ -88,7 +88,7 @@ globals:
 # 3-SLOT IMAGE RING BUFFER
 # =============================================================================
 
-online_image:
+remote_image:
   - id: immich_img_0
     url: "https://via.placeholder.com/1x1.jpg"
     format: JPEG
@@ -234,7 +234,7 @@ online_image:
             condition:
               lambda: 'return id(portrait_companion_found);'
             then:
-              - online_image.set_url:
+              - remote_image.set_url:
                   id: immich_portrait_right
                   url: !lambda 'return id(portrait_companion_url);'
         - if:
@@ -299,7 +299,7 @@ online_image:
             id(portrait_preload_left_ready) = true;
             ESP_LOGI("immich", "Portrait preload left ready (slot %d)", id(portrait_preload_slot));
         # Start right only after left finishes to avoid socket exhaustion (esp-tls "Failed to create socket")
-        - online_image.set_url:
+        - remote_image.set_url:
             id: immich_portrait_preload_right
             url: !lambda 'return id(portrait_companion_url);'
     on_error:
@@ -375,7 +375,7 @@ script:
             id(companion_target_slot) = s;
             ESP_LOGI("immich", "Portrait slot %d: no companion, searching", s);
           }
-      - online_image.set_url:
+      - remote_image.set_url:
           id: immich_portrait_left
           url: !lambda |-
             int s = id(active_slot);

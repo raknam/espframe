@@ -1,12 +1,12 @@
 #pragma once
 
 #include "esphome/core/defines.h"
-#ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
 
 #include "image_decoder.h"
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 /**
  * @brief Image decoder specialization for PNG images.
@@ -36,7 +36,7 @@ class BmpDecoder : public ImageDecoder {
   uint8_t padding_bytes_{0};
 };
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_BMP_SUPPORT
+#endif  // USE_REMOTE_IMAGE_BMP_SUPPORT

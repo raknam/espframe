@@ -3,7 +3,7 @@
 #include "esphome/core/color.h"
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 enum DecodeError : int {
   DECODE_ERROR_INVALID_TYPE = -1,
@@ -156,5 +156,5 @@ class DownloadBuffer {
   size_t unread_;
 };
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome

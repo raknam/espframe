@@ -11,7 +11,7 @@ isProject: false
 
 ## Scope
 
-- **In scope:** [components/gsl3680/touchscreen.py](components/gsl3680/touchscreen.py), [components/online_image/**init**.py](components/online_image/__init__.py), [docs/public/webserver/app.js](docs/public/webserver/app.js), [docs/.vitepress/theme/components/EspInstallButton.vue](docs/.vitepress/theme/components/EspInstallButton.vue).
+- **In scope:** [components/gsl3680/touchscreen.py](components/gsl3680/touchscreen.py), [components/remote_image/**init**.py](components/remote_image/__init__.py), [docs/public/webserver/app.js](docs/public/webserver/app.js), [docs/.vitepress/theme/components/EspInstallButton.vue](docs/.vitepress/theme/components/EspInstallButton.vue).
 - **Phase 3 (done):** Immich asset parsing is in [components/espframe/espframe_helpers.h](components/espframe/espframe_helpers.h) as `parse_immich_asset_and_fill_slot`, used from [immich_api.yaml](guition-esp32-p4-jc8012p4a1/addon/immich_api.yaml).
 
 ---
@@ -26,7 +26,7 @@ isProject: false
 
 ### 2. Online image component (Python) — DONE
 
-**File:** [components/online_image/**init**.py](components/online_image/__init__.py)
+**File:** [components/remote_image/**init**.py](components/remote_image/__init__.py)
 
 - Move `shutil` and `from esphome.core import CORE` to the top of the file with other imports. Already done.
 
@@ -110,7 +110,7 @@ Implementation order: do **2a → 2b → 2c → 2d → 2e** so duplication is re
 | Step | Task                                                                                     | Files                           |
 | ---- | ---------------------------------------------------------------------------------------- | ------------------------------- |
 | 1    | GSL3680 use required config keys                                                         | touchscreen.py                  |
-| 2    | Online image top-level imports                                                           | online_image/**init**.py        |
+| 2    | Remote image top-level imports                                                            | remote_image/**init**.py        |
 | 3    | EspInstallButton: supported init + loadError + catch                                     | EspInstallButton.vue            |
 | 4    | setStatus: remove or implement                                                           | app.js                          |
 | 5    | updateSunInfoElement + use everywhere                                                    | app.js                          |

@@ -3,11 +3,11 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "image_decoder.h"
-#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
 #include <pngle.h>
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 /**
  * @brief Image decoder specialization for PNG images.
@@ -34,7 +34,7 @@ class PngDecoder : public ImageDecoder {
   uint32_t pixels_decoded_{0};
 };
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_PNG_SUPPORT

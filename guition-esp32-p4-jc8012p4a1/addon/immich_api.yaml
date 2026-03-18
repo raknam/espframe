@@ -332,7 +332,7 @@ script:
                   condition:
                     lambda: 'return id(portrait_companion_found) && id(companion_target_slot) == id(active_slot);'
                   then:
-                    - online_image.set_url:
+                    - remote_image.set_url:
                         id: immich_portrait_right
                         url: !lambda 'return id(portrait_companion_url);'
               - if:
@@ -347,7 +347,7 @@ script:
                         id(portrait_preload_right_ready) = false;
                         ESP_LOGI("immich", "Starting portrait preload for slot %d (left first)", ts);
                     # Start only left; right is started in preload_left on_download_finished to avoid socket exhaustion
-                    - online_image.set_url:
+                    - remote_image.set_url:
                         id: immich_portrait_preload_left
                         url: !lambda |-
                           int ts = id(companion_target_slot);

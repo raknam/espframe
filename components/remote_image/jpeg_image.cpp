@@ -1,16 +1,16 @@
 #include "jpeg_image.h"
-#ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
 
 #include "esphome/components/display/display_buffer.h"
 #include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#include "online_image.h"
-static const char *const TAG = "online_image.jpeg";
+#include "remote_image.h"
+static const char *const TAG = "remote_image.jpeg";
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 static void jpeg_error_exit(j_common_ptr cinfo) {
   auto *err = reinterpret_cast<JpegErrorMgr *>(cinfo->err);
@@ -209,7 +209,7 @@ int HOT JpegDecoder::decode(uint8_t *buffer, size_t size) {
   return 0;
 }
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_JPEG_SUPPORT

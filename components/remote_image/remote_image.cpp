@@ -1,8 +1,8 @@
-#include "online_image.h"
+#include "remote_image.h"
 
 #include "esphome/core/log.h"
 
-static const char *const TAG = "online_image";
+static const char *const TAG = "remote_image";
 static const char *const ETAG_HEADER_NAME = "etag";
 static const char *const IF_NONE_MATCH_HEADER_NAME = "if-none-match";
 static const char *const LAST_MODIFIED_HEADER_NAME = "last-modified";
@@ -10,13 +10,13 @@ static const char *const IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
 
 #include "image_decoder.h"
 
-#ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
 #include "bmp_image.h"
 #endif
-#ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
 #include "jpeg_image.h"
 #endif
-#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
 #include "png_image.h"
 #endif
 
@@ -25,7 +25,7 @@ static const char *const IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
 #endif
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 using image::ImageType;
 
@@ -129,21 +129,21 @@ void OnlineImage::update() {
   accept_header.name = "Accept";
   std::string accept_mime_type;
   switch (this->format_) {
-#ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
     case ImageFormat::BMP:
       accept_mime_type = "image/bmp";
       break;
-#endif  // USE_ONLINE_IMAGE_BMP_SUPPORT
-#ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
     case ImageFormat::JPEG:
       accept_mime_type = "image/jpeg";
       break;
-#endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
-#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_JPEG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
     case ImageFormat::PNG:
       accept_mime_type = "image/png";
       break;
-#endif  // USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_PNG_SUPPORT
     default:
       accept_mime_type = "image/*";
   }
@@ -190,27 +190,27 @@ void OnlineImage::update() {
   ESP_LOGD(TAG, "Starting download");
   size_t total_size = this->downloader_->content_length;
 
-#ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
   if (this->format_ == ImageFormat::BMP) {
     ESP_LOGD(TAG, "Allocating BMP decoder");
     this->decoder_ = make_unique<BmpDecoder>(this);
     this->enable_loop();
   }
-#endif  // USE_ONLINE_IMAGE_BMP_SUPPORT
-#ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_BMP_SUPPORT
+#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
   if (this->format_ == ImageFormat::JPEG) {
     ESP_LOGD(TAG, "Allocating JPEG decoder");
     this->decoder_ = esphome::make_unique<JpegDecoder>(this);
     this->enable_loop();
   }
-#endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
-#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_JPEG_SUPPORT
+#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
   if (this->format_ == ImageFormat::PNG) {
     ESP_LOGD(TAG, "Allocating PNG decoder");
     this->decoder_ = make_unique<PngDecoder>(this);
     this->enable_loop();
   }
-#endif  // USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_REMOTE_IMAGE_PNG_SUPPORT
 
   if (!this->decoder_) {
     ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", this->format_);
@@ -381,5 +381,5 @@ void OnlineImage::add_on_error_callback(std::function<void()> &&callback) {
   this->download_error_callback_.add(std::move(callback));
 }
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome

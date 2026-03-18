@@ -9,7 +9,7 @@
 #include "image_decoder.h"
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
 using t_http_codes = enum {
   HTTP_CODE_OK = 200,
@@ -253,5 +253,5 @@ class DownloadErrorTrigger : public Trigger<> {
   }
 };
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome

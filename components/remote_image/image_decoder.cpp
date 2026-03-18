@@ -1,12 +1,12 @@
 #include "image_decoder.h"
-#include "online_image.h"
+#include "remote_image.h"
 
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace online_image {
+namespace remote_image {
 
-static const char *const TAG = "online_image.decoder";
+static const char *const TAG = "remote_image.decoder";
 
 bool ImageDecoder::set_size(int width, int height) {
   bool success = this->image_->resize_(width, height) > 0;
@@ -196,5 +196,5 @@ void DownloadBuffer::shrink(size_t max_size) {
   this->reset();
 }
 
-}  // namespace online_image
+}  // namespace remote_image
 }  // namespace esphome

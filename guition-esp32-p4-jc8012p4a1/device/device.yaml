@@ -66,7 +66,7 @@ external_components:
       url: https://github.com/jtenniswood/espframe
       ref: ${package_ref}
       path: components
-    components: [gsl3680, online_image, espframe]
+    components: [gsl3680, remote_image, espframe]
     refresh: 0s
 
 espframe:
