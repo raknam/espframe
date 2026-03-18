@@ -54,6 +54,6 @@ See [Creating an API Key](/api-key) for how to generate a key and which permissi
 
 ## What's next
 
-- [Configuration](/configuration) — customise photo sources, slideshow timing, brightness, and more
+- [Configuration](/configuration) — customise [photo sources](/photo-sources), slideshow timing, brightness, and more
 - [Home Assistant](/home-assistant) — optionally add the frame to your HA dashboard
 - [Manual Setup](/manual-setup) — install via the ESPHome dashboard for full control
