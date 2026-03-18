@@ -902,7 +902,7 @@
     var versionRow = el("div", "field fw-row");
     var versionLabel = el("span", "fw-label");
     versionLabel.innerHTML = '<span style="color:var(--text2)">Installed</span> ' +
-      esc(S.firmware || S.installed_version || "unknown");
+      esc(S.firmware || S.installed_version || "Dev");
     var checkBtn = el("button", "btn btn-secondary btn-sm");
     checkBtn.textContent = "Check for Update";
     var statusMsg = el("span", "fw-status");
