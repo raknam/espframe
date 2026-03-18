@@ -34,17 +34,17 @@ See **[Photo Sources](/photo-sources)** for options and setup instructions.
 
 | Setting | Default | Description |
 |---|---|---|
-| **Slideshow Interval** | 15 seconds | Time between photos (10 seconds – 10 minutes) |
+| **Slideshow Interval** | 15 seconds | Time between photos. Options: 10 s, 15 s, 20 s, 30 s, 45 s, 1 min, 2 min, 3 min, 5 min, 10 min |
 
 ### Screen Schedule
 
 | Setting | Default | Description |
 |---|---|---|
 | **Enable Schedule** | Off | Toggle scheduled backlight on/off |
-| **On Time** | 6:00 AM | Hour the backlight turns on |
-| **Off Time** | 11:00 PM | Hour the backlight turns off |
+| **On Time** | 6:00 AM | Hour of day the backlight turns on (0–23, e.g. 6 = 6:00 AM) |
+| **Off Time** | 11:00 PM | Hour of day the backlight turns off (0–23, e.g. 23 = 11:00 PM) |
 
-When the schedule is active and the current time is outside the on/off window, the backlight turns off and photo downloads are paused to conserve bandwidth. Downloads resume automatically when the backlight turns back on.
+When **Enable Schedule** is off, the backlight stays on and follows day/night brightness only; scheduled on/off does not apply. When the schedule is on and the current time is outside the on/off window, the backlight turns off and photo downloads are paused to conserve bandwidth. Downloads resume automatically when the backlight turns back on.
 
 ### Screen Brightness
 
@@ -61,7 +61,7 @@ Brightness automatically adjusts based on sunrise and sunset times, which are ca
 |---|---|---|
 | **Screen Tone Adjustment** | Off | Correct the display's blue cast with a permanent warm shift |
 | **Night Tone Adjustment** | Off | Automatically warm photos at sunset, neutral at sunrise |
-| **Turn on until sunrise** | Off | Force warm tones on immediately until the next sunrise |
+| **Turn on until sunrise** | Off | Force warm tones on immediately until the next sunrise (in Home Assistant this appears as **Screen: Warm Tone Override**) |
 
 See **[Screen Tone](/screen-tone)** for detailed usage and tips.
 

@@ -106,7 +106,7 @@ If the URL doesn’t show the UUID clearly, open the album, then check the addre
 4. Save. The frame will only show photos that contain at least one of those people.
 
 ::: info API key and people
-Your [API key](/api-key) should have `person.read` permission so the frame can use the Person source and show people’s names on the overlay when available.
+Your [API key](/api-key) should have `person.read` permission so the frame can use the Person source and show people’s names on the overlay when supported.
 :::
 
 ---

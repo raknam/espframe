@@ -18,3 +18,8 @@ A standalone digital photo frame that displays your Immich photo library on a 10
 - **Clock Overlay** — Displays the current time over your photos when enabled in settings.
 - **Backlight Schedules** — Control brightness across day and night, with optional auto-off scheduling.
 - **No Hub Required** — Connects directly to your Immich server over HTTP — no Home Assistant, cloud service, or extra software needed.
+
+## Using the frame
+
+- **Touch** — Tap to advance to the next photo. Long-press (about 3 seconds) to turn the backlight off (sleep); tap again to wake and resume the slideshow.
+- **First run** — After boot you see a loading screen. If the device has no WiFi, it shows WiFi setup (connect to the **immich-frame-10inch** hotspot and use the captive portal). Once on the network, if Immich URL or API key are missing, the screen prompts you to open the device’s IP address in a browser to configure them. When configured, the slideshow starts automatically.

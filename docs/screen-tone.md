@@ -37,7 +37,7 @@ The night tone is additive — it stacks on top of the Screen Tone Adjustment, s
 
 ### Turn On Until Sunrise
 
-A manual override that forces the night warm tone on immediately at full intensity, regardless of the time of day. It automatically turns itself off after sunrise the next morning.
+A manual override that forces the night warm tone on immediately at full intensity, regardless of the time of day. It automatically turns itself off after sunrise the next morning. In Home Assistant this appears as **Screen: Warm Tone Override**.
 
 Use this when you want the warm tone effect right now without waiting for sunset — for example, if the room lights are dim in the afternoon or you just want the warmer look.
 

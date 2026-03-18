@@ -44,7 +44,7 @@ Click **Install Espframe for Immich** above. Select the serial port for your dev
 
 After flashing, the installer will prompt you to enter your WiFi credentials. Enter your network name and password to connect the device.
 
-If the serial prompt doesn't appear, the device will create a WiFi hotspot named **immich-frame-10inch**. Connect to it from your phone or laptop and a captive portal will guide you through WiFi setup.
+If the serial prompt doesn't appear, the device will create a WiFi hotspot named **immich-frame-10inch**. When the device has no WiFi connection, it also shows an on-screen WiFi setup page with instructions to connect to the hotspot; connect from your phone or laptop and a captive portal will guide you through WiFi setup.
 
 ### 4. Configure Immich
 
