@@ -45,9 +45,24 @@ esptool.py --port /dev/tty.usbserial-XXXXXX --chip esp32p4 write_flash 0x0 \
 
 Replace `XXXXXX` with the actual serial port suffix from step 2.
 
+**Faster flashing:** Add `-b 2000000` (or `-b 921600` if 2M is unstable) to raise serial baud rate. Default is 460800; higher baud = fewer seconds. Example:
+
+```bash
+esptool.py --port /dev/tty.usbserial-XXXXXX --chip esp32p4 -b 2000000 write_flash 0x0 \
+  guition-esp32-p4-jc8012p4a1/.esphome/build/immich-frame-10inch/.pioenvs/immich-frame-10inch/firmware.factory.bin
+```
+
+If you see random write errors, retry with a lower baud (e.g. `-b 921600` or omit for default).
+
 ### 4. Verify
 
 The device resets automatically after flashing. Wait 15-20 seconds for boot + WiFi connection, then open `http://<device-ip>/` in a browser.
+
+## Speed up the full process
+
+- **Flash only (no compile):** If you didn't change YAML or web UI, skip step 1 and run step 3 against the existing `firmware.factory.bin`. Saves ~1–6 minutes.
+- **Faster serial:** Use `-b 2000000` (or `-b 921600`) in the esptool command (see step 3). Can cut flash time from ~90s to ~25–45s depending on cable/adapter.
+- **Compile time:** First compile is slow; later builds use cache. Keep the repo (and Docker volume) so `.esphome/build` is reused.
 
 ## Troubleshooting
 

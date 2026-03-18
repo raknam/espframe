@@ -191,7 +191,7 @@ interval:
             lambda: |-
               if (!id(immich_fetch_started)) return false;
               if (id(backlight_paused)) return false;
-              std::string opt = id(slideshow_interval).state;
+              std::string opt = id(slideshow_interval).current_option();
               int num = atoi(opt.c_str());
               uint32_t seconds = (opt.find("minute") != std::string::npos) ? num * 60 : num;
               return (millis() - id(immich_last_advance_ms)) >= (seconds * 1000);
