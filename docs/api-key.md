@@ -1,5 +1,5 @@
 ---
-title: API Key
+title: Immich API Key
 description: Create a scoped Immich API key with minimal read-only permissions for your Espframe device.
 ---
 

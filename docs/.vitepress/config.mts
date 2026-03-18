@@ -83,10 +83,18 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/' },
           { text: 'Install', link: '/install' },
-          { text: 'Configuration', link: '/configuration' },
-          { text: 'Screen Tone', link: '/screen-tone' },
+          { text: 'Immich', link: '/api-key' },
+        ],
+      },
+      {
+        text: 'Features',
+        items: [
           { text: 'Photo Sources', link: '/photo-sources' },
-          { text: 'Immich API Key', link: '/api-key' },
+          { text: 'Frequency', link: '/frequency' },
+          { text: 'Configuration', link: '/configuration' },
+          { text: 'Firmware Update', link: '/firmware-update' },
+          { text: 'Screen', link: '/screen' },
+          { text: 'Screen Tone', link: '/screen-tone' },
         ],
       },
       {

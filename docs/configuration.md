@@ -11,14 +11,16 @@ All settings can be changed at any time through the device's built-in web UI —
 
 Open `http://<device-ip>/` in your browser to access the settings page. Changes are saved to flash and persist across reboots.
 
-### Immich Connection
+Settings are grouped in the same order as the device **Settings** menu: Connection, Photo Source, Frequency, Screen Brightness, Screen Tone, Screen Schedule, Clock, and Firmware.
+
+### Connection
 
 | Setting | Description |
 |---|---|
 | **Immich URL** | Your Immich server address (e.g. `http://192.168.1.30:2283`). Do not include a trailing slash. |
 | **Immich API Key** | Your Immich API key (masked in the UI for security) |
 
-See [Creating an API Key](/api-key) for how to generate a key and which permissions to select.
+See **[API Key](/api-key)** for how to generate a key and which permissions to select.
 
 ### Photo Source
 
@@ -36,15 +38,7 @@ See **[Photo Sources](/photo-sources)** for options and setup instructions.
 |---|---|---|
 | **Slideshow Interval** | 15 seconds | Time between photos. Options: 10 s, 15 s, 20 s, 30 s, 45 s, 1 min, 2 min, 3 min, 5 min, 10 min |
 
-### Screen Schedule
-
-| Setting | Default | Description |
-|---|---|---|
-| **Enable Schedule** | Off | Toggle scheduled backlight on/off |
-| **On Time** | 6:00 AM | Hour of day the backlight turns on (0–23, e.g. 6 = 6:00 AM) |
-| **Off Time** | 11:00 PM | Hour of day the backlight turns off (0–23, e.g. 23 = 11:00 PM) |
-
-When **Enable Schedule** is off, the backlight stays on and follows day/night brightness only; scheduled on/off does not apply. When the schedule is on and the current time is outside the on/off window, the backlight turns off and photo downloads are paused to conserve bandwidth. Downloads resume automatically when the backlight turns back on.
+See **[Frequency](/frequency)** for interval options and usage tips.
 
 ### Screen Brightness
 
@@ -55,6 +49,8 @@ When **Enable Schedule** is off, the backlight stays on and follows day/night br
 
 Brightness automatically adjusts based on sunrise and sunset times, which are calculated from the selected timezone. The current sunrise and sunset times are displayed below the brightness sliders.
 
+See **[Screen](/screen)** for brightness behaviour and Home Assistant integration.
+
 ### Screen Tone
 
 | Setting | Default | Description |
@@ -64,6 +60,18 @@ Brightness automatically adjusts based on sunrise and sunset times, which are ca
 | **Turn on until sunrise** | Off | Force warm tones on immediately until the next sunrise (in Home Assistant this appears as **Screen: Warm Tone Override**) |
 
 See **[Screen Tone](/screen-tone)** for detailed usage and tips.
+
+### Screen Schedule
+
+| Setting | Default | Description |
+|---|---|---|
+| **Enable Schedule** | Off | Toggle scheduled backlight on/off |
+| **On Time** | 6:00 AM | Hour of day the backlight turns on (0–23, e.g. 6 = 6:00 AM) |
+| **Off Time** | 11:00 PM | Hour of day the backlight turns off (0–23, e.g. 23 = 11:00 PM) |
+
+When **Enable Schedule** is off, the backlight stays on and follows day/night brightness only; scheduled on/off does not apply. When the schedule is on and the current time is outside the on/off window, the backlight turns off and photo downloads are paused to conserve bandwidth. Downloads resume automatically when the backlight turns back on.
+
+See **[Screen](/screen)** for schedule details and Home Assistant entities.
 
 ### Clock
 
@@ -77,7 +85,7 @@ See **[Screen Tone](/screen-tone)** for detailed usage and tips.
 Changes to clock settings can take up to 10 seconds to apply to the screen.
 :::
 
-### Firmware Updates
+### Firmware
 
 | Setting | Default | Description |
 |---|---|---|
@@ -85,3 +93,7 @@ Changes to clock settings can take up to 10 seconds to apply to the screen.
 | **Update Frequency** | Daily | How often to check for updates: `Hourly`, `Daily`, or `Weekly` |
 
 When auto update is enabled, the device periodically checks for new firmware and installs it automatically. You can always check for updates manually using the **Check for Update** button, regardless of the auto update setting.
+
+See **[Firmware Update](/firmware-update)** for how OTA and auto-update work, and for manual check.
+
+See **[Firmware Update](/firmware-update)** for details on all firmware controls and how updates work.
