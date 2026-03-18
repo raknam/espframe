@@ -24,10 +24,12 @@ script:
     mode: single
     then:
       - lambda: |-
-          id(portrait_companion_found) = false;
-          if (id(companion_target_slot) == id(active_slot) && !id(active_slot_displayed)) {
-            id(active_slot_displayed) = true;
-            id(immich_display_current).execute();
+          if (id(companion_target_slot) == id(active_slot)) {
+            id(portrait_companion_found) = false;
+            if (!id(active_slot_displayed)) {
+              id(active_slot_displayed) = true;
+              id(immich_display_current).execute();
+            }
           }
 
   # ---------------------------------------------------------------------------
