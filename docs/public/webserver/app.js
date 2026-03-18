@@ -86,6 +86,8 @@
     photo_source_options: ["All Photos", "Favorites", "Album", "Person", "Memories"],
     album_ids: "",
     person_ids: "",
+    warm_tones_enabled: false,
+    warm_tone_intensity: 50,
   };
 
   var app = document.getElementById("app");
@@ -122,6 +124,8 @@
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
     person_ids: eid("text", "Photos: Person IDs"),
+    warm_tones_enabled: eid("switch", "Screen: Warm Tones"),
+    warm_tone_intensity: eid("number", "Screen: Warm Tone Intensity"),
   };
 
   function post(url, params) {
@@ -184,7 +188,9 @@
     "text_sensor/Screen: Sunset": { key: "sunset" },
     "select/Photos: Source": { key: "photo_source", optionsKey: "photo_source_options", default: "All Photos" },
     "text/Photos: Album IDs": { key: "album_ids" },
-    "text/Photos: Person IDs": { key: "person_ids" }
+    "text/Photos: Person IDs": { key: "person_ids" },
+    "switch/Screen: Warm Tones": { key: "warm_tones_enabled", boolFromState: true },
+    "number/Screen: Warm Tone Intensity": { key: "warm_tone_intensity", default: 50, number: true }
   };
 
   function applyEntityToState(d) {
@@ -236,7 +242,8 @@
   var INITIAL_FETCH_KEYS = [
     "photo_source", "album_ids", "person_ids", "interval",
     "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
-    "sunrise", "sunset"
+    "sunrise", "sunset",
+    "warm_tones_enabled", "warm_tone_intensity"
   ];
   function getEntityIdForStateKey(key) {
     for (var id in ENTITY_STATE_MAP) {
@@ -684,6 +691,54 @@
     dnDetails.appendChild(fSunInfo);
 
     wrap.appendChild(makeCollapsibleCard("Screen Brightness", dnDetails, true));
+
+    // Warm Tones
+    var warmBody = el("div");
+    var fWarmToggle = field("");
+    var warmTr = el("div", "toggle-row");
+    warmTr.innerHTML = "<span>Enable Warm Tones</span>";
+    var warmTog = el("div", S.warm_tones_enabled ? "toggle on" : "toggle");
+    var warmDetails = el("div");
+    warmDetails.style.display = S.warm_tones_enabled ? "" : "none";
+
+    warmTog.onclick = function () {
+      S.warm_tones_enabled = !S.warm_tones_enabled;
+      warmTog.className = S.warm_tones_enabled ? "toggle on" : "toggle";
+      warmDetails.style.display = S.warm_tones_enabled ? "" : "none";
+      post(endpoints.warm_tones_enabled + (S.warm_tones_enabled ? "/turn_on" : "/turn_off"));
+    };
+    warmTr.appendChild(warmTog);
+    fWarmToggle.appendChild(warmTr);
+    warmBody.appendChild(fWarmToggle);
+
+    var fWarmInt = field("Intensity");
+    var rwWarm = el("div", "range-wrap");
+    var warmSlider = document.createElement("input");
+    warmSlider.type = "range";
+    warmSlider.min = 10;
+    warmSlider.max = 100;
+    warmSlider.step = 5;
+    warmSlider.value = S.warm_tone_intensity;
+    var warmVal = el("span", "range-val");
+    warmVal.textContent = Math.round(S.warm_tone_intensity) + "%";
+    warmSlider.oninput = function () {
+      warmVal.textContent = warmSlider.value + "%";
+    };
+    warmSlider.onchange = function () {
+      post(endpoints.warm_tone_intensity + "/set", { value: warmSlider.value });
+    };
+    rwWarm.appendChild(warmSlider);
+    rwWarm.appendChild(warmVal);
+    fWarmInt.appendChild(rwWarm);
+    warmDetails.appendChild(fWarmInt);
+
+    var warmHint = el("div");
+    warmHint.className = "field-hint";
+    warmHint.textContent = "Shifts photos to warm tones near sunset, neutral during the day";
+    warmDetails.appendChild(warmHint);
+
+    warmBody.appendChild(warmDetails);
+    wrap.appendChild(makeCollapsibleCard("Warm Tones", warmBody, true));
 
     // Schedule
     var schedBody = el("div");
