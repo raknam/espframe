@@ -7,7 +7,13 @@
 # daily, or weekly) when auto-update is enabled; a manual "Check for Update"
 # button triggers an immediate check. Version is exposed as a text sensor for
 # diagnostics.
+#
+# firmware_version: default for local builds; overridden by main config
+# (e.g. factory.yaml) or by -s firmware_version when building releases.
 # =============================================================================
+
+substitutions:
+  firmware_version: "dev"
 
 esphome:
   project:
