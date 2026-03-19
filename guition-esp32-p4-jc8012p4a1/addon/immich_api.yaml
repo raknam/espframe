@@ -150,9 +150,10 @@ script:
                     id(portrait_preload_left_ready) = false;
                     id(portrait_preload_right_ready) = false;
                   }
-                  if (slot == 0) { id(immich_img_0).set_url(img_url); id(immich_img_0).update(); }
-                  else if (slot == 1) { id(immich_img_1).set_url(img_url); id(immich_img_1).update(); }
-                  else { id(immich_img_2).set_url(img_url); id(immich_img_2).update(); }
+                  if (slot == 0) { id(immich_img_0).set_url(img_url); }
+                  else if (slot == 1) { id(immich_img_1).set_url(img_url); }
+                  else { id(immich_img_2).set_url(img_url); }
+              - script.execute: deferred_slot_image_update
           on_error:
             then:
               - lambda: |-
@@ -225,9 +226,10 @@ script:
                     id(portrait_preload_left_ready) = false;
                     id(portrait_preload_right_ready) = false;
                   }
-                  if (slot == 0) { id(immich_img_0).set_url(img_url); id(immich_img_0).update(); }
-                  else if (slot == 1) { id(immich_img_1).set_url(img_url); id(immich_img_1).update(); }
-                  else { id(immich_img_2).set_url(img_url); id(immich_img_2).update(); }
+                  if (slot == 0) { id(immich_img_0).set_url(img_url); }
+                  else if (slot == 1) { id(immich_img_1).set_url(img_url); }
+                  else { id(immich_img_2).set_url(img_url); }
+              - script.execute: deferred_slot_image_update
           on_error:
             then:
               - lambda: |-
@@ -335,6 +337,8 @@ script:
                     - remote_image.set_url:
                         id: immich_portrait_right
                         url: !lambda 'return id(portrait_companion_url);'
+                        update: false
+                    - script.execute: deferred_portrait_right_update
               - if:
                   condition:
                     lambda: 'return id(portrait_companion_found) && id(companion_target_slot) != id(active_slot);'
@@ -353,6 +357,8 @@ script:
                           int ts = id(companion_target_slot);
                           auto &meta = (ts == 0) ? id(slot0) : (ts == 1) ? id(slot1) : id(slot2);
                           return meta.image_url;
+                        update: false
+                    - script.execute: deferred_preload_left_update
           on_error:
             then:
               - lambda: 'ESP_LOGW("immich", "Companion search request failed");'

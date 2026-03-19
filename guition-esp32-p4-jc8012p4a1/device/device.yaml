@@ -52,12 +52,20 @@ psram:
   speed: 200MHz
 
 # -----------------------------------------------------------------------------
-# API, logger, JSON, web server, OTA
+# API, logger, JSON, web server, OTA, debug (reset reason for crash diagnosis)
 # -----------------------------------------------------------------------------
 api:
 
 logger:
   level: ${log_level}
+
+debug:
+  update_interval: 5s
+
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
 
 json:
 
