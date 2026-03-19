@@ -31,6 +31,7 @@ script:
           auto &meta = (ts == 0) ? id(slot0) : (ts == 1) ? id(slot1) : id(slot2);
           meta.companion_url = "";
           if (id(companion_target_slot) == id(active_slot)) {
+            id(portrait_no_companion_active) = true;
             if (!id(active_slot_displayed)) {
               id(active_slot_displayed) = true;
               id(immich_display_current).execute();
@@ -334,6 +335,7 @@ script:
                     id(handle_companion_not_found).execute();
                     return;
                   }
+                  id(portrait_no_companion_active) = false;
                   id(portrait_companion_found) = true;
                   id(portrait_companion_url) = companion_url;
                   int ts = id(companion_target_slot);
