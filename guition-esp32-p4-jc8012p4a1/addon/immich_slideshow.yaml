@@ -140,7 +140,9 @@ remote_image:
             if (is_active && !meta.is_portrait) {
               id(immich_display_current).execute();
             } else if (is_active && meta.is_portrait) {
-              id(immich_start_portrait_active).execute();
+              if (!(id(active_slot_displayed) && id(immich_is_portrait_pair))) {
+                id(immich_start_portrait_active).execute();
+              }
             } else if (!is_active && meta.is_portrait) {
               if (id(companion_target_slot) == slot || id(portrait_preload_slot) == slot) return;
               id(companion_target_slot) = slot;
@@ -186,7 +188,9 @@ remote_image:
             if (is_active && !meta.is_portrait) {
               id(immich_display_current).execute();
             } else if (is_active && meta.is_portrait) {
-              id(immich_start_portrait_active).execute();
+              if (!(id(active_slot_displayed) && id(immich_is_portrait_pair))) {
+                id(immich_start_portrait_active).execute();
+              }
             } else if (!is_active && meta.is_portrait) {
               if (id(companion_target_slot) == slot || id(portrait_preload_slot) == slot) return;
               id(companion_target_slot) = slot;
@@ -232,7 +236,9 @@ remote_image:
             if (is_active && !meta.is_portrait) {
               id(immich_display_current).execute();
             } else if (is_active && meta.is_portrait) {
-              id(immich_start_portrait_active).execute();
+              if (!(id(active_slot_displayed) && id(immich_is_portrait_pair))) {
+                id(immich_start_portrait_active).execute();
+              }
             } else if (!is_active && meta.is_portrait) {
               if (id(companion_target_slot) == slot || id(portrait_preload_slot) == slot) return;
               id(companion_target_slot) = slot;
@@ -391,6 +397,12 @@ script:
   - id: immich_start_portrait_active
     mode: restart
     then:
+      - if:
+          condition:
+            lambda: 'return id(active_slot_displayed) && id(immich_is_portrait_pair) && id(portrait_using_preload);'
+          then:
+            - lambda: 'ESP_LOGI("immich", "Portrait pair already displayed from preload; skipping live portrait refresh");'
+            - script.stop: immich_start_portrait_active
       - lambda: |-
           int s = id(active_slot);
           auto &meta = (s == 0) ? id(slot0) : (s == 1) ? id(slot1) : id(slot2);
