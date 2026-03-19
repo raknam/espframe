@@ -605,10 +605,24 @@ script:
           condition:
             lambda: 'return !id(active_slot_displayed);'
           then:
-            - logger.log:
-                level: WARN
-                tag: immich
-                format: "Active slot not displayed yet, skipping advance"
+            - lambda: |-
+                int s = id(active_slot);
+                auto &meta = (s == 0) ? id(slot0) : (s == 1) ? id(slot1) : id(slot2);
+                if (meta.ready && id(active_portrait_workflow_busy)) {
+                  // #region agent log
+                  ESP_LOGW("diag", "H1-FIX: Recovering stuck portrait workflow — displaying slot %d as single", s);
+                  // #endregion
+                  id(active_portrait_workflow_busy) = false;
+                  id(portrait_left_ready) = false;
+                  id(portrait_right_ready) = false;
+                  id(portrait_right_requested) = false;
+                  id(portrait_companion_found) = false;
+                  id(active_slot_displayed) = true;
+                  copy_slot_to_display(meta, id(current_display));
+                  id(immich_display_current).execute();
+                } else {
+                  ESP_LOGW("immich", "Active slot not displayed yet, skipping advance");
+                }
           else:
             - lambda: |-
                 if (!id(current_display).asset_id.empty()) {
