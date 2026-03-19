@@ -58,6 +58,12 @@ api:
 
 logger:
   level: ${log_level}
+  logs:
+    component: WARN
+    remote_image: WARN
+    immich: WARN
+    warm: WARN
+    accent: WARN
 
 debug:
   update_interval: 5s
