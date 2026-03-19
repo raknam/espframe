@@ -671,6 +671,23 @@ script:
             ESP_LOGI("immich", "Prefetch paused (backlight off)");
             return;
           }
+          // Avoid piling up concurrent HTTP/decode work while portrait downloads
+          // are still in progress (active pair or preload pair).
+          bool active_portrait_busy = false;
+          if (id(active_slot) == 0 || id(active_slot) == 1 || id(active_slot) == 2) {
+            auto &active = (id(active_slot) == 0) ? id(slot0) : (id(active_slot) == 1) ? id(slot1) : id(slot2);
+            if (active.is_portrait) {
+              bool left_pending = !id(portrait_left_ready);
+              bool right_pending = id(portrait_companion_found) && !id(portrait_right_ready);
+              active_portrait_busy = left_pending || right_pending;
+            }
+          }
+          bool preload_busy = (id(portrait_preload_slot) != -1) &&
+                              !(id(portrait_preload_left_ready) && id(portrait_preload_right_ready));
+          if (active_portrait_busy || preload_busy) {
+            ESP_LOGI("immich", "Prefetch deferred (portrait pipeline busy)");
+            return;
+          }
           if ((millis() - id(last_prefetch_start_ms)) < 600) {
             ESP_LOGI("immich", "Prefetch throttled");
             return;
@@ -699,7 +716,7 @@ script:
   - id: delayed_prefetch_chain
     mode: restart
     then:
-      - delay: 700ms
+      - delay: 1000ms
       - script.execute: immich_prefetch_chain
 
   # Defer companion search when started from advance so interval callback returns quickly
