@@ -226,7 +226,7 @@ script:
               return (s == 0) ? id(slot0_fetch_in_flight) : (s == 1) ? id(slot1_fetch_in_flight) : id(slot2_fetch_in_flight);
           then:
             - lambda: |-
-                ESP_LOGI("immich", "Slot %d fetch already in flight, skipping API fetch", id(target_slot));
+                ESP_LOGD("immich", "Slot %d fetch already in flight, skipping API fetch", id(target_slot));
             - script.stop: immich_fetch_into_slot
       - lambda: |-
           int s = id(target_slot);
