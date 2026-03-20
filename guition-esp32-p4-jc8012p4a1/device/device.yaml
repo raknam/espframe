@@ -77,7 +77,7 @@ logger:
     accent: WARN
 
 debug:
-  update_interval: 5s
+  update_interval: 60s
 
 text_sensor:
   - platform: debug

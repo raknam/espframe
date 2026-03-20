@@ -718,9 +718,13 @@
     };
     baseTr.appendChild(baseTog);
     fBaseToneToggle.appendChild(baseTr);
+    var baseHint = el("div");
+    baseHint.className = "field-hint";
+    baseHint.textContent = "Corrects blue display cast. Applied to all photos.";
+    fBaseToneToggle.appendChild(baseHint);
     warmBody.appendChild(fBaseToneToggle);
 
-    var fBaseTone = field("Intensity");
+    var fBaseTone = field("");
     var rwBase = el("div", "range-wrap");
     var baseLabelL = el("span", "range-label");
     baseLabelL.textContent = "Cooler";
@@ -739,10 +743,6 @@
     rwBase.appendChild(baseSlider);
     rwBase.appendChild(baseLabelR);
     fBaseTone.appendChild(rwBase);
-    var baseHint = el("div");
-    baseHint.className = "field-hint";
-    baseHint.textContent = "Corrects blue display cast. Applied to all photos.";
-    fBaseTone.appendChild(baseHint);
     baseDetails.appendChild(fBaseTone);
     warmBody.appendChild(baseDetails);
 
@@ -761,9 +761,13 @@
     };
     warmTr.appendChild(warmTog);
     fWarmToggle.appendChild(warmTr);
+    var nightHint = el("div");
+    nightHint.className = "field-hint";
+    nightHint.textContent = "Gradually turns on at sunset, off at sunrise";
+    fWarmToggle.appendChild(nightHint);
     warmBody.appendChild(fWarmToggle);
 
-    var fWarmInt = field("Intensity");
+    var fWarmInt = field("");
     var rwWarm = el("div", "range-wrap");
     var warmLabelL = el("span", "range-label");
     warmLabelL.textContent = "Cooler";
@@ -783,11 +787,6 @@
     rwWarm.appendChild(warmLabelR);
     fWarmInt.appendChild(rwWarm);
     nightDetails.appendChild(fWarmInt);
-
-    var nightHint = el("div");
-    nightHint.className = "field-hint";
-    nightHint.textContent = "Gradually turns on at sunset, off at sunrise";
-    nightDetails.appendChild(nightHint);
 
     var fOverride = field("");
     var overTr = el("div", "toggle-row");

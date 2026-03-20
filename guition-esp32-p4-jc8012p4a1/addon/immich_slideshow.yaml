@@ -483,7 +483,13 @@ script:
     then:
       - lambda: |-
           id(immich_download_retries)++;
-          ESP_LOGE("immich", "Slot %d decode failed (attempt %d)", id(last_downloaded_slot), id(immich_download_retries));
+          int s = id(last_downloaded_slot);
+          ESP_LOGE("immich", "Slot %d decode failed (attempt %d)", s, id(immich_download_retries));
+          auto &meta = (s == 0) ? id(slot0) : (s == 1) ? id(slot1) : id(slot2);
+          meta.ready = false;
+          meta.asset_id = "";
+          meta.pending_asset_id = "";
+          meta.image_url = "";
       - if:
           condition:
             lambda: 'return id(immich_download_retries) < MAX_ERROR_RETRIES;'
@@ -864,7 +870,7 @@ script:
   - id: delayed_prefetch_chain
     mode: restart
     then:
-      - delay: 1000ms
+      - delay: 500ms
       - script.execute: immich_prefetch_chain
 
   # Defer companion search when started from advance so interval callback returns quickly

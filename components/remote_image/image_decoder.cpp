@@ -35,7 +35,8 @@ bool ImageDecoder::set_size(int width, int height) {
     this->y_offset_ = (buf_h - this->scaled_height_) / 2;
   }
 
-  if (success) {
+  if (success && !(this->image_->fill_mode_ && this->image_->fixed_width_ > 0
+                   && this->image_->image_type() == image::ImageType::IMAGE_TYPE_RGB565)) {
     memset(this->image_->buffer_, 0, this->image_->get_buffer_size_());
   }
 
