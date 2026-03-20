@@ -650,9 +650,14 @@ script:
                   uint32_t since_advance = millis() - id(immich_last_advance_ms);
                   if (in_flight && since_advance > 15000) {
                     ESP_LOGW("diag", "H3-FIX: Slot %d in_flight stuck for %ums, force-clearing", s, since_advance);
-                    if (s == 0) { id(slot0_fetch_in_flight) = false; id(slot0_noncritical_update) = false; }
-                    else if (s == 1) { id(slot1_fetch_in_flight) = false; id(slot1_noncritical_update) = false; }
-                    else { id(slot2_fetch_in_flight) = false; id(slot2_noncritical_update) = false; }
+                    bool &nc_flag = (s == 0) ? id(slot0_noncritical_update) : (s == 1) ? id(slot1_noncritical_update) : id(slot2_noncritical_update);
+                    if (nc_flag && id(noncritical_remote_updates_in_flight) > 0) {
+                      id(noncritical_remote_updates_in_flight)--;
+                    }
+                    nc_flag = false;
+                    if (s == 0) { id(slot0_fetch_in_flight) = false; id(immich_img_0).abort_download(); }
+                    else if (s == 1) { id(slot1_fetch_in_flight) = false; id(immich_img_1).abort_download(); }
+                    else { id(slot2_fetch_in_flight) = false; id(immich_img_2).abort_download(); }
                     in_flight = false;
                   }
                   if (!in_flight) {

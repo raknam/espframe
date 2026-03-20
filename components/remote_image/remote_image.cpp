@@ -75,6 +75,13 @@ void OnlineImage::release() {
   }
 }
 
+void OnlineImage::abort_download() {
+  if (this->decoder_ || this->downloader_) {
+    ESP_LOGW(TAG, "Aborting in-progress download");
+    this->end_connection_();
+  }
+}
+
 size_t OnlineImage::resize_(int width_in, int height_in) {
   int width = this->fixed_width_;
   int height = this->fixed_height_;

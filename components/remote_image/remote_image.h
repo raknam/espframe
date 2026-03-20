@@ -87,6 +87,12 @@ class OnlineImage : public PollingComponent,
   void release();
 
   /**
+   * Abort an in-progress download without freeing the decoded pixel buffer.
+   * Clears the decoder and HTTP connection so a fresh update() can proceed.
+   */
+  void abort_download();
+
+  /**
    * Resize the download buffer
    *
    * @param size The new size for the download buffer.
