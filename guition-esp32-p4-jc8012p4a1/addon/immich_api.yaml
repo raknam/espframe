@@ -320,7 +320,13 @@ script:
                     - delay: 5s
                     - script.execute: immich_fetch_into_slot
                   else:
-                    - lambda: 'id(immich_api_retries) = 0;'
+                    - lambda: |-
+                        id(immich_api_retries) = 0;
+                        if (id(last_photo_displayed_ms) == 0) {
+                          id(last_photo_displayed_ms) = millis();
+                        }
+                        lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+                    - script.execute: connection_failed_dim
 
   # ---------------------------------------------------------------------------
   # Fetch a companion portrait from a similar date/time
