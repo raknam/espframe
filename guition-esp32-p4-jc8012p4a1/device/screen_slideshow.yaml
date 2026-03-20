@@ -252,7 +252,7 @@ interval:
           then:
             - lambda: |-
                 if (lv_obj_has_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN)) {
-                  ESP_LOGW("immich", "No photo displayed for 3x interval, showing connection failed screen");
+                  ESP_LOGE("immich", "No photo displayed for 3x interval, showing connection failed screen");
                 }
                 lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
                 id(immich_download_retries) = 0;
