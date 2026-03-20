@@ -21,7 +21,7 @@ Under **Settings → Devices & Services → ESPHome** (device page):
 | Entity | Type | Description |
 |--------|------|-------------|
 | **Photos: Source** | Select | All Photos, Favorites, Album, Person, Memories — see [Photo Sources](/photo-sources) |
-| **Photos: Slideshow Interval** | Select | 10s–10min between photos |
+| **Photos: Slideshow Interval** | Select | 30s–10min between photos |
 | **Screen: Backlight** | Light | On/off and brightness (0–100%) |
 | **Firmware: Auto Update** | Switch | Install updates when available |
 | **Firmware: Update Frequency** | Select | Hourly, Daily, Weekly |

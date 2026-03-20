@@ -41,4 +41,4 @@ Shows "On this day" photos from past years; falls back to random if none. Set **
 
 ## Frequency
 
-**Slideshow Interval** (under **Frequency** in the web UI) sets how long each photo is shown before advancing (default 15 seconds).
+**Slideshow Interval** (under **Frequency** in the web UI) sets how long each photo is shown before advancing (default 2 minutes, minimum 30 seconds).

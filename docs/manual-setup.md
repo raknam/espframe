@@ -44,7 +44,7 @@ First build takes a few minutes; OTA updates are faster.
 | `friendly_name` | — | Web UI display name (required) |
 | `immich_base_url` | *(empty)* | Pre-fill Immich URL to skip setup |
 | `immich_api_key` | *(empty)* | Pre-fill API key to skip setup |
-| `immich_slide_interval` | `15 seconds` | Slideshow interval |
+| `immich_slide_interval` | `2 minutes` | Slideshow interval |
 | `immich_verify_ssl` | `false` | Set `true` to verify TLS |
 
 ## Pre-filling Immich credentials

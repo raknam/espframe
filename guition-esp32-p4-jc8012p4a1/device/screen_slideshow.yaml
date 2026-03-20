@@ -7,7 +7,7 @@
 # =============================================================================
 
 substitutions:
-  immich_slide_interval: "15 seconds"
+  immich_slide_interval: "2 minutes"
   slideshow_check_interval: "5s"
 
 # =============================================================================
@@ -206,9 +206,6 @@ select:
     name: "Photos: Slideshow Interval"
     id: slideshow_interval
     options:
-      - "10 seconds"
-      - "15 seconds"
-      - "20 seconds"
       - "30 seconds"
       - "45 seconds"
       - "1 minute"

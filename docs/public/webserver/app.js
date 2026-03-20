@@ -179,7 +179,7 @@
     "text/Connection: API Key": { key: "api_key" },
     "select/Clock: Format": { key: "clock_format", optionsKey: "clock_options", default: "24 Hour" },
     "select/Clock: Timezone": { key: "timezone", optionsKey: "tz_options", default: "" },
-    "select/Photos: Slideshow Interval": { key: "interval", optionsKey: "interval_options", default: "15 seconds" },
+    "select/Photos: Slideshow Interval": { key: "interval", optionsKey: "interval_options", default: "2 minutes" },
     "switch/Clock: Show": { key: "show_clock", boolFromState: true },
     "text_sensor/Firmware: Version": { key: "firmware" },
     "switch/Firmware: Auto Update": { key: "auto_update", boolFromState: true },
