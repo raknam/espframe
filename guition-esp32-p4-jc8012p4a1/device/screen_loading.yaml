@@ -98,3 +98,4 @@ esphome:
                 wifi.connected:
             then:
               - lvgl.page.show: wifi_setup_page
+              - script.execute: setup_screen_dim

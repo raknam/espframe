@@ -13,12 +13,18 @@ lvgl:
       widgets:
         - obj:
             align: center
-            width: 700
-            height: SIZE_CONTENT
+            width: 1280
+            height: 800
             bg_opa: 0%
             border_width: 0
             pad_all: 0
             scrollable: false
+            clickable: true
+            on_press:
+              then:
+                - script.stop: setup_screen_dim
+                - script.execute: backlight_apply_brightness
+                - script.execute: setup_screen_dim
             layout:
               type: flex
               flex_flow: COLUMN
