@@ -663,6 +663,7 @@ script:
                   if (!in_flight) {
                     ESP_LOGW("diag", "H3-FIX: Slot %d not ready and not downloading, re-fetching", s);
                     id(active_portrait_workflow_busy) = false;
+                    id(immich_last_advance_ms) = millis();
                     id(target_slot) = s;
                     id(deferred_fetch_into_slot).execute();
                   } else {
@@ -939,34 +940,17 @@ script:
             return;
           }
           // #endregion
-          if (s == 0) {
-            if (noncritical && !id(slot0_noncritical_update)) {
-              id(slot0_noncritical_update) = true;
-              id(noncritical_remote_updates_in_flight)++;
-            } else if (!noncritical) {
-              id(slot0_noncritical_update) = false;
-            }
-            id(slot0_fetch_in_flight) = true;
-            id(immich_img_0).update();
-          } else if (s == 1) {
-            if (noncritical && !id(slot1_noncritical_update)) {
-              id(slot1_noncritical_update) = true;
-              id(noncritical_remote_updates_in_flight)++;
-            } else if (!noncritical) {
-              id(slot1_noncritical_update) = false;
-            }
-            id(slot1_fetch_in_flight) = true;
-            id(immich_img_1).update();
-          } else {
-            if (noncritical && !id(slot2_noncritical_update)) {
-              id(slot2_noncritical_update) = true;
-              id(noncritical_remote_updates_in_flight)++;
-            } else if (!noncritical) {
-              id(slot2_noncritical_update) = false;
-            }
-            id(slot2_fetch_in_flight) = true;
-            id(immich_img_2).update();
+          bool &nc_flag = (s == 0) ? id(slot0_noncritical_update) : (s == 1) ? id(slot1_noncritical_update) : id(slot2_noncritical_update);
+          if (noncritical && !nc_flag) {
+            nc_flag = true;
+            id(noncritical_remote_updates_in_flight)++;
+          } else if (!noncritical && nc_flag) {
+            nc_flag = false;
+            if (id(noncritical_remote_updates_in_flight) > 0) id(noncritical_remote_updates_in_flight)--;
           }
+          if (s == 0) { id(slot0_fetch_in_flight) = true; id(immich_img_0).update(); }
+          else if (s == 1) { id(slot1_fetch_in_flight) = true; id(immich_img_1).update(); }
+          else { id(slot2_fetch_in_flight) = true; id(immich_img_2).update(); }
 
   - id: deferred_portrait_left_update
     mode: single
