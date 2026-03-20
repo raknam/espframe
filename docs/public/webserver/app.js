@@ -741,7 +741,7 @@
     rwBase.appendChild(baseLabelR);
     fBaseTone.appendChild(rwBase);
     baseDetails.appendChild(fBaseTone);
-    baseDetails.style.marginBottom = "14px";
+    baseDetails.style.marginBottom = "28px";
     warmBody.appendChild(baseDetails);
 
     var fWarmToggle = field("");
