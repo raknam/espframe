@@ -7,6 +7,11 @@
 #include "esphome/core/log.h"
 
 #include "remote_image.h"
+
+#ifdef ESP_PLATFORM
+#include "esp_heap_caps.h"
+#endif
+
 static const char *const TAG = "remote_image.webp";
 
 namespace esphome {
@@ -14,7 +19,11 @@ namespace remote_image {
 
 void WebpDecoder::cleanup_() {
   if (this->rgb_buffer_) {
+#ifdef ESP_PLATFORM
+    heap_caps_free(this->rgb_buffer_);
+#else
     free(this->rgb_buffer_);
+#endif
     this->rgb_buffer_ = nullptr;
   }
 }
@@ -84,7 +93,12 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
   this->out_h_ = decode_h;
 
   size_t rgb_size = static_cast<size_t>(decode_w) * decode_h * 3;
+#ifdef ESP_PLATFORM
+  this->rgb_buffer_ = static_cast<uint8_t *>(
+      heap_caps_malloc(rgb_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+#else
   this->rgb_buffer_ = static_cast<uint8_t *>(malloc(rgb_size));
+#endif
   if (!this->rgb_buffer_) {
     ESP_LOGE(TAG, "Failed to allocate RGB decode buffer (%zu bytes)", rgb_size);
     return DECODE_ERROR_OUT_OF_MEMORY;

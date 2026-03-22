@@ -21,6 +21,10 @@
 #include "src/utils/palette.h"
 #include "src/webp/encode.h"
 
+#ifdef ESP_PLATFORM
+#include "esp_heap_caps.h"
+#endif
+
 // If PRINT_MEM_INFO is defined, extra info (like total memory used, number of
 // alloc/free etc) is printed. For debugging/tuning purpose only (it's slow,
 // and not multi-thread safe!).
@@ -198,7 +202,13 @@ void* WebPSafeMalloc(uint64_t nmemb, size_t size) {
   Increment(&num_malloc_calls);
   if (!CheckSizeArgumentsOverflow(nmemb, size)) return NULL;
   assert(nmemb * size > 0);
+#ifdef ESP_PLATFORM
+  ptr = heap_caps_malloc((size_t)(nmemb * size), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (ptr == NULL)
+    ptr = malloc((size_t)(nmemb * size));
+#else
   ptr = malloc((size_t)(nmemb * size));
+#endif
   AddMem(ptr, (size_t)(nmemb * size));
   return ptr;
 }
@@ -208,7 +218,13 @@ void* WebPSafeCalloc(uint64_t nmemb, size_t size) {
   Increment(&num_calloc_calls);
   if (!CheckSizeArgumentsOverflow(nmemb, size)) return NULL;
   assert(nmemb * size > 0);
+#ifdef ESP_PLATFORM
+  ptr = heap_caps_calloc((size_t)nmemb, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (ptr == NULL)
+    ptr = calloc((size_t)nmemb, size);
+#else
   ptr = calloc((size_t)nmemb, size);
+#endif
   AddMem(ptr, (size_t)(nmemb * size));
   return ptr;
 }
@@ -218,7 +234,11 @@ void WebPSafeFree(void* const ptr) {
     Increment(&num_free_calls);
     SubMem(ptr);
   }
+#ifdef ESP_PLATFORM
+  heap_caps_free(ptr);
+#else
   free(ptr);
+#endif
 }
 
 // Public API functions.
