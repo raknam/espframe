@@ -53,7 +53,7 @@ remote_image:
 |--------|------|--------|-------------|
 | `id` | required | — | ID for this `OnlineImage` (e.g. for actions or as image source). |
 | `url` | required | — | URL to download (must use `http://` or `https://`). |
-| `format` | required | — | `BMP`, `JPEG`, `PNG`, or `WEBP` (alias `JPG` for JPEG). |
+| `format` | optional | `AUTO` | `AUTO`, `BMP`, `JPEG`, `PNG`, or `WEBP` (alias `JPG` for JPEG). AUTO detects from image data. |
 | `http_request_id` | required | — | ID of the `http_request` component to use. |
 | `request_headers` | optional | `{}` | Extra HTTP request headers (e.g. `x-api-key: !lambda 'return id(api_key).state;'`). |
 | `placeholder` | optional | — | ID of another `image` to show until the download is ready. |
@@ -154,7 +154,7 @@ on_error:
 
 | Value | Description |
 |-------|-------------|
-| `AUTO` | Detect from MIME type (not implemented yet). |
+| `AUTO` | Detect format from image data (magic bytes). Default when format is omitted. |
 | `JPEG` | JPEG format. |
 | `PNG` | PNG format. |
 | `BMP` | BMP format. |

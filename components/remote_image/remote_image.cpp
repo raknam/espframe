@@ -205,34 +205,15 @@ void OnlineImage::update() {
   ESP_LOGD(TAG, "Starting download");
   size_t total_size = this->downloader_->content_length;
 
-#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
-  if (this->format_ == ImageFormat::BMP) {
-    ESP_LOGD(TAG, "Allocating BMP decoder");
-    this->decoder_ = make_unique<BmpDecoder>(this);
+  if (this->format_ == ImageFormat::AUTO) {
+    ESP_LOGD(TAG, "Format set to AUTO, will detect from image data");
     this->enable_loop();
+    ESP_LOGI(TAG, "Downloading image (Size: %zu)", total_size);
+    this->start_time_ = ::time(nullptr);
+    return;
   }
-#endif  // USE_REMOTE_IMAGE_BMP_SUPPORT
-#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
-  if (this->format_ == ImageFormat::JPEG) {
-    ESP_LOGD(TAG, "Allocating JPEG decoder");
-    this->decoder_ = esphome::make_unique<JpegDecoder>(this);
-    this->enable_loop();
-  }
-#endif  // USE_REMOTE_IMAGE_JPEG_SUPPORT
-#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
-  if (this->format_ == ImageFormat::PNG) {
-    ESP_LOGD(TAG, "Allocating PNG decoder");
-    this->decoder_ = make_unique<PngDecoder>(this);
-    this->enable_loop();
-  }
-#endif  // USE_REMOTE_IMAGE_PNG_SUPPORT
-#ifdef USE_REMOTE_IMAGE_WEBP_SUPPORT
-  if (this->format_ == ImageFormat::WEBP) {
-    ESP_LOGD(TAG, "Allocating WebP decoder");
-    this->decoder_ = make_unique<WebpDecoder>(this);
-    this->enable_loop();
-  }
-#endif  // USE_REMOTE_IMAGE_WEBP_SUPPORT
+
+  this->decoder_ = this->create_decoder_for_format_(this->format_);
 
   if (!this->decoder_) {
     ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", this->format_);
@@ -246,13 +227,49 @@ void OnlineImage::update() {
     this->download_error_callback_.call();
     return;
   }
+  this->enable_loop();
   ESP_LOGI(TAG, "Downloading image (Size: %zu)", total_size);
   this->start_time_ = ::time(nullptr);
 }
 
 void OnlineImage::loop() {
   if (!this->decoder_) {
-    this->disable_loop();
+    if (!this->downloader_) {
+      this->disable_loop();
+      return;
+    }
+    // AUTO format detection: buffer data until we can identify the format.
+    size_t available = this->download_buffer_.free_capacity();
+    if (available) {
+      available = std::min(available, this->download_buffer_initial_size_);
+      auto len = this->downloader_->read(this->download_buffer_.append(), available);
+      if (len > 0) {
+        this->download_buffer_.write(len);
+      }
+    }
+    if (this->download_buffer_.unread() < 12) {
+      return;
+    }
+    auto detected = this->detect_format_(this->download_buffer_.data());
+    if (detected == ImageFormat::AUTO) {
+      ESP_LOGE(TAG, "Could not detect image format from data");
+      this->end_connection_();
+      this->download_error_callback_.call();
+      return;
+    }
+    this->decoder_ = this->create_decoder_for_format_(detected);
+    if (!this->decoder_) {
+      ESP_LOGE(TAG, "No compiled decoder for detected format %d", detected);
+      this->end_connection_();
+      this->download_error_callback_.call();
+      return;
+    }
+    auto prepare_result = this->decoder_->prepare(this->downloader_->content_length);
+    if (prepare_result < 0) {
+      this->end_connection_();
+      this->download_error_callback_.call();
+      return;
+    }
     return;
   }
   if (!this->downloader_ || this->decoder_->is_finished()) {
@@ -374,6 +391,56 @@ void OnlineImage::draw_pixel_(int x, int y, Color color) {
       }
       break;
     }
+  }
+}
+
+ImageFormat OnlineImage::detect_format_(const uint8_t *data) {
+  if (data[0] == 0xFF && data[1] == 0xD8) {
+    ESP_LOGD(TAG, "Detected JPEG format");
+    return ImageFormat::JPEG;
+  }
+  if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) {
+    ESP_LOGD(TAG, "Detected PNG format");
+    return ImageFormat::PNG;
+  }
+  if (data[0] == 0x42 && data[1] == 0x4D) {
+    ESP_LOGD(TAG, "Detected BMP format");
+    return ImageFormat::BMP;
+  }
+  if (data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
+      data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50) {
+    ESP_LOGD(TAG, "Detected WebP format");
+    return ImageFormat::WEBP;
+  }
+  ESP_LOGW(TAG, "Unknown format: starts with 0x%02X 0x%02X 0x%02X 0x%02X",
+           data[0], data[1], data[2], data[3]);
+  return ImageFormat::AUTO;
+}
+
+std::unique_ptr<ImageDecoder> OnlineImage::create_decoder_for_format_(ImageFormat format) {
+  switch (format) {
+#ifdef USE_REMOTE_IMAGE_BMP_SUPPORT
+    case ImageFormat::BMP:
+      ESP_LOGD(TAG, "Allocating BMP decoder");
+      return make_unique<BmpDecoder>(this);
+#endif
+#ifdef USE_REMOTE_IMAGE_JPEG_SUPPORT
+    case ImageFormat::JPEG:
+      ESP_LOGD(TAG, "Allocating JPEG decoder");
+      return esphome::make_unique<JpegDecoder>(this);
+#endif
+#ifdef USE_REMOTE_IMAGE_PNG_SUPPORT
+    case ImageFormat::PNG:
+      ESP_LOGD(TAG, "Allocating PNG decoder");
+      return make_unique<PngDecoder>(this);
+#endif
+#ifdef USE_REMOTE_IMAGE_WEBP_SUPPORT
+    case ImageFormat::WEBP:
+      ESP_LOGD(TAG, "Allocating WebP decoder");
+      return make_unique<WebpDecoder>(this);
+#endif
+    default:
+      return nullptr;
   }
 }
 

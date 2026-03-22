@@ -125,9 +125,19 @@ class WebPFormat(Format):
             shutil.copytree(src_path, dest_path)
 
 
+class AutoFormat(Format):
+    def __init__(self):
+        super().__init__("AUTO")
+
+    def actions(self):
+        for fmt in (BMPFormat(), JPEGFormat(), PNGFormat(), WebPFormat()):
+            fmt.actions()
+
+
 IMAGE_FORMATS = {
     x.image_type: x
     for x in (
+        AutoFormat(),
         BMPFormat(),
         JPEGFormat(),
         PNGFormat(),
@@ -175,7 +185,7 @@ ONLINE_IMAGE_SCHEMA = (
             cv.Optional(CONF_REQUEST_HEADERS): cv.All(
                 cv.Schema({cv.string: cv.templatable(cv.string)})
             ),
-            cv.Required(CONF_FORMAT): cv.one_of(*IMAGE_FORMATS, upper=True),
+            cv.Optional(CONF_FORMAT, default="AUTO"): cv.one_of(*IMAGE_FORMATS, upper=True),
             cv.Optional(CONF_PLACEHOLDER): cv.use_id(Image_),
             cv.Optional(CONF_FILL, default=False): cv.boolean,
             cv.Optional(CONF_BUFFER_SIZE, default=65536): cv.int_range(256, 524288),

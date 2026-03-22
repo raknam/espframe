@@ -115,6 +115,9 @@ class OnlineImage : public PollingComponent,
  protected:
   bool validate_url_(const std::string &url);
 
+  static ImageFormat detect_format_(const uint8_t *data);
+  std::unique_ptr<ImageDecoder> create_decoder_for_format_(ImageFormat format);
+
   RAMAllocator<uint8_t> allocator_{};
 
   uint32_t get_buffer_size_() const { return get_buffer_size_(this->buffer_width_, this->buffer_height_); }
