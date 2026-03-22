@@ -13,8 +13,8 @@ lvgl:
       widgets:
         - obj:
             align: center
-            width: 100%
-            height: 100%
+            width: 1280
+            height: 800
             bg_opa: 0%
             border_width: 0
             pad_all: 0
