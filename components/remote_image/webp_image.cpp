@@ -39,43 +39,77 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
     return 0;
   }
 
-  int src_w = 0, src_h = 0;
-  if (!WebPGetInfo(buffer, size, &src_w, &src_h)) {
+  WebPDecoderConfig config;
+  if (!WebPInitDecoderConfig(&config)) {
+    ESP_LOGE(TAG, "Failed to init WebP decoder config");
+    return DECODE_ERROR_UNSUPPORTED_FORMAT;
+  }
+
+  if (WebPGetFeatures(buffer, size, &config.input) != VP8_STATUS_OK) {
     ESP_LOGE(TAG, "Not a valid WebP file");
     return DECODE_ERROR_INVALID_TYPE;
   }
 
+  int src_w = config.input.width;
+  int src_h = config.input.height;
   ESP_LOGD(TAG, "WebP header: %dx%d", src_w, src_h);
 
-  if (!this->set_size(src_w, src_h)) {
+  int target_w = this->image_->get_fixed_width();
+  int target_h = this->image_->get_fixed_height();
+  int decode_w = src_w;
+  int decode_h = src_h;
+
+  if (target_w > 0 && target_h > 0) {
+    bool fill = this->image_->is_fill_mode();
+    double scale = fill
+      ? std::max(static_cast<double>(target_w) / src_w,
+                 static_cast<double>(target_h) / src_h)
+      : std::min(static_cast<double>(target_w) / src_w,
+                 static_cast<double>(target_h) / src_h);
+    decode_w = std::max(1, static_cast<int>(src_w * scale));
+    decode_h = std::max(1, static_cast<int>(src_h * scale));
+    config.options.use_scaling = 1;
+    config.options.scaled_width = decode_w;
+    config.options.scaled_height = decode_h;
+    ESP_LOGD(TAG, "Using libwebp scaling: %dx%d -> %dx%d", src_w, src_h, decode_w, decode_h);
+  }
+  config.options.no_fancy_upsampling = 1;
+
+  if (!this->set_size(decode_w, decode_h)) {
     ESP_LOGE(TAG, "Could not allocate image buffer");
     return DECODE_ERROR_OUT_OF_MEMORY;
   }
 
-  this->out_w_ = src_w;
-  this->out_h_ = src_h;
+  this->out_w_ = decode_w;
+  this->out_h_ = decode_h;
 
-  size_t rgb_size = static_cast<size_t>(src_w) * src_h * 3;
+  size_t rgb_size = static_cast<size_t>(decode_w) * decode_h * 3;
   this->rgb_buffer_ = static_cast<uint8_t *>(malloc(rgb_size));
   if (!this->rgb_buffer_) {
     ESP_LOGE(TAG, "Failed to allocate RGB decode buffer (%zu bytes)", rgb_size);
     return DECODE_ERROR_OUT_OF_MEMORY;
   }
 
-  int stride = src_w * 3;
-  uint8_t *result = WebPDecodeRGBInto(buffer, size, this->rgb_buffer_, rgb_size, stride);
-  if (!result) {
-    ESP_LOGE(TAG, "WebP decode failed");
+  config.output.colorspace = MODE_RGB;
+  config.output.u.RGBA.rgba = this->rgb_buffer_;
+  config.output.u.RGBA.stride = decode_w * 3;
+  config.output.u.RGBA.size = rgb_size;
+  config.output.is_external_memory = 1;
+
+  VP8StatusCode status = WebPDecode(buffer, size, &config);
+  if (status != VP8_STATUS_OK) {
+    ESP_LOGE(TAG, "WebP decode failed (status %d)", status);
     this->cleanup_();
     return DECODE_ERROR_UNSUPPORTED_FORMAT;
   }
 
-  ESP_LOGD(TAG, "WebP decoded successfully, writing to image buffer");
+  ESP_LOGD(TAG, "WebP decoded %dx%d, writing to image buffer", decode_w, decode_h);
 
   bool use_rgb565 = (this->image_->image_type() == image::ImageType::IMAGE_TYPE_RGB565);
   bool big_endian = this->image_->is_big_endian();
   bool scaling = (this->x_scale_ != 1.0 || this->y_scale_ != 1.0 ||
                   this->x_offset_ != 0 || this->y_offset_ != 0);
+  int stride = decode_w * 3;
   int prev_dst_y = -1;
   int prev_gap_end = 0;
 
