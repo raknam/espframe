@@ -9,6 +9,9 @@ globals:
   - id: immich_api_retries
     type: int
     initial_value: '0'
+  - id: immich_last_http_status
+    type: int
+    initial_value: '0'
   - id: immich_memory_fallback
     type: bool
     initial_value: 'false'
@@ -270,14 +273,25 @@ script:
               - lambda: |-
                   if (response->status_code != 200) {
                     ESP_LOGW("immich", "HTTP %d from Immich", response->status_code);
+                    id(immich_last_http_status) = response->status_code;
                     int s = id(target_slot);
                     if (s == 0) id(slot0_fetch_in_flight) = false;
                     else if (s == 1) id(slot1_fetch_in_flight) = false;
                     else id(slot2_fetch_in_flight) = false;
+                    if (response->status_code == 401) {
+                      lv_label_set_text(id(connection_failed_title), "Invalid API Key");
+                      lv_label_set_text(id(connection_failed_subtitle), "Check your Immich API key in\nthe espframe settings.");
+                      if (id(last_photo_displayed_ms) == 0) {
+                        id(last_photo_displayed_ms) = millis();
+                      }
+                      lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+                      id(connection_failed_dim).execute();
+                    }
                     return;
                   }
                   id(immich_fetch_started) = true;
                   id(immich_api_retries) = 0;
+                  id(immich_last_http_status) = 0;
                   std::string img_url = parse_immich_asset_and_fill_slot(body, id(immich_url).state, id(target_slot), id(slot0), id(slot1), id(slot2));
                   if (img_url.empty()) {
                     ESP_LOGW("immich", "No valid asset in response");
@@ -324,6 +338,8 @@ script:
                         if (id(last_photo_displayed_ms) == 0) {
                           id(last_photo_displayed_ms) = millis();
                         }
+                        lv_label_set_text(id(connection_failed_title), "Unable to connect to Immich");
+                        lv_label_set_text(id(connection_failed_subtitle), "Check your internet connection and\nthe health of your Immich server.");
                         lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
                     - script.execute: connection_failed_dim
 

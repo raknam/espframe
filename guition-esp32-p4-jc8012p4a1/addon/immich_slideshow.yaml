@@ -568,6 +568,7 @@ script:
           }
           lv_obj_add_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
           id(last_photo_displayed_ms) = millis();
+          id(immich_last_http_status) = 0;
 
           lv_obj_clear_flag(id(slideshow_img), LV_OBJ_FLAG_HIDDEN);
           lv_obj_add_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
@@ -817,6 +818,7 @@ script:
           }
           lv_obj_add_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
           id(last_photo_displayed_ms) = millis();
+          id(immich_last_http_status) = 0;
 
           id(immich_is_portrait_pair) = true;
           id(active_slot_displayed) = true;

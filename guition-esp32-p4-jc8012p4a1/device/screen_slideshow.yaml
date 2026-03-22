@@ -205,12 +205,14 @@ lvgl:
                         text: $icon_cloud_off
                         text_color: 0xFFFFFF
                     - label:
+                        id: connection_failed_title
                         text: "Unable to connect to Immich"
                         text_font: roboto_light46_font
                         text_color: 0xFFFFFF
                         width: 700
                         text_align: center
                     - label:
+                        id: connection_failed_subtitle
                         text: "Check your internet connection and\nthe health of your Immich server."
                         width: 700
                         text_font: roboto30_font
@@ -323,6 +325,13 @@ interval:
             - lambda: |-
                 if (lv_obj_has_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN)) {
                   ESP_LOGE("immich", "No photo displayed for %s, showing connection failed screen", id(connection_timeout).current_option().c_str());
+                  if (id(immich_last_http_status) == 401) {
+                    lv_label_set_text(id(connection_failed_title), "Invalid API Key");
+                    lv_label_set_text(id(connection_failed_subtitle), "Check your Immich API key in\nthe espframe settings.");
+                  } else {
+                    lv_label_set_text(id(connection_failed_title), "Unable to connect to Immich");
+                    lv_label_set_text(id(connection_failed_subtitle), "Check your internet connection and\nthe health of your Immich server.");
+                  }
                 }
                 lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
                 id(immich_download_retries) = 0;
