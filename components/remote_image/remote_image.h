@@ -21,7 +21,7 @@ using t_http_codes = enum {
  * @brief Format that the image is encoded with.
  */
 enum ImageFormat {
-  /** Automatically detect from MIME type. Not supported yet. */
+  /** Automatically detect from Content-Type header, with magic-byte fallback. */
   AUTO,
   /** JPEG format. */
   JPEG,
@@ -115,7 +115,7 @@ class OnlineImage : public PollingComponent,
  protected:
   bool validate_url_(const std::string &url);
 
-  static ImageFormat detect_format_(const uint8_t *data);
+  ImageFormat detect_format_();
   std::unique_ptr<ImageDecoder> create_decoder_for_format_(ImageFormat format);
 
   RAMAllocator<uint8_t> allocator_{};

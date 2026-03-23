@@ -1,5 +1,6 @@
 #include "remote_image.h"
 
+#include <cstring>
 #include "esphome/core/log.h"
 
 static const char *const TAG = "remote_image";
@@ -7,6 +8,7 @@ static const char *const ETAG_HEADER_NAME = "etag";
 static const char *const IF_NONE_MATCH_HEADER_NAME = "if-none-match";
 static const char *const LAST_MODIFIED_HEADER_NAME = "last-modified";
 static const char *const IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
+static const char *const CONTENT_TYPE_HEADER_NAME = "content-type";
 
 #include "image_decoder.h"
 
@@ -102,6 +104,7 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
   size_t new_size = this->get_buffer_size_(width, height);
   if (this->buffer_) {
     if (new_size <= this->get_buffer_size_()) {
+      memset(this->buffer_, 0, this->get_buffer_size_());
       this->buffer_width_ = width;
       this->buffer_height_ = height;
       this->width_ = width;
@@ -128,8 +131,8 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
 
 void OnlineImage::update() {
   if (this->decoder_) {
-    ESP_LOGW(TAG, "Image already being updated.");
-    return;
+    ESP_LOGW(TAG, "Cancelling in-progress image download to fetch new URL");
+    this->end_connection_();
   }
   ESP_LOGI(TAG, "Updating image %s", this->url_.c_str());
 
@@ -178,7 +181,7 @@ void OnlineImage::update() {
     headers.push_back(http_request::Header{header.first, header.second.value()});
   }
 
-  this->downloader_ = this->parent_->get(this->url_, headers, {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME});
+  this->downloader_ = this->parent_->get(this->url_, headers, {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME, CONTENT_TYPE_HEADER_NAME});
 
   if (this->downloader_ == nullptr) {
     ESP_LOGE(TAG, "Download failed.");
@@ -205,18 +208,20 @@ void OnlineImage::update() {
   ESP_LOGD(TAG, "Starting download");
   size_t total_size = this->downloader_->content_length;
 
-  if (this->format_ == ImageFormat::AUTO) {
-    ESP_LOGD(TAG, "Format set to AUTO, will detect from image data");
-    this->enable_loop();
-    ESP_LOGI(TAG, "Downloading image (Size: %zu)", total_size);
+  ImageFormat resolved = this->detect_format_();
+
+  if (resolved == ImageFormat::AUTO) {
+    ESP_LOGD(TAG, "Image format not identified from Content-Type, deferring to magic-byte detection");
+    this->data_start_ = nullptr;
     this->start_time_ = ::time(nullptr);
+    this->enable_loop();
     return;
   }
 
-  this->decoder_ = this->create_decoder_for_format_(this->format_);
+  this->decoder_ = this->create_decoder_for_format_(resolved);
 
   if (!this->decoder_) {
-    ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", this->format_);
+    ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", resolved);
     this->end_connection_();
     this->download_error_callback_.call();
     return;
@@ -227,6 +232,7 @@ void OnlineImage::update() {
     this->download_error_callback_.call();
     return;
   }
+  this->data_start_ = nullptr;
   this->enable_loop();
   ESP_LOGI(TAG, "Downloading image (Size: %zu)", total_size);
   this->start_time_ = ::time(nullptr);
@@ -250,9 +256,9 @@ void OnlineImage::loop() {
     if (this->download_buffer_.unread() < 12) {
       return;
     }
-    auto detected = this->detect_format_(this->download_buffer_.data());
+    auto detected = this->detect_format_();
     if (detected == ImageFormat::AUTO) {
-      ESP_LOGE(TAG, "Could not detect image format from data");
+      ESP_LOGE(TAG, "Could not determine image format from headers or file content");
       this->end_connection_();
       this->download_error_callback_.call();
       return;
@@ -279,6 +285,10 @@ void OnlineImage::loop() {
     ESP_LOGD(TAG, "Image fully downloaded, read %zu bytes, width/height = %d/%d", this->downloader_->get_bytes_read(),
              this->width_, this->height_);
     ESP_LOGD(TAG, "Total time: %" PRIu32 "s", (uint32_t) (::time(nullptr) - this->start_time_));
+#ifdef USE_LVGL
+    this->dsc_.data = this->buffer_ + 1;
+    this->get_lv_img_dsc();
+#endif
     this->etag_ = this->downloader_->get_response_header(ETAG_HEADER_NAME);
     this->last_modified_ = this->downloader_->get_response_header(LAST_MODIFIED_HEADER_NAME);
     this->download_finished_callback_.call(false);
@@ -394,26 +404,52 @@ void OnlineImage::draw_pixel_(int x, int y, Color color) {
   }
 }
 
-ImageFormat OnlineImage::detect_format_(const uint8_t *data) {
-  if (data[0] == 0xFF && data[1] == 0xD8) {
-    ESP_LOGD(TAG, "Detected JPEG format");
-    return ImageFormat::JPEG;
+ImageFormat OnlineImage::detect_format_() {
+  if (this->format_ != ImageFormat::AUTO) {
+    return this->format_;
   }
-  if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) {
-    ESP_LOGD(TAG, "Detected PNG format");
-    return ImageFormat::PNG;
+
+  if (this->downloader_) {
+    std::string ct = this->downloader_->get_response_header(CONTENT_TYPE_HEADER_NAME);
+    if (ct.find("image/jpeg") != std::string::npos || ct.find("image/jpg") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected JPEG from Content-Type: %s", ct.c_str());
+      return ImageFormat::JPEG;
+    }
+    if (ct.find("image/png") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected PNG from Content-Type: %s", ct.c_str());
+      return ImageFormat::PNG;
+    }
+    if (ct.find("image/bmp") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected BMP from Content-Type: %s", ct.c_str());
+      return ImageFormat::BMP;
+    }
+    if (ct.find("image/webp") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected WebP from Content-Type: %s", ct.c_str());
+      return ImageFormat::WEBP;
+    }
   }
-  if (data[0] == 0x42 && data[1] == 0x4D) {
-    ESP_LOGD(TAG, "Detected BMP format");
-    return ImageFormat::BMP;
+
+  if (this->download_buffer_.unread() >= 12) {
+    const uint8_t *data = this->download_buffer_.data();
+    if (data[0] == 0xFF && data[1] == 0xD8) {
+      ESP_LOGD(TAG, "Detected JPEG from magic bytes");
+      return ImageFormat::JPEG;
+    }
+    if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) {
+      ESP_LOGD(TAG, "Detected PNG from magic bytes");
+      return ImageFormat::PNG;
+    }
+    if (data[0] == 0x42 && data[1] == 0x4D) {
+      ESP_LOGD(TAG, "Detected BMP from magic bytes");
+      return ImageFormat::BMP;
+    }
+    if (data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
+        data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50) {
+      ESP_LOGD(TAG, "Detected WebP from magic bytes");
+      return ImageFormat::WEBP;
+    }
   }
-  if (data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
-      data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50) {
-    ESP_LOGD(TAG, "Detected WebP format");
-    return ImageFormat::WEBP;
-  }
-  ESP_LOGW(TAG, "Unknown format: starts with 0x%02X 0x%02X 0x%02X 0x%02X",
-           data[0], data[1], data[2], data[3]);
+
   return ImageFormat::AUTO;
 }
 
