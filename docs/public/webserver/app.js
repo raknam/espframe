@@ -1158,11 +1158,13 @@
     var header = el("div", "card-header");
     var h3 = document.createElement("h3");
     h3.textContent = title;
-    if (badgeEl) h3.appendChild(badgeEl);
+    var rightWrap = el("div", "card-header-right");
+    if (badgeEl) rightWrap.appendChild(badgeEl);
     var chevron = el("span", "card-chevron");
     chevron.innerHTML = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg>";
+    rightWrap.appendChild(chevron);
     header.appendChild(h3);
-    header.appendChild(chevron);
+    header.appendChild(rightWrap);
     var body = el("div", "card-body");
     body.appendChild(bodyElement);
     card.appendChild(header);

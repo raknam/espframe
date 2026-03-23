@@ -5,8 +5,6 @@
 #include <cstdlib>
 
 static constexpr uint16_t ZOOM_IDENTITY = 256;
-static constexpr float PANORAMA_MIN_ASPECT = 1.6f;
-static constexpr float PANORAMA_MAX_ASPECT = 2.0f;
 
 struct ImmichAssetMeta {
   std::string asset_id, image_url, date, location, person;
@@ -97,7 +95,6 @@ inline std::string parse_immich_asset(const std::string &body,
   std::string photo_date, photo_location, photo_person;
   int photo_year = 0, photo_month = 0;
   bool is_portrait = false;
-  uint16_t slot_zoom = ZOOM_IDENTITY;
 
   std::string local_datetime;
   if (asset["localDateTime"].is<const char *>()) {
@@ -137,13 +134,6 @@ inline std::string parse_immich_asset(const std::string &body,
       std::swap(exif_w, exif_h);
     if (exif_w > 0 && exif_h > 0) {
       is_portrait = (exif_h > exif_w);
-      if (!is_portrait) {
-        float aspect = (float)exif_w / (float)exif_h;
-        if (aspect > PANORAMA_MIN_ASPECT && aspect <= PANORAMA_MAX_ASPECT) {
-          float decoded_h = 1280.0f / aspect;
-          slot_zoom = (uint16_t)((float)ZOOM_IDENTITY * 800.0f / decoded_h);
-        }
-      }
     }
   }
 
@@ -166,7 +156,7 @@ inline std::string parse_immich_asset(const std::string &body,
   out_meta->person = photo_person;
   out_meta->datetime = local_datetime;
   out_meta->is_portrait = is_portrait;
-  out_meta->zoom = slot_zoom;
+  out_meta->zoom = ZOOM_IDENTITY;
   return img_url;
 }
 

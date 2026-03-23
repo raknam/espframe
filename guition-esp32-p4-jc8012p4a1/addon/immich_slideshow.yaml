@@ -139,7 +139,7 @@ globals:
 remote_image:
   - id: immich_img_0
     url: "https://via.placeholder.com/1x1.jpg"
-    resize: 1280x960
+    resize: 1280x800
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -199,7 +199,7 @@ remote_image:
 
   - id: immich_img_1
     url: "https://via.placeholder.com/1x1.jpg"
-    resize: 1280x960
+    resize: 1280x800
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -259,7 +259,7 @@ remote_image:
 
   - id: immich_img_2
     url: "https://via.placeholder.com/1x1.jpg"
-    resize: 1280x960
+    resize: 1280x800
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -792,9 +792,9 @@ script:
                 meta.pending_asset_id = id(current_display).asset_id;
 
                 std::string url = meta.image_url;
-                if (prev_slot == 0) { id(immich_img_0).set_url(url); id(immich_img_0).update(); }
-                else if (prev_slot == 1) { id(immich_img_1).set_url(url); id(immich_img_1).update(); }
-                else { id(immich_img_2).set_url(url); id(immich_img_2).update(); }
+                if (prev_slot == 0) { id(immich_img_0).set_fill_mode(true); id(immich_img_0).set_url(url); id(immich_img_0).update(); }
+                else if (prev_slot == 1) { id(immich_img_1).set_fill_mode(true); id(immich_img_1).set_url(url); id(immich_img_1).update(); }
+                else { id(immich_img_2).set_fill_mode(true); id(immich_img_2).set_url(url); id(immich_img_2).update(); }
                 if (prev_slot == 0) id(slot0_fetch_in_flight) = true;
                 else if (prev_slot == 1) id(slot1_fetch_in_flight) = true;
                 else id(slot2_fetch_in_flight) = true;
@@ -943,9 +943,11 @@ script:
             nc_flag = false;
             if (id(noncritical_remote_updates_in_flight) > 0) id(noncritical_remote_updates_in_flight)--;
           }
-          if (s == 0) { id(slot0_fetch_in_flight) = true; id(immich_img_0).update(); }
-          else if (s == 1) { id(slot1_fetch_in_flight) = true; id(immich_img_1).update(); }
-          else { id(slot2_fetch_in_flight) = true; id(immich_img_2).update(); }
+          auto &meta = (s == 0) ? id(slot0) : (s == 1) ? id(slot1) : id(slot2);
+          bool fill = !meta.is_portrait;
+          if (s == 0) { id(immich_img_0).set_fill_mode(fill); id(slot0_fetch_in_flight) = true; id(immich_img_0).update(); }
+          else if (s == 1) { id(immich_img_1).set_fill_mode(fill); id(slot1_fetch_in_flight) = true; id(immich_img_1).update(); }
+          else { id(immich_img_2).set_fill_mode(fill); id(slot2_fetch_in_flight) = true; id(immich_img_2).update(); }
 
   - id: deferred_portrait_left_update
     mode: single
