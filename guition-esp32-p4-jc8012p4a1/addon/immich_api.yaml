@@ -191,7 +191,11 @@ script:
                   if (slot == 0) { id(immich_img_0).set_url(img_url); }
                   else if (slot == 1) { id(immich_img_1).set_url(img_url); }
                   else { id(immich_img_2).set_url(img_url); }
-              - script.execute: deferred_slot_image_update
+              - lambda: |-
+                  int s = id(target_slot);
+                  if (s == 0) id(deferred_slot0_image_update).execute();
+                  else if (s == 1) id(deferred_slot1_image_update).execute();
+                  else id(deferred_slot2_image_update).execute();
           on_error:
             then:
               - lambda: |-
@@ -317,7 +321,11 @@ script:
                   if (slot == 0) { id(immich_img_0).set_url(img_url); }
                   else if (slot == 1) { id(immich_img_1).set_url(img_url); }
                   else { id(immich_img_2).set_url(img_url); }
-              - script.execute: deferred_slot_image_update
+              - lambda: |-
+                  int s = id(target_slot);
+                  if (s == 0) id(deferred_slot0_image_update).execute();
+                  else if (s == 1) id(deferred_slot1_image_update).execute();
+                  else id(deferred_slot2_image_update).execute();
           on_error:
             then:
               - lambda: |-
