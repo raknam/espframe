@@ -161,7 +161,11 @@ script:
             - light.turn_off:
                 id: backlight
                 transition_length: 500ms
+            - delay: 600ms
+            - lvgl.pause:
+                show_snow: true
           else:
+            - lvgl.resume:
             - lambda: |-
                 float pct;
                 if (id(sunrise_sunset_valid)) {
@@ -291,9 +295,7 @@ script:
           ESP_LOGI("backlight", "Manual off via 3s hold");
           id(backlight_manual_off) = true;
           id(backlight_paused) = true;
-      - light.turn_off:
-          id: backlight
-          transition_length: 500ms
+      - script.execute: backlight_apply_brightness
 
   # ---------------------------------------------------------------------------
   # Wake from manual off: restore brightness
