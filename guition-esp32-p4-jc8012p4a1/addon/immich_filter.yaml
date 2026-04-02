@@ -28,9 +28,44 @@ select:
         - script.execute: auto_apply_photo_source
 
 # -----------------------------------------------------------------------------
-# Album IDs and Person IDs (used when source is Album or Person)
+# Date range filter (optional, YYYY-MM-DD; empty = no bound)
 # -----------------------------------------------------------------------------
 text:
+  - platform: template
+    name: "Photos: Date From"
+    id: immich_date_from
+    internal: true
+    optimistic: false
+    restore_value: true
+    min_length: 0
+    max_length: 10
+    mode: text
+    icon: "mdi:calendar-start"
+    set_action:
+      - lambda: |-
+          id(immich_date_from).publish_state(x);
+          ESP_LOGI("immich", "Date From configured: %s", x.c_str());
+      - script.execute: auto_apply_photo_source
+
+  - platform: template
+    name: "Photos: Date To"
+    id: immich_date_to
+    internal: true
+    optimistic: false
+    restore_value: true
+    min_length: 0
+    max_length: 10
+    mode: text
+    icon: "mdi:calendar-end"
+    set_action:
+      - lambda: |-
+          id(immich_date_to).publish_state(x);
+          ESP_LOGI("immich", "Date To configured: %s", x.c_str());
+      - script.execute: auto_apply_photo_source
+
+# -----------------------------------------------------------------------------
+# Album IDs and Person IDs (used when source is Album or Person)
+# -----------------------------------------------------------------------------
   - platform: template
     name: "Photos: Album IDs"
     id: immich_album_ids

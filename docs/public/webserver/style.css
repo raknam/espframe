@@ -60,12 +60,13 @@ h2{font-size:1.1rem;font-weight:600;margin-bottom:var(--gap);color:var(--text2)}
 .field:last-child{margin-bottom:0}
 label{display:block;font-size:.85rem;color:var(--text2);margin-bottom:6px}
 
-input[type="text"],input[type="password"],input[type="url"]{
+input[type="text"],input[type="password"],input[type="url"],input[type="date"]{
   width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);
   border-radius:6px;color:var(--text);font-size:.9rem;outline:none;
   transition:border-color .2s;
 }
-input[type="text"]:focus,input[type="password"]:focus,input[type="url"]:focus{border-color:var(--accent)}
+input[type="text"]:focus,input[type="password"]:focus,input[type="url"]:focus,input[type="date"]:focus{border-color:var(--accent)}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.7);cursor:pointer}
 
 .select,select{
   width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);
