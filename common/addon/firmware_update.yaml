@@ -71,6 +71,14 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
 
+  - platform: template
+    name: "Firmware: Beta Channel"
+    id: beta_channel_switch
+    entity_category: config
+    icon: "mdi:beta"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
 select:
   - platform: template
     name: "Firmware: Update Frequency"
@@ -102,6 +110,9 @@ interval:
           else if (freq == "Monthly") threshold = 720;
           if (counter % threshold == 0) {
             id(firmware_update).update();
+            if (id(beta_channel_switch).state) {
+              id(firmware_update_beta).update();
+            }
           }
           id(update_check_counter) = counter + 1;
 
@@ -125,6 +136,10 @@ button:
     on_press:
       - lambda: 'id(manual_check_only) = true;'
       - component.update: firmware_update
-      - component.update: firmware_update_beta
+      - if:
+          condition:
+            lambda: 'return id(beta_channel_switch).state;'
+          then:
+            - component.update: firmware_update_beta
       - delay: 15s
       - lambda: 'id(manual_check_only) = false;'
