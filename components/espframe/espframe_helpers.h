@@ -55,6 +55,10 @@ struct DisplayMeta : PhotoMeta {
   bool valid = false;
 };
 
+inline SlotMeta& get_slot(int s, SlotMeta &s0, SlotMeta &s1, SlotMeta &s2) {
+  return (s == 0) ? s0 : (s == 1) ? s1 : s2;
+}
+
 inline void copy_slot_to_display(const SlotMeta &slot, DisplayMeta &disp) {
   static_cast<PhotoMeta&>(disp) = static_cast<const PhotoMeta&>(slot);
 }
