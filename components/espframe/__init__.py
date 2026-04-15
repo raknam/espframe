@@ -8,4 +8,4 @@ CONFIG_SCHEMA = cv.Schema({})
 
 
 async def to_code(config):
-    pass
+    cg.add_global(cg.RawStatement('#include "espframe_helpers.h"'))
