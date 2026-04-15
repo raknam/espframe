@@ -934,7 +934,7 @@
     srcBody.appendChild(personField);
     srcBody.appendChild(applyBtn);
 
-    wrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, false));
+    wrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, true));
 
     // Photo Settings
     var photoBody = el("div");
