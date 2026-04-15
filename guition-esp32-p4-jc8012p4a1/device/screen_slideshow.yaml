@@ -298,6 +298,8 @@ select:
         - lambda: |-
             int num = atoi(x.c_str());
             id(slideshow_interval_sec) = (x.find("minute") != std::string::npos) ? num * 60 : num;
+    web_server:
+      sorting_group_id: sg_photos
 
   - platform: template
     name: "Screen: Connection Timeout"
@@ -322,6 +324,8 @@ select:
         - lambda: |-
             int num = atoi(x.c_str());
             id(connection_timeout_sec) = (x.find("minute") != std::string::npos) ? num * 60 : num;
+    web_server:
+      sorting_group_id: sg_screen
 
 
 # =============================================================================
