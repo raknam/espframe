@@ -267,6 +267,11 @@
   style.textContent = CSS;
   document.head.appendChild(style);
 
+  var fonts = document.createElement("link");
+  fonts.rel = "stylesheet";
+  fonts.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+  document.head.appendChild(fonts);
+
   var els = {};
   var app;
 
@@ -635,19 +640,9 @@
       if (!logListenerAttached) {
         logListenerAttached = true;
         evtSource.addEventListener("log", function (e) {
-          var line = e.data;
-          logLines.push(line);
-          if (logLines.length > logMaxLines) logLines.shift();
-          if (logPreRef) {
-            var parts = [];
-            for (var i = 0; i < logLines.length; i++) {
-              var ln = logLines[i];
-              var cls = logLevelClass(ln);
-              parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
-            }
-            logPreRef.innerHTML = parts.join("\n");
-            logPreRef.scrollTop = logPreRef.scrollHeight;
-          }
+          var d;
+          try { d = JSON.parse(e.data); } catch (_) { d = { msg: e.data }; }
+          appendLog(d.msg || e.data, d.lvl);
         });
       }
 
@@ -675,7 +670,7 @@
     app.innerHTML = "";
     var wrap = el("div", "fade-in");
     wrap.innerHTML =
-      '<h1 class="brand">EspFrame</h1><p class="subtitle">Let\'s connect your photo frame</p>';
+      '<p class="subtitle">Let\'s connect your photo frame</p>';
     var steps = el("div", "wizard-steps");
     var s1 = el("div", "step active");
     var s2 = el("div", "step");
@@ -801,7 +796,6 @@
   function renderSettings() {
     app.innerHTML = "";
     var wrap = el("div", "fade-in");
-    wrap.innerHTML = '<h1 class="brand">EspFrame</h1><h2>Settings</h2>';
 
     // Connection
     var connBody = el("div");
@@ -1388,25 +1382,6 @@
     backupBody.appendChild(backupRow);
     wrap.appendChild(makeCollapsibleCard("Backup", backupBody, true));
 
-    // Logs
-    var logsBody = el("div");
-    var logPre = document.createElement("pre");
-    logPre.className = "log-output";
-    logPreRef = logPre;
-    var parts = [];
-    for (var i = 0; i < logLines.length; i++) {
-      var ln = logLines[i];
-      var cls = logLevelClass(ln);
-      parts.push(cls ? '<span class="' + cls + '">' + esc(ln) + '</span>' : '<span>' + esc(ln) + '</span>');
-    }
-    logPre.innerHTML = parts.join("\n");
-    logPre.scrollTop = logPre.scrollHeight;
-
-    logsBody.appendChild(logPre);
-    var logsCard = makeCollapsibleCard("Device Logs", logsBody, true);
-    logsCard.classList.add("card-logs");
-    wrap.appendChild(logsCard);
-
     app.appendChild(wrap);
 
     if (S.firmware) {
@@ -1550,14 +1525,12 @@
 
   var bannerTimer = null;
   function showBanner(msg, type) {
-    var existing = document.getElementById("banner");
-    if (existing) existing.remove();
+    if (!els.banner) return;
+    els.banner.textContent = msg;
+    els.banner.className = "banner banner-" + (type || "success");
+    els.banner.style.display = "";
     clearTimeout(bannerTimer);
-    var b = el("div", "banner banner-" + (type || "success"));
-    b.id = "banner";
-    b.textContent = msg;
-    document.body.appendChild(b);
-    bannerTimer = setTimeout(function () { b.remove(); }, 5000);
+    bannerTimer = setTimeout(function () { els.banner.style.display = "none"; }, 5000);
   }
 
   // --- Import / Export ---
@@ -1752,7 +1725,6 @@
 
   // --- Init ---
 
-  app.innerHTML =
-    '<div style="text-align:center;padding:60px 0;color:rgba(255,255,255,.55)"><div class="brand" style="margin-bottom:12px">EspFrame</div>Loading\u2026</div>';
+  buildUI();
   initSSE();
 })();
