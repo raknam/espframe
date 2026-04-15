@@ -96,6 +96,8 @@
     warm_tone_intensity: 50,
     warm_tone_override: false,
     portrait_pairing: true,
+    display_mode: "Fill",
+    display_mode_options: ["Fill", "Fit"],
   };
 
   var app = document.getElementById("app");
@@ -139,6 +141,7 @@
     warm_tone_intensity: eid("number", "Screen: Warm Tone Intensity"),
     warm_tone_override: eid("switch", "Screen: Warm Tone Override"),
     portrait_pairing: eid("switch", "Photos: Portrait Pairing"),
+    display_mode: eid("select", "Photos: Display Mode"),
   };
 
   function post(url, params) {
