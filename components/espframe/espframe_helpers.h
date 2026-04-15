@@ -148,7 +148,7 @@ inline void fill_accent_color(esphome::image::Image *img) {
   int img_h = img->get_height();
   if (img_w <= 0 || img_h <= 0) return;
 
-  lv_img_dsc_t *dsc = img->get_lv_img_dsc();
+  lv_img_dsc_t *dsc = img->get_lv_image_dsc();
   const uint8_t *data = dsc->data;
   if (!data) return;
 
@@ -289,7 +289,7 @@ inline void build_warm_tone_luts(float last_w, float new_w, WarmToneLuts &luts) 
 #ifdef USE_LVGL
 inline void tint_image_buffer(esphome::image::Image *img, const WarmToneLuts &luts) {
   if (!img) return;
-  lv_img_dsc_t *dsc = img->get_lv_img_dsc();
+  lv_img_dsc_t *dsc = img->get_lv_image_dsc();
   if (!dsc || !dsc->data) return;
   uint8_t *buf = const_cast<uint8_t*>(dsc->data);
   int total = img->get_width() * img->get_height();
