@@ -120,7 +120,7 @@ external_components:
       ref: ${package_ref}
       path: components
     components: [gsl3680, remote_image, espframe]
-    refresh: 1d
+    refresh: 0s
 
 espframe:
 
