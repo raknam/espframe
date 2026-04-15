@@ -31,7 +31,7 @@ script:
           id(portrait_companion_url) = "";
           id(portrait_right_requested) = false;
           int ts = id(companion_target_slot);
-          auto &meta = (ts == 0) ? id(slot0) : (ts == 1) ? id(slot1) : id(slot2);
+          auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
           meta.companion_url = "";
           if (id(companion_target_slot) == id(active_slot)) {
             id(portrait_no_companion_active) = true;
@@ -176,7 +176,7 @@ script:
                     return;
                   }
                   int slot = id(target_slot);
-                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
+                  auto &meta = get_slot(slot, id(slot0), id(slot1), id(slot2));
                   ESP_LOGI("immich", "MEMORY slot %d: %s | %s | %s | %s | portrait=%d",
                            slot, meta.asset_id.c_str(), meta.date.c_str(), meta.person.c_str(), meta.location.c_str(), meta.is_portrait);
                   if (id(portrait_preload_slot) == slot) {
@@ -319,7 +319,7 @@ script:
                     return;
                   }
                   int slot = id(target_slot);
-                  auto &meta = (slot == 0) ? id(slot0) : (slot == 1) ? id(slot1) : id(slot2);
+                  auto &meta = get_slot(slot, id(slot0), id(slot1), id(slot2));
                   ESP_LOGI("immich", "RANDOM slot %d: %s | %s | %s | %s | portrait=%d",
                            slot, meta.asset_id.c_str(), meta.date.c_str(), meta.person.c_str(), meta.location.c_str(), meta.is_portrait);
                   if (id(portrait_preload_slot) == slot) {
@@ -470,7 +470,7 @@ script:
                   id(portrait_companion_found) = true;
                   id(portrait_companion_url) = companion_url;
                   int ts = id(companion_target_slot);
-                  auto &meta = (ts == 0) ? id(slot0) : (ts == 1) ? id(slot1) : id(slot2);
+                  auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
                   meta.companion_url = companion_url;
               - if:
                   condition:
@@ -488,7 +488,7 @@ script:
                   then:
                     - lambda: |-
                         int ts = id(companion_target_slot);
-                        auto &meta = (ts == 0) ? id(slot0) : (ts == 1) ? id(slot1) : id(slot2);
+                        auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
                         id(portrait_preload_slot) = ts;
                         id(portrait_preload_left_ready) = false;
                         id(portrait_preload_right_ready) = false;
@@ -498,7 +498,7 @@ script:
                         id: immich_portrait_preload_left
                         url: !lambda |-
                           int ts = id(companion_target_slot);
-                          auto &meta = (ts == 0) ? id(slot0) : (ts == 1) ? id(slot1) : id(slot2);
+                          auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
                           return meta.image_url;
                         update: false
                     - script.execute: deferred_preload_left_update
