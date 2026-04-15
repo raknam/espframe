@@ -146,7 +146,13 @@
 
   function post(url, params) {
     var fullUrl = params ? url + "?" + new URLSearchParams(params).toString() : url;
-    return fetch(fullUrl, { method: "POST" }).catch(function () {});
+    return fetch(fullUrl, { method: "POST" }).then(function (r) {
+      if (!r.ok) console.error("POST " + fullUrl + " failed: " + r.status);
+      return r;
+    }).catch(function (err) {
+      console.error("POST " + fullUrl + " error:", err);
+      showBanner("Failed to save setting", "error");
+    });
   }
 
   var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1361,12 +1367,20 @@
           post(endpoints.photo_source + "/set", { option: p.source });
         }
         if (p.album_ids !== undefined) {
-          S.album_ids = p.album_ids;
-          post(endpoints.album_ids + "/set", { value: p.album_ids });
+          if (!isValidUuidList(p.album_ids)) {
+            showBanner("Import skipped invalid album IDs", "error");
+          } else {
+            S.album_ids = p.album_ids;
+            post(endpoints.album_ids + "/set", { value: p.album_ids });
+          }
         }
         if (p.person_ids !== undefined) {
-          S.person_ids = p.person_ids;
-          post(endpoints.person_ids + "/set", { value: p.person_ids });
+          if (!isValidUuidList(p.person_ids)) {
+            showBanner("Import skipped invalid person IDs", "error");
+          } else {
+            S.person_ids = p.person_ids;
+            post(endpoints.person_ids + "/set", { value: p.person_ids });
+          }
         }
         if (p.portrait_pairing !== undefined) {
           S.portrait_pairing = p.portrait_pairing;

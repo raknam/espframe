@@ -21,5 +21,5 @@ web_server:
   version: 3
   css_url: ""
   js_url: ""
-  css_include: "../docs/public/webserver/style.css"
-  js_include: "../docs/public/webserver/app.js"
+  css_include: "../docs/public/webserver/style.min.css"
+  js_include: "../docs/public/webserver/app.min.js"
