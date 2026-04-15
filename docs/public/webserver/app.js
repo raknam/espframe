@@ -648,6 +648,11 @@
     srcBody.appendChild(personField);
     srcBody.appendChild(applyBtn);
 
+    wrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, false));
+
+    // Photo Settings
+    var photoBody = el("div");
+
     var fPairToggle = field("");
     var pairTr = el("div", "toggle-row");
     pairTr.innerHTML = "<span>Portrait Pairing</span>";
@@ -659,7 +664,7 @@
     };
     pairTr.appendChild(pairTog);
     fPairToggle.appendChild(pairTr);
-    srcBody.appendChild(fPairToggle);
+    photoBody.appendChild(fPairToggle);
 
     var fDisplayMode = field("Display Mode");
     fDisplayMode.appendChild(
@@ -668,9 +673,9 @@
         post(endpoints.display_mode + "/set", { option: v });
       })
     );
-    srcBody.appendChild(fDisplayMode);
+    photoBody.appendChild(fDisplayMode);
 
-    wrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, false));
+    wrap.appendChild(makeCollapsibleCard("Photo Settings", photoBody, true));
 
     // Frequency
     var dispBody = el("div");
