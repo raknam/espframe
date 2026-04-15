@@ -285,6 +285,7 @@
     els.banner = banner;
 
     buildHeader(root);
+    buildImmichPage(root);
     buildSettingsPage(root);
     buildLogsPage(root);
 
@@ -295,7 +296,7 @@
       document.body.insertBefore(root, document.body.firstChild);
     }
     els.root = root;
-    switchTab("settings");
+    switchTab("immich");
   }
 
   function buildHeader(parent) {
@@ -311,6 +312,7 @@
     nav.className = "sp-nav";
 
     var tabs = [
+      { id: "immich", label: "Immich" },
       { id: "settings", label: "Settings" },
       { id: "logs", label: "Logs" }
     ];
@@ -326,6 +328,22 @@
 
     header.appendChild(nav);
     parent.appendChild(header);
+  }
+
+  var immichApp;
+
+  function buildImmichPage(parent) {
+    var page = document.createElement("div");
+    page.id = "sp-immich";
+    page.className = "sp-page";
+
+    var wrap = document.createElement("div");
+    wrap.className = "sp-settings-wrap";
+    page.appendChild(wrap);
+
+    parent.appendChild(page);
+    els.immichPage = page;
+    immichApp = wrap;
   }
 
   function buildSettingsPage(parent) {
@@ -366,9 +384,10 @@
   }
 
   function switchTab(tab) {
-    ["settings", "logs"].forEach(function (t) {
+    ["immich", "settings", "logs"].forEach(function (t) {
       els["tab_" + t].className = "sp-tab" + (tab === t ? " active" : "");
     });
+    els.immichPage.className = "sp-page" + (tab === "immich" ? " active" : "");
     els.settingsPage.className = "sp-page" + (tab === "settings" ? " active" : "");
     els.logsPage.className = "sp-page" + (tab === "logs" ? " active" : "");
   }
