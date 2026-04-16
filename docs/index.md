@@ -6,9 +6,9 @@ description: Standalone Immich-powered digital photo frame on ESP32-P4. No hub, 
 
 # Espframe for Immich
 
-**Espframe** is a standalone digital photo frame that displays your [Immich](https://immich.app/) photo library on a 10" touchscreen. It runs on ESP32-P4 hardware with [ESPHome](https://esphome.io/) and connects directly to your self-hosted Immich server over HTTP — no hub, cloud, or extra software required.
+**Espframe** is a standalone digital photo frame that displays your [Immich](https://immich.app/) photo library on a supported Guition ESP32-P4 touchscreen. It runs on ESP32-P4 hardware with [ESPHome](https://esphome.io/) and connects directly to your self-hosted Immich server over HTTP — no hub, cloud, or extra software required.
 
-<img src="/espframe.png" alt="Espframe displaying photos on a 10-inch touchscreen" style="max-width: 100%; border-radius: 8px; margin: 1.5rem 0;" />
+<img src="/espframe.png" alt="Espframe displaying photos on a Guition ESP32-P4 touchscreen" style="max-width: 100%; border-radius: 8px; margin: 1.5rem 0;" />
 
 ## Features
 
@@ -23,8 +23,10 @@ description: Standalone Immich-powered digital photo frame on ESP32-P4. No hub, 
 
 ## Where to Buy
 
-- **Panel:** [AliExpress](https://s.click.aliexpress.com/e/_c4LLo3rH)
-- **Stand:** [MakerWorld](https://makerworld.com/en/models/2490049-guition-p4-10inch-screen-stand#profileId-2736046)
+| Model | Panel | Stand |
+|-------|-------|-------|
+| Guition ESP32-P4 10" `JC8012P4A1` | [AliExpress](https://s.click.aliexpress.com/e/_c4LLo3rH) | [MakerWorld](https://makerworld.com/en/models/2490049-guition-p4-10inch-screen-stand#profileId-2736046) |
+| Guition ESP32-P4 7" `JC1060P470` | [AliExpress](https://s.click.aliexpress.com/e/_c335W0r5) | [MakerWorld](https://makerworld.com/en/models/2387421-guition-esp32p4-jc1060p470-7inch-screen-desk-mount#profileId-2614995) |
 
 ## Support This Project
 

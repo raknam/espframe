@@ -21,10 +21,10 @@ export default defineConfig({
     ['meta', { property: 'og:locale', content: 'en_US' }],
     ['meta', { property: 'og:site_name', content: 'Espframe for Immich' }],
     ['meta', { property: 'og:image', content: `${hostname}espframe.png` }],
-    ['meta', { property: 'og:image:alt', content: 'Espframe displaying Immich photos on a 10-inch touchscreen' }],
+    ['meta', { property: 'og:image:alt', content: 'Espframe displaying Immich photos on a Guition ESP32-P4 touchscreen' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:image', content: `${hostname}espframe.png` }],
-    ['meta', { name: 'twitter:image:alt', content: 'Espframe displaying Immich photos on a 10-inch touchscreen' }],
+    ['meta', { name: 'twitter:image:alt', content: 'Espframe displaying Immich photos on a Guition ESP32-P4 touchscreen' }],
     ['script', {
       'data-name': 'BMC-Widget',
       'data-cfasync': 'false',
@@ -54,7 +54,7 @@ export default defineConfig({
           name: 'Espframe for Immich',
           applicationCategory: 'MultimediaApplication',
           operatingSystem: 'ESP32',
-          description: 'Standalone Immich-powered digital photo frame on ESP32-P4. Displays your Immich photo library on a 10" touchscreen over HTTP.',
+          description: 'Standalone Immich-powered digital photo frame on ESP32-P4. Displays your Immich photo library on supported Guition touchscreens over HTTP.',
           url: hostname,
           image: `${hostname}espframe.png`,
           author: {
