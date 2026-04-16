@@ -469,7 +469,7 @@ script:
 
           int s = id(active_slot);
           esphome::image::Image *imgs[] = { id(immich_img_0), id(immich_img_1), id(immich_img_2) };
-          lv_img_set_src(id(slideshow_img), imgs[s]->get_lv_image_dsc());
+          lv_img_set_src(id(slideshow_img), get_lv_image_descriptor_(imgs[s], 0));
 
           auto &meta = get_slot(s, id(slot0), id(slot1), id(slot2));
           lv_img_set_zoom(id(slideshow_img), meta.zoom);
