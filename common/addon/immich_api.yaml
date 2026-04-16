@@ -265,7 +265,9 @@ script:
               return days[m - 1];
             };
 
-            if (id(immich_date_filter_mode).current_option() == "Relative Range") {
+            if (!id(immich_date_filter_enabled).state) {
+              // Date filtering is off; leave extra empty.
+            } else if (id(immich_date_filter_mode).current_option() == "Relative Range") {
               auto now = id(sntp_time).now();
               if (now.is_valid()) {
                 int amount = (int) (id(immich_relative_amount).state + 0.5f);
@@ -442,7 +444,9 @@ script:
 
             std::string df;
             std::string dt;
-            if (id(immich_date_filter_mode).current_option() == "Relative Range") {
+            if (!id(immich_date_filter_enabled).state) {
+              // Date filtering is off; keep the companion search on the target day only.
+            } else if (id(immich_date_filter_mode).current_option() == "Relative Range") {
               auto now = id(sntp_time).now();
               if (now.is_valid()) {
                 int amount = (int) (id(immich_relative_amount).state + 0.5f);

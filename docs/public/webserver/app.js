@@ -95,6 +95,7 @@
     warm_tones_enabled: false,
     warm_tone_intensity: 50,
     warm_tone_override: false,
+    date_filter_enabled: false,
     date_filter_mode: "Fixed Range",
     date_filter_mode_options: ["Fixed Range", "Relative Range"],
     date_from: "",
@@ -429,6 +430,7 @@
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
     person_ids: eid("text", "Photos: Person IDs"),
+    date_filter_enabled: eid("switch", "Photos: Date Filter"),
     date_filter_mode: eid("select", "Photos: Date Filter Mode"),
     date_from: eid("text", "Photos: Date From"),
     date_to: eid("text", "Photos: Date To"),
@@ -542,6 +544,7 @@
     "select/Photos: Source": { key: "photo_source", optionsKey: "photo_source_options", default: "All Photos" },
     "text/Photos: Album IDs": { key: "album_ids" },
     "text/Photos: Person IDs": { key: "person_ids" },
+    "switch/Photos: Date Filter": { key: "date_filter_enabled", boolFromState: true },
     "select/Photos: Date Filter Mode": { key: "date_filter_mode", optionsKey: "date_filter_mode_options", default: "Fixed Range" },
     "text/Photos: Date From": { key: "date_from" },
     "text/Photos: Date To": { key: "date_to" },
@@ -604,7 +607,7 @@
   // Single source for settings fetched on load; KEY_TO_ENTITY_ID derived from ENTITY_STATE_MAP.
   var INITIAL_FETCH_KEYS = [
     "photo_source", "album_ids", "person_ids",
-    "date_filter_mode", "date_from", "date_to", "relative_amount", "relative_unit",
+    "date_filter_enabled", "date_filter_mode", "date_from", "date_to", "relative_amount", "relative_unit",
     "interval", "conn_timeout",
     "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
     "sunrise", "sunset",
@@ -1019,22 +1022,40 @@
       var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       return d.getFullYear() === Number(parts[0]) && d.getMonth() === Number(parts[1]) - 1 && d.getDate() === Number(parts[2]);
     }
-    function isFilterActive(mode, fromVal, toVal, amountVal) {
-      return mode === "Relative Range" ? amountVal > 0 : (!!fromVal || !!toVal);
+    function isFilterActive(enabled) {
+      return !!enabled;
     }
-    var filterBadge = makeBadge(isFilterActive(S.date_filter_mode, S.date_from, S.date_to, S.relative_amount));
+    var filterBadge = makeBadge(isFilterActive(S.date_filter_enabled));
     var filterBody = el("div");
+    var fFilterToggle = field("");
+    var filterTr = el("div", "toggle-row");
+    filterTr.innerHTML = "<span>Filter by Date</span>";
+    var filterTog = el("div", S.date_filter_enabled ? "toggle on" : "toggle");
+    var filterDetails = el("div");
+    filterDetails.style.display = S.date_filter_enabled ? "" : "none";
+    filterTog.onclick = function () {
+      S.date_filter_enabled = !S.date_filter_enabled;
+      filterTog.className = S.date_filter_enabled ? "toggle on" : "toggle";
+      filterDetails.style.display = S.date_filter_enabled ? "" : "none";
+      filterBadge.className = "on-badge" + (isFilterActive(S.date_filter_enabled) ? " active" : "");
+      post(endpoints.date_filter_enabled + (S.date_filter_enabled ? "/turn_on" : "/turn_off"));
+      post(eid("button", "Apply Photo Source") + "/press");
+    };
+    filterTr.appendChild(filterTog);
+    fFilterToggle.appendChild(filterTr);
+    filterBody.appendChild(fFilterToggle);
+
     var filterHint = el("div");
     filterHint.className = "field-hint";
     filterHint.textContent = "Choose fixed dates or a rolling range that ends today.";
-    filterBody.appendChild(filterHint);
+    filterDetails.appendChild(filterHint);
 
     var fFilterMode = field("Mode");
     var modeSelect = selectFromOptions(S.date_filter_mode_options, S.date_filter_mode, function (v) {
       updateFilterModeDisplay(v);
     });
     fFilterMode.appendChild(modeSelect);
-    filterBody.appendChild(fFilterMode);
+    filterDetails.appendChild(fFilterMode);
 
     var fixedWrap = el("div");
     var fDateFrom = field("From");
@@ -1056,7 +1077,7 @@
     fDateTo.appendChild(dateToInput);
     fDateTo.appendChild(dateToError);
     fixedWrap.appendChild(fDateTo);
-    filterBody.appendChild(fixedWrap);
+    filterDetails.appendChild(fixedWrap);
 
     var relativeWrap = el("div");
     var fRelativeAmount = field("Last");
@@ -1075,7 +1096,7 @@
     var relativeUnitSelect = selectFromOptions(S.relative_unit_options, S.relative_unit, function () {});
     fRelativeUnit.appendChild(relativeUnitSelect);
     relativeWrap.appendChild(fRelativeUnit);
-    filterBody.appendChild(relativeWrap);
+    filterDetails.appendChild(relativeWrap);
 
     function updateFilterModeDisplay(mode) {
       fixedWrap.style.display = mode === "Relative Range" ? "none" : "";
@@ -1084,7 +1105,7 @@
     updateFilterModeDisplay(S.date_filter_mode);
 
     var filterError = el("div", "field-error");
-    filterBody.appendChild(filterError);
+    filterDetails.appendChild(filterError);
 
     var filterApplyBtn = el("button", "btn btn-primary btn-block mt-12");
     filterApplyBtn.textContent = "Apply";
@@ -1116,6 +1137,7 @@
       }
       filterApplyBtn.disabled = true;
       filterApplyBtn.textContent = "Applying\u2026";
+      post(endpoints.date_filter_enabled + (S.date_filter_enabled ? "/turn_on" : "/turn_off"));
       post(endpoints.date_filter_mode + "/set", { option: modeVal });
       post(endpoints.date_from + "/set", { value: fromVal });
       post(endpoints.date_to + "/set", { value: toVal });
@@ -1126,7 +1148,7 @@
       S.date_to = toVal;
       S.relative_amount = amountVal;
       S.relative_unit = unitVal;
-      filterBadge.className = "on-badge" + (isFilterActive(modeVal, fromVal, toVal, amountVal) ? " active" : "");
+      filterBadge.className = "on-badge" + (isFilterActive(S.date_filter_enabled) ? " active" : "");
       post(eid("button", "Apply Photo Source") + "/press").then(function () {
         filterApplyBtn.textContent = "Applied";
         setTimeout(function () {
@@ -1135,7 +1157,8 @@
         }, 2000);
       });
     };
-    filterBody.appendChild(filterApplyBtn);
+    filterDetails.appendChild(filterApplyBtn);
+    filterBody.appendChild(filterDetails);
     immichWrap.appendChild(makeCollapsibleCard("Advanced Filters", filterBody, true, filterBadge));
 
     // Frequency
@@ -1719,6 +1742,7 @@
         source: S.photo_source,
         album_ids: S.album_ids,
         person_ids: S.person_ids,
+        date_filter_enabled: S.date_filter_enabled,
         date_filter_mode: S.date_filter_mode,
         date_from: S.date_from,
         date_to: S.date_to,
@@ -1830,6 +1854,10 @@
         if (p.display_mode !== undefined) {
           S.display_mode = p.display_mode;
           post(endpoints.display_mode + "/set", { option: p.display_mode });
+        }
+        if (p.date_filter_enabled !== undefined) {
+          S.date_filter_enabled = p.date_filter_enabled;
+          post(endpoints.date_filter_enabled + (p.date_filter_enabled ? "/turn_on" : "/turn_off"));
         }
         if (p.date_filter_mode !== undefined) {
           S.date_filter_mode = p.date_filter_mode;

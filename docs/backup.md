@@ -18,7 +18,7 @@ The export captures all user-facing settings from the current session:
 | Category | Settings |
 |----------|----------|
 | **Connection** | Immich server URL, API key |
-| **Photos** | Source, album IDs, person IDs, portrait pairing |
+| **Photos** | Source, album IDs, person IDs, date filter settings, portrait pairing |
 | **Frequency** | Slideshow interval, connection timeout |
 | **Clock** | Show clock, format, timezone |
 | **Screen Brightness** | Daytime brightness, nighttime brightness |
@@ -45,7 +45,18 @@ The export is a standard JSON file with a `version` field and grouped settings:
   "version": 1,
   "exported_at": "2026-03-29T12:00:00.000Z",
   "connection": { "immich_url": "...", "api_key": "..." },
-  "photos": { "source": "All Photos", "album_ids": "", "person_ids": "", "portrait_pairing": true },
+  "photos": {
+    "source": "All Photos",
+    "album_ids": "",
+    "person_ids": "",
+    "date_filter_enabled": false,
+    "date_filter_mode": "Fixed Range",
+    "date_from": "",
+    "date_to": "",
+    "relative_amount": 1,
+    "relative_unit": "Years",
+    "portrait_pairing": true
+  },
   "frequency": { "interval": "15 seconds", "conn_timeout": "2 minutes" },
   "clock": { "show": true, "format": "24 Hour", "timezone": "..." },
   "screen": {

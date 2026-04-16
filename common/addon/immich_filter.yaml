@@ -83,6 +83,26 @@ number:
         - script.execute: auto_apply_photo_source
 
 # -----------------------------------------------------------------------------
+# Date filter enable switch
+# -----------------------------------------------------------------------------
+switch:
+  - platform: template
+    name: "Photos: Date Filter"
+    id: immich_date_filter_enabled
+    internal: true
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:calendar-check"
+    on_turn_on:
+      then:
+        - lambda: 'ESP_LOGI("immich", "Date filter enabled");'
+        - script.execute: auto_apply_photo_source
+    on_turn_off:
+      then:
+        - lambda: 'ESP_LOGI("immich", "Date filter disabled");'
+        - script.execute: auto_apply_photo_source
+
+# -----------------------------------------------------------------------------
 # Date range filter (optional, YYYY-MM-DD; empty = no bound)
 # -----------------------------------------------------------------------------
 text:
