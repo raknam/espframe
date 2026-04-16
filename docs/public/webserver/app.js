@@ -987,11 +987,13 @@
 
     // Photo Source
     var srcBody = el("div");
+    var photoSourceApplyTimer = null;
     var fSrc = field("Source");
     var srcSel = selectFromOptions(S.photo_source_options, S.photo_source, function (v) {
       S.photo_source = v;
       albumField.style.display = v === "Album" ? "" : "none";
       personField.style.display = v === "Person" ? "" : "none";
+      schedulePhotoSourceApply(0);
     });
 
     var albumField = field("Album IDs");
@@ -1017,6 +1019,51 @@
         return inputEl.value.trim();
       }).filter(Boolean).join(",");
     }
+    function validatePhotoSourceInputs() {
+      albumError.textContent = "";
+      personError.textContent = "";
+      var srcVal = srcSel.value;
+      var albumTrim = albumInput.value.trim();
+      var personTrim = getPersonIdsValue();
+      if (photoIdFieldTooLong(albumTrim)) {
+        albumError.textContent = PHOTO_ID_FIELD_TOO_LONG;
+        return null;
+      }
+      if (photoIdFieldTooLong(personTrim)) {
+        personError.textContent = PHOTO_ID_FIELD_TOO_LONG;
+        return null;
+      }
+      if (srcVal === "Album" && !isValidUuidList(albumTrim)) {
+        albumError.textContent = "Invalid UUID format";
+        return null;
+      }
+      if (srcVal === "Person" && !isValidUuidList(personTrim)) {
+        personError.textContent = "Invalid UUID format";
+        return null;
+      }
+      return { source: srcVal, albumIds: albumTrim, personIds: personTrim };
+    }
+    function applyPhotoSourceInputs() {
+      var vals = validatePhotoSourceInputs();
+      if (!vals) return;
+      S.photo_source = vals.source;
+      S.album_ids = vals.albumIds;
+      S.person_ids = vals.personIds;
+      Promise.all([
+        post(endpoints.photo_source + "/set", { option: vals.source }),
+        postTextValueSet(endpoints.album_ids + "/set", vals.albumIds),
+        postTextValueSet(endpoints.person_ids + "/set", vals.personIds)
+      ]).then(function () {
+        post(eid("button", "Apply Photo Source") + "/press");
+      });
+    }
+    function schedulePhotoSourceApply(delayMs) {
+      clearTimeout(photoSourceApplyTimer);
+      photoSourceApplyTimer = setTimeout(applyPhotoSourceInputs, delayMs == null ? 600 : delayMs);
+    }
+    albumInput.oninput = function () {
+      schedulePhotoSourceApply();
+    };
     function refreshPersonRemoveButtons() {
       Array.prototype.forEach.call(personIdList.querySelectorAll(".person-id-remove"), function (btn) {
         btn.disabled = personInputs.length <= 1;
@@ -1040,6 +1087,10 @@
         });
         row.parentNode.removeChild(row);
         refreshPersonRemoveButtons();
+        schedulePhotoSourceApply(0);
+      };
+      personInput.oninput = function () {
+        schedulePhotoSourceApply();
       };
       row.appendChild(personInput);
       row.appendChild(removeBtn);
@@ -1065,49 +1116,10 @@
     personField.appendChild(personError);
     personField.style.display = S.photo_source === "Person" ? "" : "none";
 
-    var applyBtn = el("button", "btn btn-primary btn-block mt-12");
-    applyBtn.textContent = "Apply";
-    applyBtn.onclick = function () {
-      albumError.textContent = "";
-      personError.textContent = "";
-      var src_val = srcSel.value;
-      var albumTrim = albumInput.value.trim();
-      var personTrim = getPersonIdsValue();
-      if (photoIdFieldTooLong(albumTrim)) {
-        albumError.textContent = PHOTO_ID_FIELD_TOO_LONG;
-        return;
-      }
-      if (photoIdFieldTooLong(personTrim)) {
-        personError.textContent = PHOTO_ID_FIELD_TOO_LONG;
-        return;
-      }
-      if (src_val === "Album" && !isValidUuidList(albumTrim)) {
-        albumError.textContent = "Invalid UUID format";
-        return;
-      }
-      if (src_val === "Person" && !isValidUuidList(personTrim)) {
-        personError.textContent = "Invalid UUID format";
-        return;
-      }
-      applyBtn.disabled = true;
-      applyBtn.textContent = "Applying\u2026";
-      post(endpoints.photo_source + "/set", { option: src_val });
-      postTextValueSet(endpoints.album_ids + "/set", albumTrim);
-      postTextValueSet(endpoints.person_ids + "/set", personTrim);
-      post(eid("button", "Apply Photo Source") + "/press").then(function () {
-        applyBtn.textContent = "Applied";
-        setTimeout(function () {
-          applyBtn.disabled = false;
-          applyBtn.textContent = "Apply";
-        }, 2000);
-      });
-    };
-
     fSrc.appendChild(srcSel);
     srcBody.appendChild(fSrc);
     srcBody.appendChild(albumField);
     srcBody.appendChild(personField);
-    srcBody.appendChild(applyBtn);
 
     immichWrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, true));
 
