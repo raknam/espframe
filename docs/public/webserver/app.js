@@ -1027,7 +1027,7 @@
       var personInput = input("text", value || "", "Paste person ID", MAX_PHOTO_ID_FIELD_LENGTH);
       var removeBtn = el("button", "btn btn-secondary btn-icon person-id-remove");
       removeBtn.type = "button";
-      removeBtn.textContent = "x";
+      removeBtn.innerHTML = "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M8 6V4h8v2\"/><path d=\"M19 6l-1 14H6L5 6\"/><path d=\"M10 11v5\"/><path d=\"M14 11v5\"/></svg>";
       removeBtn.title = "Remove person ID";
       removeBtn.setAttribute("aria-label", "Remove person ID");
       removeBtn.onclick = function () {
