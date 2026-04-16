@@ -202,7 +202,7 @@
     ".toggle-row{display:flex;justify-content:space-between;align-items:center;min-height:36px}" +
     ".toggle-row span{font-size:.9rem}" +
     ".toggle{position:relative;width:44px;height:24px;" +
-    "background:var(--surface2);border-radius:12px;cursor:pointer;" +
+    "background:var(--surface2);border-radius:999px;cursor:pointer;" +
     "transition:background .25s;border:1px solid var(--border)}" +
     ".toggle.on{background:var(--accent);border-color:var(--accent)}" +
     ".toggle::after{content:'';position:absolute;top:2px;left:2px;" +
