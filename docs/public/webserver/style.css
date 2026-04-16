@@ -148,7 +148,7 @@ h2 {
 }
 .filter-relative-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(84px, 104px) minmax(0, 1fr);
   gap: 12px;
 }
 .filter-relative-row .field {
