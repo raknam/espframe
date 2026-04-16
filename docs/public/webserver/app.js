@@ -989,12 +989,13 @@
     // Photo Source
     var srcBody = el("div");
     var photoSourceApplyTimer = null;
+    var pendingPhotoSourceSave = { source: false, album: false, person: false };
     var fSrc = field("Source");
     var srcSel = selectFromOptions(S.photo_source_options, S.photo_source, function (v) {
       S.photo_source = v;
       albumField.style.display = v === "Album" ? "" : "none";
       personField.style.display = v === "Person" ? "" : "none";
-      schedulePhotoSourceApply(0);
+      schedulePhotoSourceApply(0, { source: true });
     });
 
     var removeIdIcon = "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M8 6V4h8v2\"/><path d=\"M19 6l-1 14H6L5 6\"/><path d=\"M10 11v5\"/><path d=\"M14 11v5\"/></svg>";
@@ -1024,7 +1025,7 @@
       removeBtn.onclick = function () {
         if (albumInputs.length <= 1) {
           albumInput.value = "";
-          schedulePhotoSourceApply(0);
+          schedulePhotoSourceApply(0, { album: true });
           return;
         }
         albumInputs = albumInputs.filter(function (inputEl) {
@@ -1032,10 +1033,10 @@
         });
         row.parentNode.removeChild(row);
         refreshAlbumRemoveButtons();
-        schedulePhotoSourceApply(0);
+        schedulePhotoSourceApply(0, { album: true });
       };
       albumInput.oninput = function () {
-        schedulePhotoSourceApply();
+        schedulePhotoSourceApply(null, { album: true });
       };
       row.appendChild(albumInput);
       row.appendChild(removeBtn);
@@ -1069,45 +1070,65 @@
         return inputEl.value.trim();
       }).filter(Boolean).join(",");
     }
-    function validatePhotoSourceInputs() {
+    function validatePhotoSourceInputs(changes) {
       albumError.textContent = "";
       personError.textContent = "";
       var srcVal = srcSel.value;
       var albumTrim = getAlbumIdsValue();
       var personTrim = getPersonIdsValue();
-      if (photoIdFieldTooLong(albumTrim)) {
+      var shouldValidateAlbum = changes.album || srcVal === "Album";
+      var shouldValidatePerson = changes.person || srcVal === "Person";
+      if (shouldValidateAlbum && photoIdFieldTooLong(albumTrim)) {
         albumError.textContent = PHOTO_ID_FIELD_TOO_LONG;
         return null;
       }
-      if (photoIdFieldTooLong(personTrim)) {
+      if (shouldValidatePerson && photoIdFieldTooLong(personTrim)) {
         personError.textContent = PHOTO_ID_FIELD_TOO_LONG;
         return null;
       }
-      if (srcVal === "Album" && !isValidUuidList(albumTrim)) {
+      if (shouldValidateAlbum && !isValidUuidList(albumTrim)) {
         albumError.textContent = "Invalid UUID format";
         return null;
       }
-      if (srcVal === "Person" && !isValidUuidList(personTrim)) {
+      if (shouldValidatePerson && !isValidUuidList(personTrim)) {
         personError.textContent = "Invalid UUID format";
         return null;
       }
       return { source: srcVal, albumIds: albumTrim, personIds: personTrim };
     }
     function applyPhotoSourceInputs() {
-      var vals = validatePhotoSourceInputs();
+      var changes = {
+        source: pendingPhotoSourceSave.source,
+        album: pendingPhotoSourceSave.album,
+        person: pendingPhotoSourceSave.person
+      };
+      pendingPhotoSourceSave = { source: false, album: false, person: false };
+      var vals = validatePhotoSourceInputs(changes);
       if (!vals) return;
-      S.photo_source = vals.source;
-      S.album_ids = vals.albumIds;
-      S.person_ids = vals.personIds;
-      Promise.all([
-        post(endpoints.photo_source + "/set", { option: vals.source }),
-        postTextValueSet(endpoints.album_ids + "/set", vals.albumIds),
-        postTextValueSet(endpoints.person_ids + "/set", vals.personIds)
-      ]).then(function () {
+      var requests = [];
+      if (changes.source) {
+        S.photo_source = vals.source;
+        requests.push(post(endpoints.photo_source + "/set", { option: vals.source }));
+      }
+      if (changes.album) {
+        S.album_ids = vals.albumIds;
+        requests.push(postTextValueSet(endpoints.album_ids + "/set", vals.albumIds));
+      }
+      if (changes.person) {
+        S.person_ids = vals.personIds;
+        requests.push(postTextValueSet(endpoints.person_ids + "/set", vals.personIds));
+      }
+      if (!requests.length) return;
+      Promise.all(requests).then(function () {
         post(eid("button", "Apply Photo Source") + "/press");
       });
     }
-    function schedulePhotoSourceApply(delayMs) {
+    function schedulePhotoSourceApply(delayMs, changes) {
+      if (changes) {
+        pendingPhotoSourceSave.source = pendingPhotoSourceSave.source || !!changes.source;
+        pendingPhotoSourceSave.album = pendingPhotoSourceSave.album || !!changes.album;
+        pendingPhotoSourceSave.person = pendingPhotoSourceSave.person || !!changes.person;
+      }
       clearTimeout(photoSourceApplyTimer);
       photoSourceApplyTimer = setTimeout(applyPhotoSourceInputs, delayMs == null ? 600 : delayMs);
     }
@@ -1127,7 +1148,7 @@
       removeBtn.onclick = function () {
         if (personInputs.length <= 1) {
           personInput.value = "";
-          schedulePhotoSourceApply(0);
+          schedulePhotoSourceApply(0, { person: true });
           return;
         }
         personInputs = personInputs.filter(function (inputEl) {
@@ -1135,10 +1156,10 @@
         });
         row.parentNode.removeChild(row);
         refreshPersonRemoveButtons();
-        schedulePhotoSourceApply(0);
+        schedulePhotoSourceApply(0, { person: true });
       };
       personInput.oninput = function () {
-        schedulePhotoSourceApply();
+        schedulePhotoSourceApply(null, { person: true });
       };
       row.appendChild(personInput);
       row.appendChild(removeBtn);
