@@ -168,7 +168,6 @@
     "label{display:block;font-size:.85rem;color:var(--text2);margin-bottom:6px;font-weight:500}" +
     ".filter-relative-row{display:grid;grid-template-columns:minmax(84px,104px) minmax(0,1fr);gap:12px}" +
     ".filter-relative-row .field{margin-bottom:0}" +
-    ".filter-apply{margin-top:24px}" +
     "input[type='text'],input[type='password'],input[type='url'],input[type='date'],input[type='number']{" +
     "width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
     "border-radius:8px;color:var(--text);font-size:.9rem;letter-spacing:0;outline:none;" +
@@ -1036,6 +1035,7 @@
     }
     var filterBadge = makeBadge(isFilterActive(S.date_filter_enabled));
     var filterBody = el("div");
+    var filterApplyTimer = null;
     var fFilterToggle = field("");
     var filterTr = el("div", "toggle-row");
     filterTr.innerHTML = "<span>Filter by Date</span>";
@@ -1047,8 +1047,7 @@
       filterTog.className = S.date_filter_enabled ? "toggle on" : "toggle";
       filterDetails.style.display = S.date_filter_enabled ? "" : "none";
       filterBadge.className = "on-badge" + (isFilterActive(S.date_filter_enabled) ? " active" : "");
-      post(endpoints.date_filter_enabled + (S.date_filter_enabled ? "/turn_on" : "/turn_off"));
-      post(eid("button", "Apply Photo Source") + "/press");
+      scheduleFilterApply();
     };
     filterTr.appendChild(filterTog);
     fFilterToggle.appendChild(filterTr);
@@ -1059,6 +1058,7 @@
     var modeSegment = segmentedControl(S.date_filter_mode_options, modeVal, function (v) {
       modeVal = v;
       updateFilterModeDisplay(v);
+      scheduleFilterApply();
     }, function (v) {
       return v === "Relative Range" ? "Relative" : "Fixed";
     });
@@ -1101,7 +1101,9 @@
     relativeWrap.appendChild(fRelativeAmount);
 
     var fRelativeUnit = field("Unit");
-    var relativeUnitSelect = selectFromOptions(S.relative_unit_options, S.relative_unit, function () {});
+    var relativeUnitSelect = selectFromOptions(S.relative_unit_options, S.relative_unit, function () {
+      scheduleFilterApply();
+    });
     fRelativeUnit.appendChild(relativeUnitSelect);
     relativeWrap.appendChild(fRelativeUnit);
     filterDetails.appendChild(relativeWrap);
@@ -1115,9 +1117,11 @@
     var filterError = el("div", "field-error");
     filterDetails.appendChild(filterError);
 
-    var filterApplyBtn = el("button", "btn btn-primary btn-block filter-apply");
-    filterApplyBtn.textContent = "Apply";
-    filterApplyBtn.onclick = function () {
+    dateFromInput.onchange = scheduleFilterApply;
+    dateToInput.onchange = scheduleFilterApply;
+    relativeAmountInput.onchange = scheduleFilterApply;
+
+    function readFilterValues() {
       dateFromError.textContent = "";
       dateToError.textContent = "";
       relativeAmountError.textContent = "";
@@ -1126,45 +1130,51 @@
       var toVal = dateToInput.value.trim();
       var amountVal = Math.round(Number(relativeAmountInput.value));
       var unitVal = relativeUnitSelect.value;
-      if (modeVal === "Fixed Range" && fromVal && !isValidDate(fromVal)) {
+      if (S.date_filter_enabled && modeVal === "Fixed Range" && fromVal && !isValidDate(fromVal)) {
         dateFromError.textContent = "Invalid date — use YYYY-MM-DD";
-        return;
+        return null;
       }
-      if (modeVal === "Fixed Range" && toVal && !isValidDate(toVal)) {
+      if (S.date_filter_enabled && modeVal === "Fixed Range" && toVal && !isValidDate(toVal)) {
         dateToError.textContent = "Invalid date — use YYYY-MM-DD";
-        return;
+        return null;
       }
-      if (modeVal === "Fixed Range" && fromVal && toVal && fromVal > toVal) {
+      if (S.date_filter_enabled && modeVal === "Fixed Range" && fromVal && toVal && fromVal > toVal) {
         filterError.textContent = "From must not be after Until";
-        return;
+        return null;
       }
-      if (modeVal === "Relative Range" && (!amountVal || amountVal < 1 || amountVal > 120)) {
+      if (S.date_filter_enabled && modeVal === "Relative Range" && (!amountVal || amountVal < 1 || amountVal > 120)) {
         relativeAmountError.textContent = "Enter a whole number from 1 to 120";
-        return;
+        return null;
       }
-      filterApplyBtn.disabled = true;
-      filterApplyBtn.textContent = "Applying\u2026";
-      post(endpoints.date_filter_enabled + (S.date_filter_enabled ? "/turn_on" : "/turn_off"));
-      post(endpoints.date_filter_mode + "/set", { option: modeVal });
-      post(endpoints.date_from + "/set", { value: fromVal });
-      post(endpoints.date_to + "/set", { value: toVal });
-      post(endpoints.relative_amount + "/set", { value: amountVal });
-      post(endpoints.relative_unit + "/set", { option: unitVal });
+      return { from: fromVal, to: toVal, amount: amountVal || 1, unit: unitVal };
+    }
+
+    function applyFilterSettings() {
+      var vals = readFilterValues();
+      if (!vals) return;
       S.date_filter_mode = modeVal;
-      S.date_from = fromVal;
-      S.date_to = toVal;
-      S.relative_amount = amountVal;
-      S.relative_unit = unitVal;
+      S.date_from = vals.from;
+      S.date_to = vals.to;
+      S.relative_amount = vals.amount;
+      S.relative_unit = vals.unit;
       filterBadge.className = "on-badge" + (isFilterActive(S.date_filter_enabled) ? " active" : "");
-      post(eid("button", "Apply Photo Source") + "/press").then(function () {
-        filterApplyBtn.textContent = "Applied";
-        setTimeout(function () {
-          filterApplyBtn.disabled = false;
-          filterApplyBtn.textContent = "Apply";
-        }, 2000);
+      Promise.all([
+        post(endpoints.date_filter_enabled + (S.date_filter_enabled ? "/turn_on" : "/turn_off")),
+        post(endpoints.date_filter_mode + "/set", { option: modeVal }),
+        post(endpoints.date_from + "/set", { value: vals.from }),
+        post(endpoints.date_to + "/set", { value: vals.to }),
+        post(endpoints.relative_amount + "/set", { value: vals.amount }),
+        post(endpoints.relative_unit + "/set", { option: vals.unit })
+      ]).then(function () {
+        post(eid("button", "Apply Photo Source") + "/press");
       });
-    };
-    filterDetails.appendChild(filterApplyBtn);
+    }
+
+    function scheduleFilterApply() {
+      clearTimeout(filterApplyTimer);
+      filterApplyTimer = setTimeout(applyFilterSettings, 300);
+    }
+
     filterBody.appendChild(filterDetails);
     immichWrap.appendChild(makeCollapsibleCard("Advanced Filters", filterBody, true, filterBadge));
 
