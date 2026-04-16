@@ -170,11 +170,17 @@
     ".filter-relative-row .field{margin-bottom:0}" +
     "input[type='text'],input[type='password'],input[type='url'],input[type='date'],input[type='number']{" +
     "width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
-    "border-radius:8px;color:var(--text);font-size:.9rem;outline:none;" +
-    "transition:border-color .25s,box-shadow .25s;font-family:inherit}" +
+    "border-radius:8px;color:var(--text);font-size:.9rem;letter-spacing:0;outline:none;" +
+    "transition:border-color .25s,box-shadow .25s;font-family:inherit;font-variant-numeric:tabular-nums}" +
     "input[type='text']:focus,input[type='password']:focus,input[type='url']:focus,input[type='date']:focus,input[type='number']:focus{" +
     "border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}" +
-    "input[type='date']::-webkit-datetime-edit{color:var(--text);font-family:inherit}" +
+    "input[type='date']::-webkit-datetime-edit,input[type='date']::-webkit-date-and-time-value{" +
+    "color:var(--text);font:inherit;letter-spacing:0;text-align:left}" +
+    "input[type='date']::-webkit-datetime-edit-fields-wrapper," +
+    "input[type='date']::-webkit-datetime-edit-text," +
+    "input[type='date']::-webkit-datetime-edit-day-field," +
+    "input[type='date']::-webkit-datetime-edit-month-field," +
+    "input[type='date']::-webkit-datetime-edit-year-field{font:inherit;color:inherit;letter-spacing:0}" +
     "input[type='date']::-webkit-calendar-picker-indicator{filter:invert(.7);cursor:pointer}" +
     "input::placeholder{color:var(--text2);opacity:.7}" +
     ".select,select{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
