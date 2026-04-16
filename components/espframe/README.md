@@ -165,6 +165,14 @@ std::string date_str = format_photo_date(meta.year, meta.month);
 
 ### immich_helpers.h
 
+#### `split_uuid_csv(const std::string &csv)`
+
+Parses a comma-separated UUID list (optional spaces) into a vector of trimmed tokens; empty segments are skipped.
+
+#### `pick_one_person_id_for_random_search(const std::string &csv)`
+
+Returns one UUID from the list. Immich’s API applies **AND** when multiple `personIds` are sent; espframe picks a **random** person per `POST /api/search/random` so the slideshow covers **any** of the listed people over time.
+
 #### `build_uuid_json_array(const std::string &csv)`
 
 Turns a comma-separated list of UUIDs (with optional spaces) into a JSON array string, e.g. `"id1, id2"` → `["id1","id2"]`.
@@ -178,7 +186,7 @@ std::string album_ids_json = build_uuid_json_array(id(album_ids_text).state);
 #### `build_immich_search_body(size, with_people, photo_source, album_ids, person_ids, extra)`
 
 Builds the JSON body for Immich `POST /api/search/random`.  
-**Parameters:** `size` (requested count), `with_people` (include people in response), `photo_source` (e.g. `"Favorites"`, `"Album"`, `"Person"`), `album_ids` / `person_ids` (CSV UUIDs for Album/Person), optional `extra` JSON fragment (e.g. `"\"takenAfter\":\"2024-01-01\""`).
+**Parameters:** `size` (requested count), `with_people` (include people in response), `photo_source` (e.g. `"Favorites"`, `"Album"`, `"Person"`), `album_ids` / `person_ids` (CSV UUIDs for Album/Person), optional `extra` JSON fragment (e.g. `"\"takenAfter\":\"2024-01-01\""`). For **`Person`**, multiple IDs in `person_ids` are resolved to **one random ID per request** (any-of behavior vs Immich’s multi-ID AND).
 
 **Use when:** Building the body for random or “on this day” search requests.
 
