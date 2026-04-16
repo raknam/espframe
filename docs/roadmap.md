@@ -13,7 +13,7 @@ Control **which** photos the frame displays.
 
 | Feature | Status |
 |---|---|
-| Date-range filter (e.g. "this month in history") | Planned |
+| Date-range filter | Done |
 
 ## Offline Storage
 

@@ -5,7 +5,7 @@ description: Choose where your frame gets its images — all photos, favorites, 
 
 # Photo Sources
 
-Choose the **Source** in the device web UI at `http://<device-ip>/` under **Photo Source**. Changes apply automatically within a few seconds.
+Choose the **Source** in the device web UI at `http://<device-ip>/` under **Photo Source**, then click **Apply**.
 
 | Source | Extra setup | Best for |
 |--------|-------------|----------|
@@ -39,9 +39,11 @@ Shows "On this day" photos from past years; falls back to random if none. Set **
 
 ---
 
-## Advanced Filters
+## Date Filtering
 
-The **Advanced Filters** card in the web UI lets you turn date filtering on and restrict displayed photos by fixed dates or by a rolling relative range.
+Use **Advanced Filters** in the web UI to limit photos by when they were taken. You can use either fixed dates, such as a specific holiday range, or a rolling range, such as the last 6 months.
+
+Date filter changes save automatically shortly after you change a control. You do not need to click an Apply button.
 
 | Setting | Default | Format | Description |
 |---------|---------|--------|-------------|
@@ -52,7 +54,27 @@ The **Advanced Filters** card in the web UI lets you turn date filtering on and 
 | **Last** | `1` | Number | In relative mode, the amount of time to include. |
 | **Unit** | `Years` | `Months` or `Years` | In relative mode, whether the amount is counted in months or years. |
 
-Turn on **Filter by Date**, then click **Apply** after changing values. Fixed mode and relative mode are mutually exclusive, so relative ranges do not combine with the fixed From or Until dates.
+Fixed mode and relative mode are mutually exclusive, so relative ranges do not combine with the fixed From or Until dates.
+
+### Fixed Range
+
+Use **Fixed Range** when you want a specific window of time. For example:
+
+- Set **From** to `2024-12-01` and **Until** to `2024-12-31` to show photos taken during December 2024.
+- Leave **From** empty and set **Until** to `2020-12-31` to show photos taken up to the end of 2020.
+- Set **From** to `2023-01-01` and leave **Until** empty to show photos from 2023 onwards.
+
+### Relative Range
+
+Use **Relative Range** when you want the filter to move forward automatically over time. Set **Last** to a number and choose **Months** or **Years**.
+
+Examples:
+
+- **Last** `6`, **Unit** `Months` shows photos from the last 6 months.
+- **Last** `1`, **Unit** `Years` shows photos from the last year.
+- **Last** `2`, **Unit** `Years` shows photos from the last 2 years.
+
+The relative range ends on today, using the frame's configured time. Set **Timezone** under **Clock** so "today" matches your local day.
 
 ::: tip
 Use relative mode for ranges like the last 6 months, last 1 year, or last 2 years so the lower bound moves forward automatically.

@@ -12,7 +12,7 @@ description: Standalone Immich-powered digital photo frame on ESP32-P4. No hub, 
 
 ## Features
 
-- **Photo Sources** — Show all photos, favorites only, specific albums, specific people, or "on this day" memories from previous years.
+- **Photo Sources** — Show all photos, favorites only, specific albums, specific people, "on this day" memories, or photos within a date range.
 - **Display Tone Adjustment** — Adjust colour temperature so the panel looks right (e.g. warm the image if it’s too blue).
 - **Night Tone** — Automatically adjust screen tone between sunset and sunrise.
 - **Screen Scheduling** — Schedule when to turn off the display; set daytime and night-time brightness levels separately.
