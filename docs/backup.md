@@ -50,7 +50,9 @@ The export is a standard JSON file with a `version` field and grouped settings:
   "photos": {
     "source": "All Photos",
     "album_ids": "",
+    "album_labels": "",
     "person_ids": "",
+    "person_labels": "",
     "date_filter_enabled": false,
     "date_filter_mode": "Fixed Range",
     "date_from": "",

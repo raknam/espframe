@@ -89,7 +89,9 @@
     photo_source: "All Photos",
     photo_source_options: ["All Photos", "Favorites", "Album", "Person", "Memories"],
     album_ids: "",
+    album_labels: "",
     person_ids: "",
+    person_labels: "",
     base_tone_enabled: false,
     base_tone: 0,
     warm_tones_enabled: false,
@@ -193,7 +195,8 @@
     "select option{background:var(--surface);color:var(--text)}" +
     ".input-group{display:flex;gap:8px}.input-group input{flex:1}" +
     ".photo-id-list{display:flex;flex-direction:column;gap:8px}" +
-    ".photo-id-row{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:8px;align-items:center}" +
+    ".photo-id-row{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:8px;align-items:start}" +
+    ".photo-id-fields{display:flex;flex-direction:column;gap:8px}" +
     ".photo-id-actions{display:flex;justify-content:flex-start;margin-top:18px}" +
     ".btn.btn-icon{width:40px;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center;" +
     "border-radius:20px;font-size:1.2rem;line-height:1;flex-shrink:0}" +
@@ -442,7 +445,9 @@
     sunset: eid("text_sensor", "Screen: Sunset"),
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
+    album_labels: eid("text", "Photos: Album Labels"),
     person_ids: eid("text", "Photos: Person IDs"),
+    person_labels: eid("text", "Photos: Person Labels"),
     date_filter_enabled: eid("switch", "Photos: Date Filter"),
     date_filter_mode: eid("select", "Photos: Date Filter Mode"),
     date_from: eid("text", "Photos: Date From"),
@@ -469,10 +474,12 @@
     });
   }
 
-  // Matches the ESPHome template text max_length for album/person ID lists.
+  // Matches the ESPHome template text max_length for album/person ID and label lists.
   var MAX_PHOTO_ID_FIELD_LENGTH = 255;
   var PHOTO_ID_FIELD_TOO_LONG =
     "List exceeds 255 characters (device limit). Remove IDs or shorten the list.";
+  var PHOTO_LABEL_FIELD_TOO_LONG =
+    "Labels exceed 255 characters (device limit). Shorten or remove labels.";
 
   function postTextValueSet(url, value) {
     var body = new URLSearchParams();
@@ -494,6 +501,10 @@
     return String(s != null ? s : "").trim().length > MAX_PHOTO_ID_FIELD_LENGTH;
   }
 
+  function photoLabelFieldTooLong(s) {
+    return String(s != null ? s : "").trim().length > MAX_PHOTO_ID_FIELD_LENGTH;
+  }
+
   var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function isValidUuidList(str) {
     var s = str.trim();
@@ -506,6 +517,25 @@
       return id.trim();
     }).filter(Boolean);
     return parts.length ? parts : [""];
+  }
+
+  function parsePhotoLabelList(str) {
+    var raw = String(str || "").trim();
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map(function (label) { return String(label || ""); });
+    } catch (_) {}
+    return raw.split(",").map(function (label) { return label.trim(); });
+  }
+
+  function buildPhotoLabelList(idInputs, labelInputs) {
+    var labels = [];
+    for (var i = 0; i < idInputs.length; i++) {
+      if (idInputs[i].value.trim()) labels.push(labelInputs[i].value.trim());
+    }
+    while (labels.length && !labels[labels.length - 1]) labels.pop();
+    return labels.length ? JSON.stringify(labels) : "";
   }
 
   function safeGet(url) {
@@ -588,7 +618,9 @@
     "text_sensor/Screen: Sunset": { key: "sunset" },
     "select/Photos: Source": { key: "photo_source", optionsKey: "photo_source_options", default: "All Photos" },
     "text/Photos: Album IDs": { key: "album_ids" },
+    "text/Photos: Album Labels": { key: "album_labels" },
     "text/Photos: Person IDs": { key: "person_ids" },
+    "text/Photos: Person Labels": { key: "person_labels" },
     "switch/Photos: Date Filter": { key: "date_filter_enabled", boolFromState: true },
     "select/Photos: Date Filter Mode": { key: "date_filter_mode", optionsKey: "date_filter_mode_options", default: "Fixed Range" },
     "text/Photos: Date From": { key: "date_from" },
@@ -651,7 +683,7 @@
 
   // Single source for settings fetched on load; KEY_TO_ENTITY_ID derived from ENTITY_STATE_MAP.
   var INITIAL_FETCH_KEYS = [
-    "photo_source", "album_ids", "person_ids",
+    "photo_source", "album_ids", "album_labels", "person_ids", "person_labels",
     "date_filter_enabled", "date_filter_mode", "date_from", "date_to", "relative_amount", "relative_unit",
     "interval", "conn_timeout",
     "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
@@ -989,7 +1021,7 @@
     // Photo Source
     var srcBody = el("div");
     var photoSourceApplyTimer = null;
-    var pendingPhotoSourceSave = { source: false, album: false, person: false };
+    var pendingPhotoSourceSave = { source: false, album: false, albumLabel: false, person: false, personLabel: false };
     var fSrc = field("Source");
     var srcSel = selectFromOptions(S.photo_source_options, S.photo_source, function (v) {
       S.photo_source = v;
@@ -1003,20 +1035,26 @@
     var albumField = field("Albums");
     var albumIdList = el("div", "photo-id-list");
     var albumInputs = [];
+    var albumLabelInputs = [];
     var albumError = el("div", "field-error");
     function getAlbumIdsValue() {
       return albumInputs.map(function (inputEl) {
         return inputEl.value.trim();
       }).filter(Boolean).join(",");
     }
+    function getAlbumLabelsValue() {
+      return buildPhotoLabelList(albumInputs, albumLabelInputs);
+    }
     function refreshAlbumRemoveButtons() {
       Array.prototype.forEach.call(albumIdList.querySelectorAll(".album-id-remove"), function (btn) {
         btn.disabled = albumInputs.length <= 1;
       });
     }
-    function addAlbumIdRow(value) {
+    function addAlbumIdRow(value, labelValue) {
       var row = el("div", "photo-id-row");
+      var fields = el("div", "photo-id-fields");
       var albumInput = input("text", value || "", "Paste album ID from Immich URL", MAX_PHOTO_ID_FIELD_LENGTH);
+      var albumLabelInput = input("text", labelValue || "", "What is it?", MAX_PHOTO_ID_FIELD_LENGTH);
       var removeBtn = el("button", "btn btn-secondary btn-icon album-id-remove");
       removeBtn.type = "button";
       removeBtn.innerHTML = removeIdIcon;
@@ -1025,26 +1063,37 @@
       removeBtn.onclick = function () {
         if (albumInputs.length <= 1) {
           albumInput.value = "";
-          schedulePhotoSourceApply(0, { album: true });
+          albumLabelInput.value = "";
+          schedulePhotoSourceApply(0, { album: true, albumLabel: true });
           return;
         }
-        albumInputs = albumInputs.filter(function (inputEl) {
-          return inputEl !== albumInput;
-        });
+        var removeIndex = albumInputs.indexOf(albumInput);
+        albumInputs.splice(removeIndex, 1);
+        albumLabelInputs.splice(removeIndex, 1);
         row.parentNode.removeChild(row);
         refreshAlbumRemoveButtons();
-        schedulePhotoSourceApply(0, { album: true });
+        schedulePhotoSourceApply(0, { album: true, albumLabel: true });
       };
       albumInput.oninput = function () {
-        schedulePhotoSourceApply(null, { album: true });
+        schedulePhotoSourceApply(null, { album: true, albumLabel: true });
       };
-      row.appendChild(albumInput);
+      albumLabelInput.oninput = function () {
+        schedulePhotoSourceApply(null, { albumLabel: true });
+      };
+      fields.appendChild(albumInput);
+      fields.appendChild(albumLabelInput);
+      row.appendChild(fields);
       row.appendChild(removeBtn);
       albumIdList.appendChild(row);
       albumInputs.push(albumInput);
+      albumLabelInputs.push(albumLabelInput);
       refreshAlbumRemoveButtons();
     }
-    splitPhotoIdList(S.album_ids).forEach(addAlbumIdRow);
+    var albumIds = splitPhotoIdList(S.album_ids);
+    var albumLabels = parsePhotoLabelList(S.album_labels);
+    for (var albumIndex = 0; albumIndex < Math.max(albumIds.length, albumLabels.length, 1); albumIndex++) {
+      addAlbumIdRow(albumIds[albumIndex] || "", albumLabels[albumIndex] || "");
+    }
     var addAlbumRow = el("div", "photo-id-actions");
     var addAlbumBtn = el("button", "btn btn-secondary");
     addAlbumBtn.type = "button";
@@ -1052,7 +1101,7 @@
     addAlbumBtn.title = "Add an album";
     addAlbumBtn.setAttribute("aria-label", "Add an album");
     addAlbumBtn.onclick = function () {
-      addAlbumIdRow("");
+      addAlbumIdRow("", "");
       albumInputs[albumInputs.length - 1].focus();
     };
     addAlbumRow.appendChild(addAlbumBtn);
@@ -1064,18 +1113,24 @@
     var personField = field("People");
     var personIdList = el("div", "photo-id-list");
     var personInputs = [];
+    var personLabelInputs = [];
     var personError = el("div", "field-error");
     function getPersonIdsValue() {
       return personInputs.map(function (inputEl) {
         return inputEl.value.trim();
       }).filter(Boolean).join(",");
     }
+    function getPersonLabelsValue() {
+      return buildPhotoLabelList(personInputs, personLabelInputs);
+    }
     function validatePhotoSourceInputs(changes) {
       albumError.textContent = "";
       personError.textContent = "";
       var srcVal = srcSel.value;
       var albumTrim = getAlbumIdsValue();
+      var albumLabels = getAlbumLabelsValue();
       var personTrim = getPersonIdsValue();
+      var personLabels = getPersonLabelsValue();
       var shouldValidateAlbum = changes.album || srcVal === "Album";
       var shouldValidatePerson = changes.person || srcVal === "Person";
       if (shouldValidateAlbum && photoIdFieldTooLong(albumTrim)) {
@@ -1090,19 +1145,29 @@
         albumError.textContent = "Invalid UUID format";
         return null;
       }
+      if (changes.albumLabel && photoLabelFieldTooLong(albumLabels)) {
+        albumError.textContent = PHOTO_LABEL_FIELD_TOO_LONG;
+        return null;
+      }
       if (shouldValidatePerson && !isValidUuidList(personTrim)) {
         personError.textContent = "Invalid UUID format";
         return null;
       }
-      return { source: srcVal, albumIds: albumTrim, personIds: personTrim };
+      if (changes.personLabel && photoLabelFieldTooLong(personLabels)) {
+        personError.textContent = PHOTO_LABEL_FIELD_TOO_LONG;
+        return null;
+      }
+      return { source: srcVal, albumIds: albumTrim, albumLabels: albumLabels, personIds: personTrim, personLabels: personLabels };
     }
     function applyPhotoSourceInputs() {
       var changes = {
         source: pendingPhotoSourceSave.source,
         album: pendingPhotoSourceSave.album,
-        person: pendingPhotoSourceSave.person
+        albumLabel: pendingPhotoSourceSave.albumLabel,
+        person: pendingPhotoSourceSave.person,
+        personLabel: pendingPhotoSourceSave.personLabel
       };
-      pendingPhotoSourceSave = { source: false, album: false, person: false };
+      pendingPhotoSourceSave = { source: false, album: false, albumLabel: false, person: false, personLabel: false };
       var vals = validatePhotoSourceInputs(changes);
       if (!vals) return;
       var requests = [];
@@ -1114,20 +1179,31 @@
         S.album_ids = vals.albumIds;
         requests.push(postTextValueSet(endpoints.album_ids + "/set", vals.albumIds));
       }
+      if (changes.albumLabel) {
+        S.album_labels = vals.albumLabels;
+        requests.push(postTextValueSet(endpoints.album_labels + "/set", vals.albumLabels));
+      }
       if (changes.person) {
         S.person_ids = vals.personIds;
         requests.push(postTextValueSet(endpoints.person_ids + "/set", vals.personIds));
       }
+      if (changes.personLabel) {
+        S.person_labels = vals.personLabels;
+        requests.push(postTextValueSet(endpoints.person_labels + "/set", vals.personLabels));
+      }
       if (!requests.length) return;
       Promise.all(requests).then(function () {
-        post(eid("button", "Apply Photo Source") + "/press");
+        if (changes.source || changes.album || changes.person)
+          post(eid("button", "Apply Photo Source") + "/press");
       });
     }
     function schedulePhotoSourceApply(delayMs, changes) {
       if (changes) {
         pendingPhotoSourceSave.source = pendingPhotoSourceSave.source || !!changes.source;
         pendingPhotoSourceSave.album = pendingPhotoSourceSave.album || !!changes.album;
+        pendingPhotoSourceSave.albumLabel = pendingPhotoSourceSave.albumLabel || !!changes.albumLabel;
         pendingPhotoSourceSave.person = pendingPhotoSourceSave.person || !!changes.person;
+        pendingPhotoSourceSave.personLabel = pendingPhotoSourceSave.personLabel || !!changes.personLabel;
       }
       clearTimeout(photoSourceApplyTimer);
       photoSourceApplyTimer = setTimeout(applyPhotoSourceInputs, delayMs == null ? 600 : delayMs);
@@ -1137,9 +1213,11 @@
         btn.disabled = personInputs.length <= 1;
       });
     }
-    function addPersonIdRow(value) {
+    function addPersonIdRow(value, labelValue) {
       var row = el("div", "photo-id-row");
+      var fields = el("div", "photo-id-fields");
       var personInput = input("text", value || "", "Paste person ID from Immich URL", MAX_PHOTO_ID_FIELD_LENGTH);
+      var personLabelInput = input("text", labelValue || "", "Who is it?", MAX_PHOTO_ID_FIELD_LENGTH);
       var removeBtn = el("button", "btn btn-secondary btn-icon person-id-remove");
       removeBtn.type = "button";
       removeBtn.innerHTML = removeIdIcon;
@@ -1148,26 +1226,37 @@
       removeBtn.onclick = function () {
         if (personInputs.length <= 1) {
           personInput.value = "";
-          schedulePhotoSourceApply(0, { person: true });
+          personLabelInput.value = "";
+          schedulePhotoSourceApply(0, { person: true, personLabel: true });
           return;
         }
-        personInputs = personInputs.filter(function (inputEl) {
-          return inputEl !== personInput;
-        });
+        var removeIndex = personInputs.indexOf(personInput);
+        personInputs.splice(removeIndex, 1);
+        personLabelInputs.splice(removeIndex, 1);
         row.parentNode.removeChild(row);
         refreshPersonRemoveButtons();
-        schedulePhotoSourceApply(0, { person: true });
+        schedulePhotoSourceApply(0, { person: true, personLabel: true });
       };
       personInput.oninput = function () {
-        schedulePhotoSourceApply(null, { person: true });
+        schedulePhotoSourceApply(null, { person: true, personLabel: true });
       };
-      row.appendChild(personInput);
+      personLabelInput.oninput = function () {
+        schedulePhotoSourceApply(null, { personLabel: true });
+      };
+      fields.appendChild(personInput);
+      fields.appendChild(personLabelInput);
+      row.appendChild(fields);
       row.appendChild(removeBtn);
       personIdList.appendChild(row);
       personInputs.push(personInput);
+      personLabelInputs.push(personLabelInput);
       refreshPersonRemoveButtons();
     }
-    splitPhotoIdList(S.person_ids).forEach(addPersonIdRow);
+    var personIds = splitPhotoIdList(S.person_ids);
+    var personLabels = parsePhotoLabelList(S.person_labels);
+    for (var personIndex = 0; personIndex < Math.max(personIds.length, personLabels.length, 1); personIndex++) {
+      addPersonIdRow(personIds[personIndex] || "", personLabels[personIndex] || "");
+    }
     var addPersonRow = el("div", "photo-id-actions");
     var addPersonBtn = el("button", "btn btn-secondary");
     addPersonBtn.type = "button";
@@ -1175,7 +1264,7 @@
     addPersonBtn.title = "Add a person";
     addPersonBtn.setAttribute("aria-label", "Add a person");
     addPersonBtn.onclick = function () {
-      addPersonIdRow("");
+      addPersonIdRow("", "");
       personInputs[personInputs.length - 1].focus();
     };
     addPersonRow.appendChild(addPersonBtn);
@@ -1960,7 +2049,9 @@
       photos: {
         source: S.photo_source,
         album_ids: S.album_ids,
+        album_labels: S.album_labels,
         person_ids: S.person_ids,
+        person_labels: S.person_labels,
         date_filter_enabled: S.date_filter_enabled,
         date_filter_mode: S.date_filter_mode,
         date_from: S.date_from,
@@ -2061,6 +2152,15 @@
             postTextValueSet(endpoints.album_ids + "/set", importAlbum);
           }
         }
+        if (p.album_labels !== undefined) {
+          var importAlbumLabels = String(p.album_labels).trim();
+          if (photoLabelFieldTooLong(importAlbumLabels)) {
+            showBanner("Album labels exceed 255 characters - not imported", "error");
+          } else {
+            S.album_labels = importAlbumLabels;
+            postTextValueSet(endpoints.album_labels + "/set", importAlbumLabels);
+          }
+        }
         if (p.person_ids !== undefined) {
           var importPerson = String(p.person_ids).trim();
           if (photoIdFieldTooLong(importPerson)) {
@@ -2070,6 +2170,15 @@
           } else {
             S.person_ids = importPerson;
             postTextValueSet(endpoints.person_ids + "/set", importPerson);
+          }
+        }
+        if (p.person_labels !== undefined) {
+          var importPersonLabels = String(p.person_labels).trim();
+          if (photoLabelFieldTooLong(importPersonLabels)) {
+            showBanner("Person labels exceed 255 characters - not imported", "error");
+          } else {
+            S.person_labels = importPersonLabels;
+            postTextValueSet(endpoints.person_labels + "/set", importPersonLabels);
           }
         }
         if (p.portrait_pairing !== undefined) {

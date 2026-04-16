@@ -161,6 +161,23 @@ text:
       - script.execute: auto_apply_photo_source
 
   - platform: template
+    name: "Photos: Album Labels"
+    id: immich_album_labels
+    internal: true
+    optimistic: false
+    restore_value: true
+    min_length: 0
+    max_length: 255
+    mode: text
+    icon: "mdi:folder-text"
+    web_server:
+      sorting_group_id: sg_photos
+    set_action:
+      - lambda: |-
+          id(immich_album_labels).publish_state(x);
+          ESP_LOGI("immich", "Album labels configured (%d chars)", x.length());
+
+  - platform: template
     name: "Photos: Person IDs"
     id: immich_person_ids
     internal: true
@@ -178,6 +195,23 @@ text:
           id(immich_person_ids).publish_state(v);
           ESP_LOGI("immich", "Person IDs configured (%d chars)", v.length());
       - script.execute: auto_apply_photo_source
+
+  - platform: template
+    name: "Photos: Person Labels"
+    id: immich_person_labels
+    internal: true
+    optimistic: false
+    restore_value: true
+    min_length: 0
+    max_length: 255
+    mode: text
+    icon: "mdi:account-edit"
+    web_server:
+      sorting_group_id: sg_photos
+    set_action:
+      - lambda: |-
+          id(immich_person_labels).publish_state(x);
+          ESP_LOGI("immich", "Person labels configured (%d chars)", x.length());
 
 # -----------------------------------------------------------------------------
 # Manual apply and auto-apply (flush slots and refetch)
