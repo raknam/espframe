@@ -1012,9 +1012,6 @@
     var personIdList = el("div", "person-id-list");
     var personInputs = [];
     var personError = el("div", "field-error");
-    var personHint = el("div");
-    personHint.className = "field-hint";
-    personHint.textContent = "Add one person ID per row. Use the ID from the Immich server URL address.";
     function getPersonIdsValue() {
       return personInputs.map(function (inputEl) {
         return inputEl.value.trim();
@@ -1111,7 +1108,6 @@
       personInputs[personInputs.length - 1].focus();
     };
     addPersonRow.appendChild(addPersonBtn);
-    personField.appendChild(personHint);
     personField.appendChild(personIdList);
     personField.appendChild(addPersonRow);
     personField.appendChild(personError);
