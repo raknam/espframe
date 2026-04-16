@@ -171,7 +171,7 @@
     "input[type='text'],input[type='password'],input[type='url'],input[type='date'],input[type='number']{" +
     "width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
     "border-radius:8px;color:var(--text);font-size:.9rem;letter-spacing:0;outline:none;" +
-    "transition:border-color .25s,box-shadow .25s;font-family:inherit;font-variant-numeric:tabular-nums}" +
+    "transition:border-color .25s,box-shadow .25s;font-family:inherit;font-variant-numeric:tabular-nums;color-scheme:dark}" +
     "input[type='text']:focus,input[type='password']:focus,input[type='url']:focus,input[type='date']:focus,input[type='number']:focus{" +
     "border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}" +
     "input[type='date']::-webkit-datetime-edit,input[type='date']::-webkit-date-and-time-value{" +
@@ -185,7 +185,7 @@
     "input::placeholder{color:var(--text2);opacity:.7}" +
     ".select,select{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
     "border-radius:8px;color:var(--text);font-size:.9rem;outline:none;" +
-    "transition:border-color .25s,box-shadow .25s;-webkit-appearance:none;appearance:none;" +
+    "transition:border-color .25s,box-shadow .25s;-webkit-appearance:none;appearance:none;color-scheme:dark;" +
     "font-family:inherit;" +
     "background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E\");" +
     "background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}" +
