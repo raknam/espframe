@@ -168,6 +168,7 @@
     "label{display:block;font-size:.85rem;color:var(--text2);margin-bottom:6px;font-weight:500}" +
     ".filter-relative-row{display:grid;grid-template-columns:minmax(84px,104px) minmax(0,1fr);gap:12px}" +
     ".filter-relative-row .field{margin-bottom:0}" +
+    ".filter-apply{margin-top:24px}" +
     "input[type='text'],input[type='password'],input[type='url'],input[type='date'],input[type='number']{" +
     "width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
     "border-radius:8px;color:var(--text);font-size:.9rem;letter-spacing:0;outline:none;" +
@@ -1114,7 +1115,7 @@
     var filterError = el("div", "field-error");
     filterDetails.appendChild(filterError);
 
-    var filterApplyBtn = el("button", "btn btn-primary btn-block mt-12");
+    var filterApplyBtn = el("button", "btn btn-primary btn-block filter-apply");
     filterApplyBtn.textContent = "Apply";
     filterApplyBtn.onclick = function () {
       dateFromError.textContent = "";
