@@ -95,6 +95,8 @@
     warm_tones_enabled: false,
     warm_tone_intensity: 50,
     warm_tone_override: false,
+    date_from: "",
+    date_to: "",
     portrait_pairing: true,
     display_mode: "Fill",
     display_mode_options: ["Fill", "Fit"],
@@ -158,12 +160,13 @@
     "border-radius:50%;background:var(--success);flex-shrink:0}" +
     ".field{margin-bottom:22px}.field:last-child{margin-bottom:0}" +
     "label{display:block;font-size:.85rem;color:var(--text2);margin-bottom:6px;font-weight:500}" +
-    "input[type='text'],input[type='password'],input[type='url']{" +
+    "input[type='text'],input[type='password'],input[type='url'],input[type='date']{" +
     "width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
     "border-radius:8px;color:var(--text);font-size:.9rem;outline:none;" +
     "transition:border-color .25s,box-shadow .25s;font-family:inherit}" +
-    "input[type='text']:focus,input[type='password']:focus,input[type='url']:focus{" +
+    "input[type='text']:focus,input[type='password']:focus,input[type='url']:focus,input[type='date']:focus{" +
     "border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}" +
+    "input[type='date']::-webkit-calendar-picker-indicator{filter:invert(.7);cursor:pointer}" +
     "input::placeholder{color:var(--text2);opacity:.7}" +
     ".select,select{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);" +
     "border-radius:8px;color:var(--text);font-size:.9rem;outline:none;" +
@@ -420,6 +423,8 @@
     photo_source: eid("select", "Photos: Source"),
     album_ids: eid("text", "Photos: Album IDs"),
     person_ids: eid("text", "Photos: Person IDs"),
+    date_from: eid("text", "Photos: Date From"),
+    date_to: eid("text", "Photos: Date To"),
     base_tone_enabled: eid("switch", "Screen: Tone Adjustment"),
     base_tone: eid("number", "Screen: Display Tone"),
     warm_tones_enabled: eid("switch", "Screen: Night Tone Adjustment"),
@@ -528,6 +533,8 @@
     "select/Photos: Source": { key: "photo_source", optionsKey: "photo_source_options", default: "All Photos" },
     "text/Photos: Album IDs": { key: "album_ids" },
     "text/Photos: Person IDs": { key: "person_ids" },
+    "text/Photos: Date From": { key: "date_from" },
+    "text/Photos: Date To": { key: "date_to" },
     "switch/Screen: Tone Adjustment": { key: "base_tone_enabled", boolFromState: true },
     "number/Screen: Display Tone": { key: "base_tone", default: 0, number: true },
     "switch/Screen: Night Tone Adjustment": { key: "warm_tones_enabled", boolFromState: true },
@@ -584,7 +591,8 @@
 
   // Single source for settings fetched on load; KEY_TO_ENTITY_ID derived from ENTITY_STATE_MAP.
   var INITIAL_FETCH_KEYS = [
-    "photo_source", "album_ids", "person_ids", "interval", "conn_timeout",
+    "photo_source", "album_ids", "person_ids", "date_from", "date_to",
+    "interval", "conn_timeout",
     "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
     "sunrise", "sunset",
     "base_tone_enabled", "base_tone", "warm_tones_enabled", "warm_tone_intensity", "warm_tone_override",
@@ -989,6 +997,82 @@
     photoBody.appendChild(fDisplayMode);
 
     immichWrap.appendChild(makeCollapsibleCard("Photo Settings", photoBody, true));
+
+    // Advanced Filters
+    var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    function isValidDate(s) {
+      if (!DATE_RE.test(s)) return false;
+      var parts = s.split("-");
+      var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      return d.getFullYear() === Number(parts[0]) && d.getMonth() === Number(parts[1]) - 1 && d.getDate() === Number(parts[2]);
+    }
+    var filterBadge = makeBadge(!!S.date_from || !!S.date_to);
+    var filterBody = el("div");
+    var filterHint = el("div");
+    filterHint.className = "field-hint";
+    filterHint.textContent = "Only show photos taken within this date range. Leave a field empty for no limit in that direction.";
+    filterBody.appendChild(filterHint);
+
+    var fDateFrom = field("Minimum Date");
+    var dateFromInput = document.createElement("input");
+    dateFromInput.type = "date";
+    dateFromInput.value = S.date_from || "";
+    dateFromInput.placeholder = "YYYY-MM-DD";
+    var dateFromError = el("div", "field-error");
+    fDateFrom.appendChild(dateFromInput);
+    fDateFrom.appendChild(dateFromError);
+    filterBody.appendChild(fDateFrom);
+
+    var fDateTo = field("Maximum Date");
+    var dateToInput = document.createElement("input");
+    dateToInput.type = "date";
+    dateToInput.value = S.date_to || "";
+    dateToInput.placeholder = "YYYY-MM-DD";
+    var dateToError = el("div", "field-error");
+    fDateTo.appendChild(dateToInput);
+    fDateTo.appendChild(dateToError);
+    filterBody.appendChild(fDateTo);
+
+    var filterError = el("div", "field-error");
+    filterBody.appendChild(filterError);
+
+    var filterApplyBtn = el("button", "btn btn-primary btn-block mt-12");
+    filterApplyBtn.textContent = "Apply";
+    filterApplyBtn.onclick = function () {
+      dateFromError.textContent = "";
+      dateToError.textContent = "";
+      filterError.textContent = "";
+      var fromVal = dateFromInput.value.trim();
+      var toVal = dateToInput.value.trim();
+      if (fromVal && !isValidDate(fromVal)) {
+        dateFromError.textContent = "Invalid date — use YYYY-MM-DD";
+        return;
+      }
+      if (toVal && !isValidDate(toVal)) {
+        dateToError.textContent = "Invalid date — use YYYY-MM-DD";
+        return;
+      }
+      if (fromVal && toVal && fromVal > toVal) {
+        filterError.textContent = "Minimum Date must not be after Maximum Date";
+        return;
+      }
+      filterApplyBtn.disabled = true;
+      filterApplyBtn.textContent = "Applying\u2026";
+      post(endpoints.date_from + "/set", { value: fromVal });
+      post(endpoints.date_to + "/set", { value: toVal });
+      S.date_from = fromVal;
+      S.date_to = toVal;
+      filterBadge.className = "on-badge" + ((fromVal || toVal) ? " active" : "");
+      post(eid("button", "Apply Photo Source") + "/press").then(function () {
+        filterApplyBtn.textContent = "Applied";
+        setTimeout(function () {
+          filterApplyBtn.disabled = false;
+          filterApplyBtn.textContent = "Apply";
+        }, 2000);
+      });
+    };
+    filterBody.appendChild(filterApplyBtn);
+    immichWrap.appendChild(makeCollapsibleCard("Advanced Filters", filterBody, true, filterBadge));
 
     // Frequency
     var dispBody = el("div");
@@ -1571,6 +1655,8 @@
         source: S.photo_source,
         album_ids: S.album_ids,
         person_ids: S.person_ids,
+        date_from: S.date_from,
+        date_to: S.date_to,
         portrait_pairing: S.portrait_pairing,
         display_mode: S.display_mode
       },
@@ -1677,6 +1763,14 @@
         if (p.display_mode !== undefined) {
           S.display_mode = p.display_mode;
           post(endpoints.display_mode + "/set", { option: p.display_mode });
+        }
+        if (p.date_from !== undefined) {
+          S.date_from = p.date_from;
+          post(endpoints.date_from + "/set", { value: p.date_from });
+        }
+        if (p.date_to !== undefined) {
+          S.date_to = p.date_to;
+          post(endpoints.date_to + "/set", { value: p.date_to });
         }
 
         if (f.interval !== undefined) {

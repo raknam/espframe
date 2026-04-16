@@ -39,6 +39,23 @@ Shows "On this day" photos from past years; falls back to random if none. Set **
 
 ---
 
+## Advanced Filters
+
+The **Advanced Filters** card in the web UI lets you restrict displayed photos to a date range. Both fields are optional — leave a field empty for no limit in that direction.
+
+| Setting | Default | Format | Description |
+|---------|---------|--------|-------------|
+| **Minimum Date** | *(empty)* | `YYYY-MM-DD` | Only show photos taken on or after this date. Leave empty for no lower bound. |
+| **Maximum Date** | *(empty)* | `YYYY-MM-DD` | Only show photos taken on or before this date. Leave empty for no upper bound. |
+
+Click **Apply** after changing either value. When both dates are set, the minimum date must not be after the maximum date.
+
+::: tip
+You can set only one side of the range — for example, a **Minimum Date** with no **Maximum Date** shows everything from that date onward.
+:::
+
+---
+
 ## Frequency
 
 **Slideshow Interval** (under **Frequency** in the web UI) sets how long each photo is shown before advancing (default 2 minutes, minimum 30 seconds).

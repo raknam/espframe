@@ -5,7 +5,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "minify": "esbuild docs/public/webserver/app.js --minify --outfile=docs/public/webserver/app.min.js && esbuild docs/public/webserver/style.css --minify --outfile=docs/public/webserver/style.min.css"
+    "minify": "esbuild docs/public/webserver/app.js --minify --outfile=docs/public/webserver/app.min.js"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
