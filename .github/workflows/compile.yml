@@ -5,8 +5,8 @@ on:
     paths:
       - "components/**"
       - "common/**"
-      - "guition-esp32-p4-jc8012p4a1/**"
-      - "guition-esp32-p4-jc1060p470/**"
+      - "devices/guition-esp32-p4-jc8012p4a1/**"
+      - "devices/guition-esp32-p4-jc1060p470/**"
       - "builds/**"
 
 permissions:

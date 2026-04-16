@@ -23,7 +23,7 @@ wifi:
 packages:
   espframe:
     url: https://github.com/jtenniswood/espframe
-    files: [guition-esp32-p4-jc8012p4a1/packages.yaml]
+    files: [devices/guition-esp32-p4-jc8012p4a1/packages.yaml]
     ref: main
     refresh: 1s
 ```
@@ -42,7 +42,7 @@ wifi:
 packages:
   espframe:
     url: https://github.com/jtenniswood/espframe
-    files: [guition-esp32-p4-jc1060p470/packages.yaml]
+    files: [devices/guition-esp32-p4-jc1060p470/packages.yaml]
     ref: main
     refresh: 1s
 ```

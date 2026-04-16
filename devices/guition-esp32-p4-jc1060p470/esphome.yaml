@@ -1,7 +1,7 @@
-# Guition ESP32-P4-JC8012P4A1 Immich Frame
+# Guition ESP32-P4-JC1060P470 Immich Frame
 substitutions:
-  name: "immich-frame-10inch"
-  friendly_name: "Immich Frame 10inch"
+  name: "immich-frame-7inch"
+  friendly_name: "Immich Frame 7inch"
 
 # Wifi Setup
 wifi:
@@ -12,6 +12,6 @@ wifi:
 packages:
   espframe:
     url: https://github.com/jtenniswood/espframe
-    files: [guition-esp32-p4-jc8012p4a1/packages.yaml]
+    files: [devices/guition-esp32-p4-jc1060p470/packages.yaml]
     ref: main
     refresh: 1s

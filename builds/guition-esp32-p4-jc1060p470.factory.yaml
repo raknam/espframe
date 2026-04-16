@@ -5,7 +5,7 @@
 # for WiFi setup via captive portal.
 #
 # Compiled by CI (see .github/workflows/release.yml) — not used locally.
-# For local development, see guition-esp32-p4-jc1060p470/esphome.yaml.
+# For local development, see devices/guition-esp32-p4-jc1060p470/esphome.yaml.
 # =============================================================================
 
 substitutions:
@@ -14,7 +14,7 @@ substitutions:
   firmware_version: "0.0.0"
 
 packages:
-  espframe: !include ../guition-esp32-p4-jc1060p470/packages.yaml
+  espframe: !include ../devices/guition-esp32-p4-jc1060p470/packages.yaml
 
 external_components:
   - source:
