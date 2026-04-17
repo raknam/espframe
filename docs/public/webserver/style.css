@@ -40,7 +40,7 @@ body {
 }
 #app {
   width: 100%;
-  max-width: 480px;
+  max-width: 960px;
 }
 h1 {
   font-size: 1.4rem;
