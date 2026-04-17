@@ -269,6 +269,9 @@ void OnlineImage::loop() {
       auto len = this->downloader_->read(this->download_buffer_.append(), available);
       if (len > 0) {
         this->download_buffer_.write(len);
+      } else if (len < 0) {
+        this->fail_download_("HTTP read failed while detecting image format", len);
+        return;
       }
     }
     if (this->download_buffer_.unread() < 12) {
@@ -297,8 +300,7 @@ void OnlineImage::loop() {
     return;
   }
   if (!this->downloader_) {
-    ESP_LOGW(TAG, "Downloader disappeared mid-transfer");
-    this->download_error_callback_.call();
+    this->fail_download_("Downloader disappeared mid-transfer", http_request::HTTP_ERROR_CONNECTION_CLOSED);
     return;
   }
   if (this->decoder_->is_finished()) {
@@ -328,6 +330,9 @@ void OnlineImage::loop() {
     auto len = this->downloader_->read(this->download_buffer_.append(), available);
     if (len > 0) {
       this->download_buffer_.write(len);
+    } else if (len < 0) {
+      this->fail_download_("HTTP read failed while downloading image", len);
+      return;
     }
   }
 
@@ -524,6 +529,12 @@ void OnlineImage::end_connection_() {
   this->decoder_.reset();
   this->download_buffer_.reset();
   this->download_buffer_.shrink(this->download_buffer_initial_size_);
+}
+
+void OnlineImage::fail_download_(const char *reason, int error_code) {
+  ESP_LOGW(TAG, "%s (%d)", reason, error_code);
+  this->end_connection_();
+  this->download_error_callback_.call();
 }
 
 bool OnlineImage::validate_url_(const std::string &url) {

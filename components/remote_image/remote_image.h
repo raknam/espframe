@@ -156,6 +156,7 @@ class OnlineImage : public PollingComponent,
   void draw_pixel_(int x, int y, Color color);
 
   void end_connection_();
+  void fail_download_(const char *reason, int error_code);
 
   CallbackManager<void(bool)> download_finished_callback_{};
   CallbackManager<void()> download_error_callback_{};
