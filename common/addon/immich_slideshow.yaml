@@ -556,6 +556,10 @@ script:
                     in_flight = false;
                   }
                   if (!in_flight) {
+                    if (id(immich_retry_cooldown_until_ms) != 0 && millis() < id(immich_retry_cooldown_until_ms)) {
+                      ESP_LOGD("diag", "H3-FIX: Slot %d refetch paused by connection retry cooldown", s);
+                      return;
+                    }
                     ESP_LOGW("diag", "H3-FIX: Slot %d not ready and not downloading, re-fetching", s);
                     id(portrait).workflow_busy = false;
                     id(immich_last_advance_ms) = millis();
