@@ -54,6 +54,9 @@ globals:
   - id: immich_download_retries
     type: int
     initial_value: '0'
+  - id: immich_retry_cooldown_until_ms
+    type: uint32_t
+    initial_value: '0'
   - id: slot_flags
     type: SlotFlags
   - id: preload_noncritical_in_flight
@@ -404,6 +407,9 @@ script:
             - script.execute: immich_prefetch_chain
           else:
             - lambda: 'id(immich_download_retries) = 0;'
+            - lambda: |-
+                id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                ESP_LOGW("immich", "Download retries exhausted; pausing Immich fetches for 30s");
 
   # Start portrait pair download for the active slot (left then right or companion search)
   - id: immich_start_portrait_active
@@ -710,6 +716,10 @@ script:
       - lambda: |-
           if (id(backlight_paused)) {
             ESP_LOGD("immich", "Prefetch paused (backlight off)");
+            return;
+          }
+          if (id(immich_retry_cooldown_until_ms) != 0 && millis() < id(immich_retry_cooldown_until_ms)) {
+            ESP_LOGD("immich", "Prefetch paused (connection retry cooldown)");
             return;
           }
           // Avoid piling up concurrent HTTP/decode work while portrait downloads

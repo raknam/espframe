@@ -212,6 +212,15 @@ script:
             - script.stop: immich_fetch_into_slot
       - if:
           condition:
+            lambda: 'return id(immich_retry_cooldown_until_ms) != 0 && millis() < id(immich_retry_cooldown_until_ms);'
+          then:
+            - logger.log:
+                level: DEBUG
+                tag: immich
+                format: "Fetch paused (connection retry cooldown)"
+            - script.stop: immich_fetch_into_slot
+      - if:
+          condition:
             lambda: 'return id(target_slot) != id(active_slot) && id(portrait).workflow_busy;'
           then:
             - script.execute: delayed_prefetch_chain
@@ -330,6 +339,8 @@ script:
                   if (img_url.empty()) {
                     ESP_LOGW("immich", "No valid asset in response");
                     id(slot_flags).fetch_in_flight[id(target_slot)] = false;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    ESP_LOGW("immich", "No usable Immich asset; pausing fetches for 30s");
                     return;
                   }
                   int slot = id(target_slot);
@@ -373,6 +384,8 @@ script:
                         lv_label_set_text(id(connection_failed_title), "Unable to connect to Immich");
                         lv_label_set_text(id(connection_failed_subtitle), "Check your internet connection and\nthe health of your Immich server.");
                         lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+                        id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                        ESP_LOGW("immich", "API retries exhausted; pausing Immich fetches for 30s");
                     - script.execute: connection_failed_dim
                     - script.execute: connection_failed_shift
 
