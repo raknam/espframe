@@ -1572,20 +1572,6 @@
 
     immichApp.appendChild(immichWrap);
 
-    // Screen Orientation
-    var rotationBody = el("div");
-    var fRotation = field("Rotation");
-    fRotation.appendChild(
-      selectFromOptions(S.screen_rotation_options, S.screen_rotation, function (v) {
-        S.screen_rotation = v;
-        post(endpoints.screen_rotation + "/set", { option: v });
-      }, function (v) {
-        return v + " degrees";
-      })
-    );
-    rotationBody.appendChild(fRotation);
-    wrap.appendChild(makeCollapsibleCard("Screen Orientation", rotationBody, true));
-
     // Screen Brightness
     var dnDetails = el("div");
 
@@ -1800,6 +1786,20 @@
 
     schedBody.appendChild(schedDetails);
     wrap.appendChild(makeCollapsibleCard("Screen Schedule", schedBody, true, schedBadge));
+
+    // Rotation
+    var rotationBody = el("div");
+    var fRotation = field("Rotation");
+    fRotation.appendChild(
+      selectFromOptions(S.screen_rotation_options, S.screen_rotation, function (v) {
+        S.screen_rotation = v;
+        post(endpoints.screen_rotation + "/set", { option: v });
+      }, function (v) {
+        return v + " degrees";
+      })
+    );
+    rotationBody.appendChild(fRotation);
+    wrap.appendChild(makeCollapsibleCard("Rotation", rotationBody, true));
 
     // Clock
     var clockBadge = makeBadge(S.show_clock);

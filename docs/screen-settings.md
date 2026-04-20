@@ -1,21 +1,11 @@
 ---
 title: Screen Settings
-description: Screen brightness, tone, and schedule — the display controls available in the device Settings menu.
+description: Screen brightness, tone, schedule, and rotation — the display controls available in the device Settings menu.
 ---
 
 # Screen Settings
 
-Display controls in **Settings**: orientation, brightness (day/night), tone, and optional schedule. Available in the web UI and (where applicable) Home Assistant.
-
-## Screen Orientation
-
-**Screen Orientation** rotates the LVGL display layer, so the picture and touch input turn together. This uses ESPHome 2026.4's LVGL rotation support.
-
-The setting only exposes normal and upside-down orientations. On the 10" model, the firmware keeps its internal 90-degree panel offset and maps these two choices onto the correct LVGL values.
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **Rotation** | 0 degrees | Rotate the screen to 0 or 180 degrees. |
+Display controls in **Settings**: brightness (day/night), tone, optional schedule, and rotation. Available in the web UI and (where applicable) Home Assistant.
 
 ## Screen Brightness
 
@@ -35,3 +25,13 @@ The setting only exposes normal and upside-down orientations. On the 10" model, 
 | **Enable Schedule** | Off | Use scheduled on/off |
 | **On Time** | 6 | Backlight on (hour) |
 | **Off Time** | 23 | Backlight off (hour) |
+
+## Rotation
+
+**Rotation** rotates the LVGL display layer, so the picture and touch input turn together. This uses ESPHome 2026.4's LVGL rotation support.
+
+The setting only exposes normal and upside-down orientations. On the 10" model, the firmware keeps its internal 90-degree panel offset and maps these two choices onto the correct LVGL values.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Rotation** | 0 degrees | Rotate the screen to 0 or 180 degrees. |

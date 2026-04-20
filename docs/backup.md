@@ -21,9 +21,9 @@ The export captures all user-facing settings from the current session:
 | **Photos** | Source, album IDs, album labels, person IDs, person labels, date filter settings, orientation, portrait pairing |
 | **Frequency** | Slideshow interval, connection timeout |
 | **Clock** | Show clock, format, timezone |
-| **Screen Orientation** | Rotation |
 | **Screen Brightness** | Daytime brightness, nighttime brightness |
 | **Screen Schedule** | Enable, on time, off time |
+| **Rotation** | Rotation |
 | **Screen Tone** | Tone adjustment, display tone, night tone adjustment, warm tone intensity, warm tone override |
 
 Firmware version, update status, sunrise/sunset, and current brightness are **not** included — these are device-specific or read-only.
