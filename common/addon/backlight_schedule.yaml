@@ -180,10 +180,12 @@ script:
                 transition_length: 500ms
             - delay: 600ms
             - lvgl.pause:
-                # The snow renderer keeps writing random pixels while LVGL is
-                # paused. On these ESP32-P4 displays that can destabilize the
-                # overnight sleep state, so sleep should stop rendering.
-                show_snow: false
+                show_snow: true
+            # Keep the anti-burn-in snow buffer running, but make sleep mean
+            # physically dark. This also corrects any backlight state drift.
+            - light.turn_off:
+                id: backlight
+                transition_length: 0ms
           else:
             - lvgl.resume:
             - lambda: |-
@@ -336,6 +338,17 @@ script:
     mode: single
     then:
       - script.execute: backlight_check_schedule
+      - if:
+          condition:
+            lambda: 'return id(backlight_paused) && id(backlight).current_values.is_on();'
+          then:
+            - logger.log:
+                level: WARN
+                tag: backlight
+                format: "Backlight was on while scheduled asleep; forcing off"
+            - light.turn_off:
+                id: backlight
+                transition_length: 0ms
       - if:
           condition:
             lambda: |-
