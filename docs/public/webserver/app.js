@@ -636,6 +636,8 @@
   var evtSource = null;
   var rendered = false;
   var renderTimer = null;
+  var renderAttemptInFlight = false;
+  var initialSettingsRefreshStarted = false;
   var logListenerAttached = false;
 
   var ANSI_LEVEL = {
@@ -808,22 +810,62 @@
     });
   }
 
-  function tryRender() {
-    if (rendered) return;
+  function isEditingSetting() {
+    var active = document.activeElement;
+    if (!active || !els.root || !els.root.contains(active)) return false;
+    return /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(active.tagName);
+  }
+
+  function renderConfiguredSettingsPage() {
+    renderSettings();
+
+    if (initialSettingsRefreshStarted) return;
+    initialSettingsRefreshStarted = true;
+
+    // Draw the cards first. The ESP webserver can take a while to answer every
+    // per-entity request, so hydrate the values in the background.
+    fetchDeviceSettingsState().then(function () {
+      if (rendered && !isEditingSetting()) renderSettings();
+    });
+  }
+
+  function scheduleTryRender(delayMs) {
+    if (rendered || renderAttemptInFlight || renderTimer) return;
+    renderTimer = setTimeout(function () {
+      renderTimer = null;
+      tryRender();
+    }, delayMs);
+  }
+
+  function showConfiguredSettings() {
     rendered = true;
+    renderAttemptInFlight = false;
+    renderConfiguredSettingsPage();
+  }
+
+  function tryRender() {
+    if (rendered || renderAttemptInFlight) return;
+    if (renderTimer) {
+      clearTimeout(renderTimer);
+      renderTimer = null;
+    }
     if (S.immich_url) {
-      fetchDeviceSettingsState().then(renderSettings);
+      showConfiguredSettings();
       return;
     }
+    renderAttemptInFlight = true;
     Promise.all([
       safeGet(endpoints.immich_url),
       safeGet(endpoints.api_key)
     ]).then(function (res) {
+      renderAttemptInFlight = false;
+      if (rendered) return;
       if (res[0]) S.immich_url = normalizeImmichUrl(res[0].value || res[0].state || "");
       if (res[1]) S.api_key = res[1].value || res[1].state || "";
       if (S.immich_url) {
-        fetchDeviceSettingsState().then(renderSettings);
+        showConfiguredSettings();
       } else {
+        rendered = true;
         renderWizard();
       }
     });
@@ -841,8 +883,8 @@
         } catch (_) {}
 
         if (!rendered) {
-          clearTimeout(renderTimer);
-          renderTimer = setTimeout(tryRender, 500);
+          if (S.immich_url) showConfiguredSettings();
+          else scheduleTryRender(250);
         }
       });
 
@@ -857,8 +899,7 @@
 
       evtSource.onerror = function () {
         if (!rendered) {
-          clearTimeout(renderTimer);
-          renderTimer = setTimeout(tryRender, 1000);
+          scheduleTryRender(1000);
         }
       };
 
@@ -867,6 +908,7 @@
       tryRender();
     }
 
+    scheduleTryRender(250);
     setTimeout(function () {
       if (!rendered) tryRender();
     }, 5000);
