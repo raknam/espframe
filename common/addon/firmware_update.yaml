@@ -19,6 +19,10 @@ esphome:
   project:
     name: jtenniswood.immich-frame
     version: "${firmware_version}"
+  on_boot:
+    priority: -100
+    then:
+      - component.update: firmware_version_sensor
 
 # -----------------------------------------------------------------------------
 # State for update check interval
@@ -133,7 +137,7 @@ text_sensor:
     icon: "mdi:tag"
     web_server:
       sorting_group_id: sg_firmware
-    update_interval: 5s
+    update_interval: never
     lambda: 'return {"${firmware_version}"};'
 
 button:
