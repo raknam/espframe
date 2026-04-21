@@ -1776,7 +1776,7 @@
     var schedBody = el("div");
     var fSchedToggle = field("");
     var schedTr = el("div", "toggle-row");
-    schedTr.innerHTML = "<span>Enable Schedule</span>";
+    schedTr.innerHTML = "<span>Schedule Screen Off</span>";
     var schedTog = el("div", S.schedule_enabled ? "toggle on" : "toggle");
     var schedDetails = el("div");
     schedDetails.style.display = S.schedule_enabled ? "" : "none";

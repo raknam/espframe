@@ -18,11 +18,11 @@ Display controls in **Settings**: brightness (day/night), tone, optional schedul
 
 ## Screen Schedule
 
-**Screen Schedule** turns the backlight off outside a time window and pauses downloads. When **Enable Schedule** is off, only day/night brightness applies. On/Off are hour-of-day (0–23). In HA: **Screen: Schedule**, **Schedule On**, **Schedule Off**.
+**Screen Schedule** turns the backlight off outside a time window and pauses downloads. When **Schedule Screen Off** is off, only day/night brightness applies. On/Off are hour-of-day (0–23). In HA: **Screen: Schedule**, **Schedule On**, **Schedule Off**.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **Enable Schedule** | Off | Use scheduled on/off |
+| **Schedule Screen Off** | Off | Use scheduled on/off |
 | **On Time** | 6 | Backlight on (hour) |
 | **Off Time** | 23 | Backlight off (hour) |
 
