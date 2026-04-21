@@ -256,27 +256,6 @@ remote_image:
         - lambda: 'id(last_downloaded_slot) = 2;'
         - script.execute: handle_slot_download_error
 
-  - id: photo_details_remote_img
-    url: "https://via.placeholder.com/1x1.jpg"
-    resize: ${details_image_width}x${details_image_height}
-    type: RGB565
-    byte_order: little_endian
-    request_headers:
-      x-api-key: !lambda 'return id(immich_api_key_text).state;'
-    on_download_finished:
-      then:
-        - lambda: |-
-            if (!id(photo_details_open)) return;
-            lv_img_set_src(id(photo_details_image), get_lv_image_descriptor_(id(photo_details_remote_img), 0));
-            lv_obj_clear_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
-            ESP_LOGD("immich", "DETAILS image ready");
-    on_error:
-      then:
-        - lambda: |-
-            if (!id(photo_details_open)) return;
-            lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
-            ESP_LOGW("immich", "DETAILS image decode failed");
-
   # Portrait pair half-width components (640x800 each, side-by-side)
   - id: immich_portrait_left
     url: "https://via.placeholder.com/1x1.jpg"
@@ -541,16 +520,6 @@ script:
             lv_obj_add_flag(id(photo_details_empty_label), LV_OBJ_FLAG_HIDDEN);
           }
 
-          lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
-          id(photo_details_remote_img).abort_download();
-          id(photo_details_remote_img).release();
-          if (!m.image_url.empty()) {
-            id(photo_details_remote_img).set_fill_mode(false);
-            id(photo_details_remote_img).set_url(m.image_url);
-            id(photo_details_remote_img).update();
-          }
-
-          lv_obj_add_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
           lv_obj_clear_flag(id(photo_details_overlay), LV_OBJ_FLAG_HIDDEN);
           lv_obj_move_foreground(id(photo_details_overlay));
           ESP_LOGI("immich", "DETAILS open: %s", m.asset_id.c_str());
@@ -564,10 +533,6 @@ script:
           id(photo_details_open) = false;
           id(photo_details_close_guard) = true;
           id(photo_details_use_companion) = false;
-          id(photo_details_remote_img).abort_download();
-          id(photo_details_remote_img).release();
-          lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
-          lv_img_set_src(id(photo_details_image), static_cast<const void *>(nullptr));
           lv_obj_add_flag(id(photo_details_overlay), LV_OBJ_FLAG_HIDDEN);
           lv_obj_move_background(id(photo_details_overlay));
 

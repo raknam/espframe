@@ -9,9 +9,6 @@
 substitutions:
   immich_slide_interval: "2 minutes"
   slideshow_check_interval: "2s"
-  details_image_area_width: "684"
-  details_image_width: "624"
-  details_image_height: "540"
   details_panel_width: "340"
   details_panel_x_pad: "28"
   details_panel_content_width: "284"
@@ -207,7 +204,7 @@ lvgl:
             height: ${display_height}
             radius: 0
             bg_color: 0x000000
-            bg_opa: 100%
+            bg_opa: 0%
             border_width: 0
             pad_all: 0
             scrollable: false
@@ -225,25 +222,6 @@ lvgl:
                     }
             hidden: true
             widgets:
-              - obj:
-                  x: 0
-                  y: 0
-                  width: ${details_image_area_width}
-                  height: ${display_height}
-                  bg_color: 0x000000
-                  bg_opa: 100%
-                  border_width: 0
-                  pad_all: 0
-                  scrollable: false
-                  clickable: false
-                  widgets:
-                    - image:
-                        id: photo_details_image
-                        align: CENTER
-                        src: photo_details_remote_img
-                        hidden: true
-                        scrollable: false
-                        clickable: false
               - obj:
                   align: TOP_RIGHT
                   width: ${details_panel_width}
