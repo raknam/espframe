@@ -21,9 +21,9 @@ sensor:
   - platform: wifi_signal
     name: "Network: WiFi Signal dB"
     id: wifi_signal_db
+    internal: true
     update_interval: 60s
     entity_category: diagnostic
-    disabled_by_default: true
     icon: mdi:wifi
 
   - platform: copy
