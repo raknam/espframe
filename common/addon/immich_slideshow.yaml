@@ -507,16 +507,6 @@ script:
             id(photo_details_use_companion) = false;
           }
 
-          auto set_text = [](lv_obj_t *label, const std::string &value) -> bool {
-            if (value.empty()) {
-              lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
-              return false;
-            }
-            lv_label_set_text(label, value.c_str());
-            lv_obj_clear_flag(label, LV_OBJ_FLAG_HIDDEN);
-            return true;
-          };
-
           auto set_row = [](lv_obj_t *row, lv_obj_t *label, const std::string &value) -> bool {
             if (value.empty()) {
               lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
@@ -532,7 +522,7 @@ script:
 
           int rows = 0;
           std::string people = m.people.empty() ? m.person : m.people;
-          if (set_text(id(photo_details_people_label), people)) rows++;
+          if (set_row(id(photo_details_people_row), id(photo_details_people_label), people)) rows++;
           if (set_row(id(photo_details_date_row), id(photo_details_date_label), m.date_taken)) rows++;
           if (set_row(id(photo_details_format_row), id(photo_details_format_label), m.image_format)) rows++;
 

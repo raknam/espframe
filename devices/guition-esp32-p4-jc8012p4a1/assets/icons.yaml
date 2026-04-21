@@ -26,6 +26,7 @@ font:
       - "\U000F0976"  # mdi-image-size-select-actual
       - "\U000F0100"  # mdi-camera
       - "\U000F0104"  # mdi-camera-iris
+      - "\U000F0004"  # mdi-account
 
   - file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
     id: icon_font_close
@@ -46,4 +47,5 @@ substitutions:
   icon_details_image: "\U000F0976"
   icon_details_camera: "\U000F0100"
   icon_details_lens: "\U000F0104"
+  icon_details_faces: "\U000F0004"
   icon_details_close: "\U000F0156"

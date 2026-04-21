@@ -281,14 +281,34 @@ lvgl:
                           flex_align_cross: START
                           pad_row: 20
                         widgets:
-                          - label:
-                              id: photo_details_people_label
-                              text: ""
+                          - obj:
+                              id: photo_details_people_row
                               width: ${details_panel_content_width}
-                              text_font: roboto24_font
-                              text_color: 0xD8D8D8
-                              hidden: true
-                              long_mode: WRAP
+                              height: SIZE_CONTENT
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
+                              layout:
+                                type: flex
+                                flex_flow: ROW
+                                flex_align_main: START
+                                flex_align_cross: START
+                                pad_column: 14
+                              widgets:
+                                - label:
+                                    text: $icon_details_faces
+                                    width: ${details_icon_width}
+                                    text_font: icon_font_details
+                                    text_color: 0xD8D8D8
+                                - label:
+                                    id: photo_details_people_label
+                                    text: ""
+                                    width: ${details_row_text_width}
+                                    text_font: roboto24_font
+                                    text_color: 0xD8D8D8
+                                    long_mode: WRAP
                           - obj:
                               id: photo_details_date_row
                               width: ${details_panel_content_width}
