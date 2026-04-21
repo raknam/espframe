@@ -179,6 +179,7 @@ select:
             }
         - script.execute: update_clock_display
         - script.execute: backlight_recalc_sunrise_sunset
+        - script.execute: screen_schedule_check
 
 # -----------------------------------------------------------------------------
 # Clock visibility and display update script
@@ -232,7 +233,7 @@ time:
       then:
         - script.execute: update_clock_display
         - script.execute: backlight_recalc_sunrise_sunset
-        - script.execute: backlight_check_schedule
+        - script.execute: screen_schedule_check
 
 # -----------------------------------------------------------------------------
 # Unified 60-second periodic interval for clock, backlight, and warm tones

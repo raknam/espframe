@@ -68,6 +68,9 @@ lvgl:
                   indicator:
                     bg_color: 0xFFFFFF
                     radius: 3
+    - id: screen_off_page
+      bg_color: 0x000000
+      scrollable: false
 
 # -----------------------------------------------------------------------------
 # Boot sequence: progress steps, backlight on, then show WiFi setup if not connected
@@ -80,10 +83,18 @@ esphome:
             lv_bar_set_value(id(loading_progress_bar), 25, LV_ANIM_OFF);
             lv_label_set_text(id(loading_status_label), "Initializing display");
         - delay: 100ms
-        - light.turn_on:
-            id: backlight
-            brightness: 90%
-            transition_length: 500ms
+        - if:
+            condition:
+              lambda: |-
+                return id(screen_schedule_asleep) ||
+                       (id(schedule_enabled).state && !id(sntp_time).now().is_valid());
+            then:
+              - script.execute: backlight_force_display_off
+            else:
+              - light.turn_on:
+                  id: backlight
+                  brightness: 90%
+                  transition_length: 500ms
     - priority: -100
       then:
         - lambda: |-

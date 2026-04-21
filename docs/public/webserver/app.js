@@ -81,6 +81,7 @@
     schedule_enabled: false,
     schedule_on_hour: 6,
     schedule_off_hour: 23,
+    schedule_wake_timeout: 60,
     brightness_current: 0,
     brightness_day: 100,
     brightness_night: 75,
@@ -441,9 +442,15 @@
     update_beta: eid("update", "Firmware: Update Beta"),
     auto_update: eid("switch", "Firmware: Auto Update"),
     update_frequency: eid("select", "Firmware: Update Frequency"),
-    schedule_enabled: eid("switch", "Screen: Schedule"),
-    schedule_on_hour: eid("number", "Screen: Schedule On"),
-    schedule_off_hour: eid("number", "Screen: Schedule Off"),
+    schedule_enabled: eid("switch", "Screen: Schedule Enabled"),
+    schedule_on_hour: eid("number", "Screen: Schedule On Hour"),
+    schedule_off_hour: eid("number", "Screen: Schedule Off Hour"),
+    schedule_wake_timeout: eid("number", "Screen: Schedule Wake Timeout"),
+    schedule_wake_timeout_compat: [
+      "/number/screen__schedule_wake_timeout",
+      "/number/screen_schedule_wake_timeout",
+      "/number/schedule_wake_timeout"
+    ],
     brightness_day: eid("number", "Screen: Daytime Brightness"),
     brightness_night: eid("number", "Screen: Nighttime Brightness"),
     sunrise: eid("text_sensor", "Screen: Sunrise"),
@@ -478,6 +485,14 @@
     }).catch(function (err) {
       console.error("POST " + fullUrl + " error:", err);
       showBanner("Failed to save setting", "error");
+    });
+  }
+
+  function postScheduleWakeTimeout(value) {
+    var seconds = normalizeScheduleWakeTimeout(value);
+    post(endpoints.schedule_wake_timeout + "/set", { value: seconds });
+    endpoints.schedule_wake_timeout_compat.forEach(function (url) {
+      post(url + "/set", { value: seconds });
     });
   }
 
@@ -693,9 +708,13 @@
     "text_sensor/Firmware: Version": { key: "firmware" },
     "switch/Firmware: Auto Update": { key: "auto_update", boolFromState: true },
     "select/Firmware: Update Frequency": { key: "update_frequency", optionsKey: "update_freq_options", default: "Daily" },
+    "switch/Screen: Schedule Enabled": { key: "schedule_enabled", boolFromState: true },
     "switch/Screen: Schedule": { key: "schedule_enabled", boolFromState: true },
+    "number/Screen: Schedule On Hour": { key: "schedule_on_hour", default: 6, number: true },
     "number/Screen: Schedule On": { key: "schedule_on_hour", default: 6, number: true },
+    "number/Screen: Schedule Off Hour": { key: "schedule_off_hour", default: 23, number: true },
     "number/Screen: Schedule Off": { key: "schedule_off_hour", default: 23, number: true },
+    "number/Screen: Schedule Wake Timeout": { key: "schedule_wake_timeout", default: 60, number: true },
     "number/Screen: Daytime Brightness": { key: "brightness_day", default: 100, number: true },
     "number/Screen: Nighttime Brightness": { key: "brightness_night", default: 75, number: true },
     "text_sensor/Screen: Sunrise": { key: "sunrise" },
@@ -775,7 +794,7 @@
     "date_filter_enabled", "date_filter_mode", "date_from", "date_to", "relative_amount", "relative_unit",
     "photo_orientation",
     "interval", "conn_timeout",
-    "schedule_enabled", "schedule_on_hour", "schedule_off_hour",
+    "schedule_enabled", "schedule_on_hour", "schedule_off_hour", "schedule_wake_timeout",
     "sunrise", "sunset",
     "base_tone_enabled", "base_tone", "warm_tones_enabled", "warm_tone_intensity", "warm_tone_override",
     "screen_rotation",
@@ -1826,6 +1845,15 @@
     fOffTime.appendChild(offSel);
     schedDetails.appendChild(fOffTime);
 
+    var fWakeTimeout = field("When Woken, Idle Time To Screen Off");
+    fWakeTimeout.appendChild(
+      selectFromOptions([10, 30, 60, 120, 300, 600, 1800, 3600], normalizeScheduleWakeTimeout(S.schedule_wake_timeout), function (v) {
+        S.schedule_wake_timeout = normalizeScheduleWakeTimeout(v);
+        postScheduleWakeTimeout(S.schedule_wake_timeout);
+      }, formatDurationSeconds)
+    );
+    schedDetails.appendChild(fWakeTimeout);
+
     schedBody.appendChild(schedDetails);
     wrap.appendChild(makeCollapsibleCard("Night Schedule", schedBody, true, schedBadge));
 
@@ -2038,6 +2066,8 @@
     } else if (id === "text_sensor/Screen: Sunset") {
       S.sunset = d.value || d.state || "";
       updateSunInfoElement(document.getElementById("sun-info"));
+    } else if (ENTITY_STATE_MAP[id] && ENTITY_STATE_MAP[id].key.indexOf("schedule_") === 0) {
+      if (!isEditingSetting()) renderSettings();
     }
   }
 
@@ -2063,6 +2093,24 @@
     if (h < 12) return h + ":00 AM";
     if (h === 12) return "12:00 PM";
     return (h - 12) + ":00 PM";
+  }
+
+  function normalizeScheduleWakeTimeout(value) {
+    var seconds = Math.round(Number(value));
+    if (!seconds) seconds = 60;
+    if (seconds < 10) seconds = 10;
+    if (seconds > 3600) seconds = 3600;
+    return seconds;
+  }
+
+  function formatDurationSeconds(seconds) {
+    seconds = normalizeScheduleWakeTimeout(seconds);
+    if (seconds < 60) return seconds + " seconds";
+    if (seconds % 60 === 0) {
+      var minutes = seconds / 60;
+      return minutes + (minutes === 1 ? " minute" : " minutes");
+    }
+    return seconds + " seconds";
   }
 
   // --- Select helpers ---
@@ -2253,6 +2301,7 @@
         schedule_enabled: S.schedule_enabled,
         schedule_on_hour: S.schedule_on_hour,
         schedule_off_hour: S.schedule_off_hour,
+        schedule_wake_timeout: normalizeScheduleWakeTimeout(S.schedule_wake_timeout),
         base_tone_enabled: S.base_tone_enabled,
         base_tone: S.base_tone,
         warm_tones_enabled: S.warm_tones_enabled,
@@ -2438,6 +2487,10 @@
         if (scr.schedule_off_hour !== undefined) {
           S.schedule_off_hour = scr.schedule_off_hour;
           post(endpoints.schedule_off_hour + "/set", { value: scr.schedule_off_hour });
+        }
+        if (scr.schedule_wake_timeout !== undefined) {
+          S.schedule_wake_timeout = normalizeScheduleWakeTimeout(scr.schedule_wake_timeout);
+          postScheduleWakeTimeout(S.schedule_wake_timeout);
         }
 
         if (scr.base_tone_enabled !== undefined) {

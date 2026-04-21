@@ -18,13 +18,14 @@ Display controls in **Settings**: brightness (day/night), tone, optional schedul
 
 ## Night Schedule
 
-**Night Schedule** turns the backlight off outside a time window and pauses downloads. When **Schedule Screen Off** is off, only day/night brightness applies. On/Off are hour-of-day (0–23). In HA: **Screen: Schedule**, **Schedule On**, **Schedule Off**.
+**Night Schedule** turns the display fully off outside a time window: it switches to a black page, pauses LVGL, turns the backlight light off, and forces the physical PWM output off. When **Schedule Screen Off** is off, only day/night brightness applies. On/Off are hour-of-day (0–23). In HA: **Screen: Schedule Enabled**, **Screen: Schedule On Hour**, **Screen: Schedule Off Hour**, **Screen: Schedule Wake Timeout**.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | **Schedule Screen Off** | Off | Use scheduled on/off |
 | **On Time** | 6 | Backlight on (hour) |
 | **Off Time** | 23 | Backlight off (hour) |
+| **When Woken, Idle Time To Screen Off** | 60 seconds | How long a touch wake stays on during the off period |
 
 ## Rotation
 

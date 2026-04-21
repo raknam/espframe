@@ -22,7 +22,7 @@ The export captures all user-facing settings from the current session:
 | **Frequency** | Slideshow interval, connection timeout |
 | **Clock** | Show clock, format, timezone |
 | **Screen Brightness** | Daytime brightness, nighttime brightness |
-| **Night Schedule** | Enable, on time, off time |
+| **Night Schedule** | Enable, on time, off time, wake timeout |
 | **Rotation** | Rotation |
 | **Screen Tone** | Tone adjustment, display tone, night tone adjustment, warm tone intensity, warm tone override |
 
@@ -71,6 +71,7 @@ The export is a standard JSON file with a `version` field and grouped settings:
     "schedule_enabled": false,
     "schedule_on_hour": 6,
     "schedule_off_hour": 23,
+    "schedule_wake_timeout": 60,
     "base_tone_enabled": false,
     "base_tone": 0,
     "warm_tones_enabled": false,

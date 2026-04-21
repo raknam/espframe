@@ -175,3 +175,5 @@ touchscreen:
       swap_xy: true
       mirror_x: false
       mirror_y: false
+    on_touch:
+      - script.execute: backlight_wake

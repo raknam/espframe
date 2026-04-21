@@ -178,3 +178,5 @@ touchscreen:
     i2c_id: i2c_bus_a
     reset_pin: GPIO22
     interrupt_pin: GPIO21
+    on_touch:
+      - script.execute: backlight_wake

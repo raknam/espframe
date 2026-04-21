@@ -202,7 +202,11 @@ script:
     mode: single
     then:
       - lambda: |-
-          id(touch_started_while_off) = !id(backlight).current_values.is_on();
+          bool touch_woke_display = id(touch_started_while_off) &&
+            id(wake_touch_ms) != 0 && (millis() - id(wake_touch_ms)) < 1000;
+          id(touch_started_while_off) = touch_woke_display ||
+            id(backlight_paused) || id(screen_schedule_asleep) ||
+            id(screensaver_display_off_active) || !id(backlight).current_values.is_on();
           if (id(touch_started_while_off)) id(backlight_wake).execute();
           else id(backlight_hold_timer).execute();
 
@@ -221,6 +225,9 @@ script:
                 } else {
                   id(last_short_tap_ms) = now;
                 }
+      - lambda: |-
+          id(touch_started_while_off) = false;
+          id(wake_touch_ms) = 0;
 
   - id: slideshow_on_release
     mode: single
@@ -247,12 +254,20 @@ script:
       - delay: 120s
       - if:
           condition:
-            lambda: 'return !id(backlight_paused);'
+            lambda: |-
+              return id(screen_schedule_asleep) ||
+                     (id(schedule_enabled).state && !id(sntp_time).now().is_valid());
           then:
-            - light.turn_on:
-                id: backlight
-                brightness: 50%
-                transition_length: 2s
+            - script.execute: backlight_force_display_off
+          else:
+            - if:
+                condition:
+                  lambda: 'return !id(backlight_paused);'
+                then:
+                  - light.turn_on:
+                      id: backlight
+                      brightness: 50%
+                      transition_length: 2s
 
   - id: connection_failed_shift
     mode: restart
