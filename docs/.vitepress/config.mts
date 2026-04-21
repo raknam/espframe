@@ -133,6 +133,7 @@ export default defineConfig({
           { text: 'Photo Sources', link: '/photo-sources' },
           { text: 'Firmware Update', link: '/firmware-update' },
           { text: 'Screen Settings', link: '/screen-settings' },
+          { text: 'Screen Schedule Spec', link: '/screen-schedule-spec' },
           { text: 'Screen Tone', link: '/screen-tone' },
           { text: 'Touch Controls', link: '/touch-controls' },
           { text: 'Backup & Restore', link: '/backup' },
