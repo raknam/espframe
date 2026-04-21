@@ -446,11 +446,6 @@
     schedule_on_hour: eid("number", "Screen: Schedule On Hour"),
     schedule_off_hour: eid("number", "Screen: Schedule Off Hour"),
     schedule_wake_timeout: eid("number", "Screen: Schedule Wake Timeout"),
-    schedule_wake_timeout_compat: [
-      "/number/screen__schedule_wake_timeout",
-      "/number/screen_schedule_wake_timeout",
-      "/number/schedule_wake_timeout"
-    ],
     brightness_day: eid("number", "Screen: Daytime Brightness"),
     brightness_night: eid("number", "Screen: Nighttime Brightness"),
     sunrise: eid("text_sensor", "Screen: Sunrise"),
@@ -491,9 +486,6 @@
   function postScheduleWakeTimeout(value) {
     var seconds = normalizeScheduleWakeTimeout(value);
     post(endpoints.schedule_wake_timeout + "/set", { value: seconds });
-    endpoints.schedule_wake_timeout_compat.forEach(function (url) {
-      post(url + "/set", { value: seconds });
-    });
   }
 
   // Matches the ESPHome template text max_length for album/person ID and label lists.
