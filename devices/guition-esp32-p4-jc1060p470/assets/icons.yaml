@@ -16,6 +16,24 @@ font:
       - "\U000F0493"  # mdi-cog
       - "\U000F0164"  # mdi-cloud-off-outline
 
+  - file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
+    id: icon_font_details
+    size: 30
+    bpp: 4
+    glyphs:
+      - "\U000F00ED"  # mdi-calendar
+      - "\U000F07D9"  # mdi-map-marker-outline
+      - "\U000F0976"  # mdi-image-size-select-actual
+      - "\U000F0100"  # mdi-camera
+      - "\U000F0104"  # mdi-camera-iris
+
+  - file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
+    id: icon_font_close
+    size: 36
+    bpp: 4
+    glyphs:
+      - "\U000F0156"  # mdi-close
+
 image:
   - file: "https://raw.githubusercontent.com/jtenniswood/espframe/${package_ref}/devices/guition-esp32-p4-jc1060p470/assets/lvgl-rgb565a8-marker.svg"
     id: lvgl_rgb565a8_support_marker
@@ -30,3 +48,9 @@ substitutions:
   icon_wifi: "\U000F05A9"
   icon_cog: "\U000F0493"
   icon_cloud_off: "\U000F0164"
+  icon_details_date: "\U000F00ED"
+  icon_details_location: "\U000F07D9"
+  icon_details_image: "\U000F0976"
+  icon_details_camera: "\U000F0100"
+  icon_details_lens: "\U000F0104"
+  icon_details_close: "\U000F0156"

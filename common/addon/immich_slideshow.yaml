@@ -253,6 +253,27 @@ remote_image:
         - lambda: 'id(last_downloaded_slot) = 2;'
         - script.execute: handle_slot_download_error
 
+  - id: photo_details_remote_img
+    url: "https://via.placeholder.com/1x1.jpg"
+    resize: ${details_image_width}x${display_height}
+    type: RGB565
+    byte_order: little_endian
+    request_headers:
+      x-api-key: !lambda 'return id(immich_api_key_text).state;'
+    on_download_finished:
+      then:
+        - lambda: |-
+            if (!id(photo_details_open)) return;
+            lv_img_set_src(id(photo_details_image), get_lv_image_descriptor_(id(photo_details_remote_img), 0));
+            lv_obj_clear_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
+            ESP_LOGD("immich", "DETAILS image ready");
+    on_error:
+      then:
+        - lambda: |-
+            if (!id(photo_details_open)) return;
+            lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
+            ESP_LOGW("immich", "DETAILS image decode failed");
+
   # Portrait pair half-width components (640x800 each, side-by-side)
   - id: immich_portrait_left
     url: "https://via.placeholder.com/1x1.jpg"
@@ -483,35 +504,57 @@ script:
             id(photo_details_use_companion) = false;
           }
 
-          auto set_row = [](lv_obj_t *label, const char *prefix, const std::string &value) -> bool {
+          auto set_text = [](lv_obj_t *label, const std::string &value) -> bool {
             if (value.empty()) {
               lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
               return false;
             }
-            std::string text = std::string(prefix) + value;
-            lv_label_set_text(label, text.c_str());
+            lv_label_set_text(label, value.c_str());
             lv_obj_clear_flag(label, LV_OBJ_FLAG_HIDDEN);
             return true;
           };
 
+          auto set_row = [](lv_obj_t *row, lv_obj_t *label, const std::string &value) -> bool {
+            if (value.empty()) {
+              lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
+              return false;
+            }
+            lv_label_set_text(label, value.c_str());
+            lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
+            return true;
+          };
+
           PhotoMeta &m = id(photo_details_meta);
-          std::string title = m.date.empty() ? "Photo Details" : m.date;
-          lv_label_set_text(id(photo_details_title_label), title.c_str());
+          lv_label_set_text(id(photo_details_title_label), "Details");
 
           int rows = 0;
           std::string people = m.people.empty() ? m.person : m.people;
-          if (set_row(id(photo_details_people_label), "People: ", people)) rows++;
-          if (set_row(id(photo_details_date_label), "Taken: ", m.date_taken)) rows++;
-          if (set_row(id(photo_details_location_label), "Location: ", m.location)) rows++;
-          if (set_row(id(photo_details_format_label), "Image: ", m.image_format)) rows++;
-          if (set_row(id(photo_details_camera_label), "Camera: ", m.camera)) rows++;
-          if (set_row(id(photo_details_settings_label), "Settings: ", m.camera_settings)) rows++;
-          if (set_row(id(photo_details_lens_label), "Lens: ", m.lens)) rows++;
+          if (set_text(id(photo_details_people_label), people)) rows++;
+          if (set_row(id(photo_details_date_row), id(photo_details_date_label), m.date_taken)) rows++;
+          if (set_row(id(photo_details_format_row), id(photo_details_format_label), m.image_format)) rows++;
+
+          std::string camera = m.camera;
+          if (!m.camera_settings.empty()) {
+            if (!camera.empty()) camera += "\n";
+            camera += m.camera_settings;
+          }
+          if (set_row(id(photo_details_camera_row), id(photo_details_camera_label), camera)) rows++;
+          if (set_row(id(photo_details_lens_row), id(photo_details_lens_label), m.lens)) rows++;
+          if (set_row(id(photo_details_location_row), id(photo_details_location_label), m.location)) rows++;
 
           if (rows == 0) {
             lv_obj_clear_flag(id(photo_details_empty_label), LV_OBJ_FLAG_HIDDEN);
           } else {
             lv_obj_add_flag(id(photo_details_empty_label), LV_OBJ_FLAG_HIDDEN);
+          }
+
+          lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
+          id(photo_details_remote_img).abort_download();
+          id(photo_details_remote_img).release();
+          if (!m.image_url.empty()) {
+            id(photo_details_remote_img).set_fill_mode(id(photo_display_mode).current_option() == "Fill");
+            id(photo_details_remote_img).set_url(m.image_url);
+            id(photo_details_remote_img).update();
           }
 
           lv_obj_add_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
@@ -526,6 +569,9 @@ script:
           if (!id(photo_details_open)) return;
           id(photo_details_open) = false;
           id(photo_details_use_companion) = false;
+          id(photo_details_remote_img).abort_download();
+          id(photo_details_remote_img).release();
+          lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
           lv_obj_add_flag(id(photo_details_overlay), LV_OBJ_FLAG_HIDDEN);
           id(immich_last_advance_ms) = millis();
           id(last_photo_displayed_ms) = millis();

@@ -9,9 +9,12 @@
 substitutions:
   immich_slide_interval: "2 minutes"
   slideshow_check_interval: "2s"
-  details_panel_width: "360"
+  details_image_width: "684"
+  details_panel_width: "340"
   details_panel_x_pad: "28"
-  details_panel_content_width: "300"
+  details_panel_content_width: "284"
+  details_icon_width: "30"
+  details_row_text_width: "242"
 
 # =============================================================================
 # LVGL UI
@@ -197,8 +200,8 @@ lvgl:
                         text_align: center
         - obj:
             id: photo_details_overlay
-            align: TOP_RIGHT
-            width: ${details_panel_width}
+            align: CENTER
+            width: ${display_width}
             height: ${display_height}
             radius: 0
             bg_color: 0x000000
@@ -206,112 +209,250 @@ lvgl:
             border_width: 0
             pad_all: 0
             scrollable: false
-            clickable: false
+            clickable: true
             hidden: true
             widgets:
               - obj:
-                  x: ${details_panel_x_pad}
-                  y: 76
-                  width: ${details_panel_content_width}
-                  height: 500
-                  bg_opa: 0%
+                  x: 0
+                  y: 0
+                  width: ${details_image_width}
+                  height: ${display_height}
+                  bg_color: 0x000000
+                  bg_opa: 100%
                   border_width: 0
                   pad_all: 0
                   scrollable: false
                   clickable: false
-                  layout:
-                    type: flex
-                    flex_flow: COLUMN
-                    flex_align_main: START
-                    flex_align_cross: START
-                    pad_row: 10
+                  widgets:
+                    - image:
+                        id: photo_details_image
+                        align: CENTER
+                        src: photo_details_remote_img
+                        hidden: true
+                        scrollable: false
+                        clickable: false
+              - obj:
+                  align: TOP_RIGHT
+                  width: ${details_panel_width}
+                  height: ${display_height}
+                  bg_color: 0x000000
+                  bg_opa: 100%
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: true
                   widgets:
                     - label:
                         id: photo_details_title_label
-                        text: "Photo Details"
+                        x: ${details_panel_x_pad}
+                        y: 42
+                        text: "Details"
                         width: ${details_panel_content_width}
-                        text_font: roboto_light32_font
-                        text_color: 0xE6E6E6
+                        text_font: roboto_light24_font
+                        text_color: 0x8E8E93
                         long_mode: WRAP
-                    - label:
-                        id: photo_details_people_label
-                        text: ""
+                    - obj:
+                        x: ${details_panel_x_pad}
+                        y: 96
                         width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_date_label
-                        text: ""
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_location_label
-                        text: ""
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_format_label
-                        text: ""
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_camera_label
-                        text: ""
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_settings_label
-                        text: ""
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_lens_label
-                        text: ""
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0xD8D8D8
-                        long_mode: WRAP
-                    - label:
-                        id: photo_details_empty_label
-                        text: "Metadata unavailable"
-                        width: ${details_panel_content_width}
-                        text_font: roboto30_font
-                        text_color: 0x888888
-                        hidden: true
-                        long_mode: WRAP
-              - obj:
-                  id: photo_details_close_button
-                  align: TOP_RIGHT
-                  x: -12
-                  y: 8
-                  width: 76
-                  height: 76
-                  radius: 0
-                  bg_opa: 0%
-                  border_width: 0
-                  scrollable: false
-                  clickable: true
-                  on_press:
-                    then:
-                      - script.execute: close_photo_details
-                  widgets:
-                    - label:
-                        align: CENTER
-                        text: "X"
-                        text_font: roboto_light46_font
-                        text_color: 0xFFFFFF
+                        height: 390
+                        bg_opa: 0%
+                        border_width: 0
+                        pad_all: 0
+                        scrollable: false
                         clickable: false
+                        layout:
+                          type: flex
+                          flex_flow: COLUMN
+                          flex_align_main: START
+                          flex_align_cross: START
+                          pad_row: 14
+                        widgets:
+                          - label:
+                              id: photo_details_people_label
+                              text: ""
+                              width: ${details_panel_content_width}
+                              text_font: roboto24_font
+                              text_color: 0xD8D8D8
+                              hidden: true
+                              long_mode: WRAP
+                          - obj:
+                              id: photo_details_date_row
+                              width: ${details_panel_content_width}
+                              height: SIZE_CONTENT
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
+                              layout:
+                                type: flex
+                                flex_flow: ROW
+                                flex_align_main: START
+                                flex_align_cross: START
+                                pad_column: 12
+                              widgets:
+                                - label:
+                                    text: $icon_details_date
+                                    width: ${details_icon_width}
+                                    text_font: icon_font_details
+                                    text_color: 0xD8D8D8
+                                - label:
+                                    id: photo_details_date_label
+                                    text: ""
+                                    width: ${details_row_text_width}
+                                    text_font: roboto24_font
+                                    text_color: 0xD8D8D8
+                                    long_mode: WRAP
+                          - obj:
+                              id: photo_details_format_row
+                              width: ${details_panel_content_width}
+                              height: SIZE_CONTENT
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
+                              layout:
+                                type: flex
+                                flex_flow: ROW
+                                flex_align_main: START
+                                flex_align_cross: START
+                                pad_column: 12
+                              widgets:
+                                - label:
+                                    text: $icon_details_image
+                                    width: ${details_icon_width}
+                                    text_font: icon_font_details
+                                    text_color: 0xD8D8D8
+                                - label:
+                                    id: photo_details_format_label
+                                    text: ""
+                                    width: ${details_row_text_width}
+                                    text_font: roboto24_font
+                                    text_color: 0xD8D8D8
+                                    long_mode: WRAP
+                          - obj:
+                              id: photo_details_camera_row
+                              width: ${details_panel_content_width}
+                              height: SIZE_CONTENT
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
+                              layout:
+                                type: flex
+                                flex_flow: ROW
+                                flex_align_main: START
+                                flex_align_cross: START
+                                pad_column: 12
+                              widgets:
+                                - label:
+                                    text: $icon_details_camera
+                                    width: ${details_icon_width}
+                                    text_font: icon_font_details
+                                    text_color: 0xD8D8D8
+                                - label:
+                                    id: photo_details_camera_label
+                                    text: ""
+                                    width: ${details_row_text_width}
+                                    text_font: roboto24_font
+                                    text_color: 0xD8D8D8
+                                    long_mode: WRAP
+                          - obj:
+                              id: photo_details_lens_row
+                              width: ${details_panel_content_width}
+                              height: SIZE_CONTENT
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
+                              layout:
+                                type: flex
+                                flex_flow: ROW
+                                flex_align_main: START
+                                flex_align_cross: START
+                                pad_column: 12
+                              widgets:
+                                - label:
+                                    text: $icon_details_lens
+                                    width: ${details_icon_width}
+                                    text_font: icon_font_details
+                                    text_color: 0xD8D8D8
+                                - label:
+                                    id: photo_details_lens_label
+                                    text: ""
+                                    width: ${details_row_text_width}
+                                    text_font: roboto24_font
+                                    text_color: 0xD8D8D8
+                                    long_mode: WRAP
+                          - label:
+                              id: photo_details_empty_label
+                              text: "Metadata unavailable"
+                              width: ${details_panel_content_width}
+                              text_font: roboto24_font
+                              text_color: 0x888888
+                              hidden: true
+                              long_mode: WRAP
+                    - obj:
+                        id: photo_details_location_row
+                        align: BOTTOM_LEFT
+                        x: ${details_panel_x_pad}
+                        y: -34
+                        width: ${details_panel_content_width}
+                        height: SIZE_CONTENT
+                        bg_opa: 0%
+                        border_width: 0
+                        pad_all: 0
+                        scrollable: false
+                        clickable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_main: START
+                          flex_align_cross: START
+                          pad_column: 12
+                        widgets:
+                          - label:
+                              text: $icon_details_location
+                              width: ${details_icon_width}
+                              text_font: icon_font_details
+                              text_color: 0xD8D8D8
+                          - label:
+                              id: photo_details_location_label
+                              text: ""
+                              width: ${details_row_text_width}
+                              text_font: roboto24_font
+                              text_color: 0xD8D8D8
+                              long_mode: WRAP
+                    - obj:
+                        id: photo_details_close_button
+                        align: TOP_RIGHT
+                        x: -24
+                        y: 20
+                        width: 58
+                        height: 58
+                        radius: 29
+                        bg_color: 0xFFFFFF
+                        bg_opa: 100%
+                        border_width: 0
+                        scrollable: false
+                        clickable: true
+                        on_press:
+                          then:
+                            - script.execute: close_photo_details
+                        on_release:
+                          then:
+                            - script.execute: close_photo_details
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: $icon_details_close
+                              text_font: icon_font_close
+                              text_color: 0x000000
+                              clickable: false
 
 # =============================================================================
 # CONNECTION FAILED DIM TIMER
