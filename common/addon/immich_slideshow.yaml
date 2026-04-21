@@ -483,21 +483,6 @@ script:
             id(photo_details_use_companion) = false;
           }
 
-          esphome::image::Image *img = nullptr;
-          if (show_companion) {
-            img = id(portrait).using_preload ? id(immich_portrait_preload_right) : id(immich_portrait_right);
-          } else if (id(portrait).is_pair) {
-            img = id(portrait).using_preload ? id(immich_portrait_preload_left) : id(immich_portrait_left);
-          } else {
-            esphome::image::Image *imgs[] = { id(immich_img_0), id(immich_img_1), id(immich_img_2) };
-            img = imgs[active];
-          }
-          if (img != nullptr) {
-            lv_img_set_src(id(photo_details_img), get_lv_image_descriptor_(img, 0));
-            lv_img_set_zoom(id(photo_details_img),
-                            fit_image_zoom_to_bounds(img, ${details_image_max_width}, ${details_image_max_height}, 205));
-          }
-
           auto set_row = [](lv_obj_t *label, const char *prefix, const std::string &value) -> bool {
             if (value.empty()) {
               lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
@@ -529,6 +514,7 @@ script:
             lv_obj_add_flag(id(photo_details_empty_label), LV_OBJ_FLAG_HIDDEN);
           }
 
+          lv_obj_add_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
           lv_obj_clear_flag(id(photo_details_overlay), LV_OBJ_FLAG_HIDDEN);
           lv_obj_move_foreground(id(photo_details_overlay));
           ESP_LOGI("immich", "DETAILS open: %s", m.asset_id.c_str());

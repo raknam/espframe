@@ -230,20 +230,6 @@ template<typename T> auto get_lv_image_descriptor_(T *img, long) -> decltype(img
   return img->get_lv_img_dsc();
 }
 
-inline uint16_t fit_image_zoom_to_bounds(esphome::image::Image *img, int max_w, int max_h,
-                                         uint16_t max_zoom = ZOOM_IDENTITY) {
-  if (!img || max_w <= 0 || max_h <= 0) return ZOOM_IDENTITY;
-  int img_w = img->get_width();
-  int img_h = img->get_height();
-  if (img_w <= 0 || img_h <= 0) return ZOOM_IDENTITY;
-  int zoom_w = (max_w * ZOOM_IDENTITY) / img_w;
-  int zoom_h = (max_h * ZOOM_IDENTITY) / img_h;
-  int zoom = zoom_w < zoom_h ? zoom_w : zoom_h;
-  if (zoom > (int) max_zoom) zoom = max_zoom;
-  if (zoom < 1) zoom = 1;
-  return (uint16_t) zoom;
-}
-
 inline void fill_accent_color(esphome::image::Image *img) {
   int img_w = img->get_width();
   int img_h = img->get_height();

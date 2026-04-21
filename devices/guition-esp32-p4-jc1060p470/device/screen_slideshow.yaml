@@ -9,10 +9,9 @@
 substitutions:
   immich_slide_interval: "2 minutes"
   slideshow_check_interval: "2s"
-  details_image_max_width: "430"
-  details_image_max_height: "480"
-  details_meta_x: "520"
-  details_meta_width: "460"
+  details_panel_width: "360"
+  details_panel_x_pad: "28"
+  details_panel_content_width: "300"
 
 # =============================================================================
 # LVGL UI
@@ -198,8 +197,8 @@ lvgl:
                         text_align: center
         - obj:
             id: photo_details_overlay
-            align: CENTER
-            width: ${display_width}
+            align: TOP_RIGHT
+            width: ${details_panel_width}
             height: ${display_height}
             radius: 0
             bg_color: 0x000000
@@ -207,30 +206,13 @@ lvgl:
             border_width: 0
             pad_all: 0
             scrollable: false
-            clickable: true
+            clickable: false
             hidden: true
             widgets:
               - obj:
-                  x: 36
-                  y: 64
-                  width: ${details_image_max_width}
-                  height: ${details_image_max_height}
-                  bg_opa: 0%
-                  border_width: 0
-                  pad_all: 0
-                  scrollable: false
-                  clickable: false
-                  widgets:
-                    - image:
-                        id: photo_details_img
-                        align: CENTER
-                        src: immich_img_0
-                        scrollable: false
-                        clickable: false
-              - obj:
-                  x: ${details_meta_x}
+                  x: ${details_panel_x_pad}
                   y: 76
-                  width: ${details_meta_width}
+                  width: ${details_panel_content_width}
                   height: 500
                   bg_opa: 0%
                   border_width: 0
@@ -247,63 +229,63 @@ lvgl:
                     - label:
                         id: photo_details_title_label
                         text: "Photo Details"
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto_light32_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xE6E6E6
                         long_mode: WRAP
                     - label:
                         id: photo_details_people_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_date_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_location_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_format_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_camera_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_settings_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_lens_label
                         text: ""
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
-                        text_color: 0xFFFFFF
+                        text_color: 0xD8D8D8
                         long_mode: WRAP
                     - label:
                         id: photo_details_empty_label
                         text: "Metadata unavailable"
-                        width: ${details_meta_width}
+                        width: ${details_panel_content_width}
                         text_font: roboto30_font
                         text_color: 0x888888
                         hidden: true
@@ -311,18 +293,16 @@ lvgl:
               - obj:
                   id: photo_details_close_button
                   align: TOP_RIGHT
-                  x: -20
-                  y: 16
-                  width: 64
-                  height: 64
-                  radius: 8
-                  bg_color: 0x181818
-                  bg_opa: 90%
-                  border_width: 1
-                  border_color: 0x444444
+                  x: -12
+                  y: 8
+                  width: 76
+                  height: 76
+                  radius: 0
+                  bg_opa: 0%
+                  border_width: 0
                   scrollable: false
                   clickable: true
-                  on_release:
+                  on_press:
                     then:
                       - script.execute: close_photo_details
                   widgets:
