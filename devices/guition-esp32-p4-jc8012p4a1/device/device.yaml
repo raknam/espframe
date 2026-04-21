@@ -175,3 +175,22 @@ touchscreen:
       swap_xy: true
       mirror_x: false
       mirror_y: false
+    on_touch:
+      then:
+        - lambda: |-
+            if (!id(photo_details_open)) return;
+
+            int32_t screen_x = 0;
+            int32_t screen_y = 0;
+            if (id(screen_rotation_select).current_option() == "180") {
+              screen_x = ${display_width} - touch.y - 1;
+              screen_y = touch.x;
+            } else {
+              screen_x = touch.y;
+              screen_y = ${display_height} - touch.x - 1;
+            }
+
+            if (screen_x >= (${display_width} - 180) && screen_y <= 180) {
+              ESP_LOGI("immich", "DETAILS close touch: raw=%d,%d screen=%d,%d", touch.x, touch.y, screen_x, screen_y);
+              id(close_photo_details).execute();
+            }

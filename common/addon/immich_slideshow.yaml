@@ -576,10 +576,31 @@ script:
           id(photo_details_remote_img).abort_download();
           id(photo_details_remote_img).release();
           lv_obj_add_flag(id(photo_details_image), LV_OBJ_FLAG_HIDDEN);
+          lv_img_set_src(id(photo_details_image), static_cast<const void *>(nullptr));
           lv_obj_add_flag(id(photo_details_overlay), LV_OBJ_FLAG_HIDDEN);
+          lv_obj_move_background(id(photo_details_overlay));
+
+          int s = id(active_slot);
+          if (s < 0 || s > 2) s = 0;
+          auto &meta = get_slot(s, id(slot0), id(slot1), id(slot2));
+          esphome::image::Image *imgs[] = { id(immich_img_0), id(immich_img_1), id(immich_img_2) };
+          if (id(portrait).is_pair) {
+            lv_img_set_zoom(id(slideshow_img), ZOOM_IDENTITY);
+            lv_obj_add_flag(id(slideshow_img), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            if (meta.ready) {
+              lv_img_set_src(id(slideshow_img), get_lv_image_descriptor_(imgs[s], 0));
+              lv_img_set_zoom(id(slideshow_img), meta.zoom);
+            }
+            lv_obj_clear_flag(id(slideshow_img), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
+          }
+          id(active_slot_displayed) = true;
           id(immich_last_advance_ms) = millis();
           id(last_photo_displayed_ms) = millis();
           ESP_LOGI("immich", "DETAILS closed");
+      - lvgl.page.show: slideshow_page
       - script.execute: update_clock_display
       - script.execute: delayed_prefetch_chain
 

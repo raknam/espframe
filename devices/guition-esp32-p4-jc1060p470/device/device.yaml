@@ -178,3 +178,19 @@ touchscreen:
     i2c_id: i2c_bus_a
     reset_pin: GPIO22
     interrupt_pin: GPIO21
+    on_touch:
+      then:
+        - lambda: |-
+            if (!id(photo_details_open)) return;
+
+            int32_t screen_x = touch.x;
+            int32_t screen_y = touch.y;
+            if (id(screen_rotation_select).current_option() == "180") {
+              screen_x = ${display_width} - touch.x - 1;
+              screen_y = ${display_height} - touch.y - 1;
+            }
+
+            if (screen_x >= (${display_width} - 180) && screen_y <= 180) {
+              ESP_LOGI("immich", "DETAILS close touch: raw=%d,%d screen=%d,%d", touch.x, touch.y, screen_x, screen_y);
+              id(close_photo_details).execute();
+            }
