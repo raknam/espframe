@@ -49,7 +49,6 @@ struct PhotoMeta {
   // Stable metadata shown with a photo, independent of which slideshow slot is
   // currently carrying it.
   std::string asset_id, image_url, date, location, person;
-  std::string people, date_taken, image_format, camera, camera_settings, lens;
   int year = 0, month = 0;
   uint16_t zoom = ZOOM_IDENTITY;
 };
@@ -57,9 +56,7 @@ struct PhotoMeta {
 struct SlotMeta : PhotoMeta {
   // Runtime state for one slot in the 3-image ring buffer.
   std::string datetime, companion_url, pending_asset_id;
-  PhotoMeta companion;
   bool ready = false, is_portrait = false;
-  bool companion_valid = false;
 };
 
 struct DisplayMeta : PhotoMeta {
@@ -190,23 +187,6 @@ inline void copy_slot_to_display(const SlotMeta &slot, DisplayMeta &disp) {
 
 inline void copy_display_to_slot(const DisplayMeta &disp, SlotMeta &slot) {
   static_cast<PhotoMeta&>(slot) = static_cast<const PhotoMeta&>(disp);
-}
-
-inline void copy_immich_asset_to_photo(const ImmichAssetMeta &src, PhotoMeta &dst) {
-  dst.asset_id = src.asset_id;
-  dst.image_url = src.image_url;
-  dst.date = src.date;
-  dst.location = src.location;
-  dst.person = src.person;
-  dst.people = src.people;
-  dst.date_taken = src.date_taken;
-  dst.image_format = src.image_format;
-  dst.camera = src.camera;
-  dst.camera_settings = src.camera_settings;
-  dst.lens = src.lens;
-  dst.year = src.year;
-  dst.month = src.month;
-  dst.zoom = src.zoom;
 }
 
 // ============================================================================
@@ -419,11 +399,16 @@ inline std::string parse_immich_asset_and_fill_slot(const std::string &body,
   if (img_url.empty()) return "";
 
   SlotMeta *meta = (slot == 0) ? &s0 : (slot == 1) ? &s1 : &s2;
-  copy_immich_asset_to_photo(tmp, *meta);
+  meta->asset_id = tmp.asset_id;
+  meta->image_url = tmp.image_url;
+  meta->date = tmp.date;
+  meta->location = tmp.location;
+  meta->person = tmp.person;
+  meta->year = tmp.year;
+  meta->month = tmp.month;
+  meta->zoom = tmp.zoom;
   meta->datetime = tmp.datetime;
   meta->companion_url = "";
-  meta->companion = PhotoMeta{};
-  meta->companion_valid = false;
   meta->pending_asset_id = tmp.asset_id;
   meta->is_portrait = tmp.is_portrait;
   return img_url;
