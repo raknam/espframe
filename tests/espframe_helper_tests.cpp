@@ -1,0 +1,215 @@
+#include <cassert>
+#include <cstdint>
+#include <iostream>
+#include <string>
+
+#include "components/espframe/date_utils.h"
+#include "components/espframe/immich_helpers.h"
+
+struct PhotoMeta {
+  std::string asset_id, image_url, date, location, person;
+  int year = 0, month = 0, day = 0;
+  uint16_t zoom = ZOOM_IDENTITY;
+};
+
+struct SlotMeta : PhotoMeta {
+  std::string datetime, companion_url, pending_asset_id;
+  bool ready = false, is_portrait = false;
+};
+
+struct DisplayMeta : PhotoMeta {
+  bool valid = false;
+};
+
+struct SlotFlags {
+  bool fetch_in_flight[3] = {false, false, false};
+  uint32_t fetch_started_ms[3] = {0, 0, 0};
+  bool noncritical_update[3] = {false, false, false};
+};
+
+struct PortraitState {
+  bool left_ready = false, right_ready = false;
+  bool no_companion_active = false, left_requested = false, right_requested = false;
+  bool companion_found = false, is_pair = false;
+  bool using_preload = false, workflow_busy = false;
+};
+
+inline void clear_noncritical(int s, SlotFlags &f, int &nc_count) {
+  if (f.noncritical_update[s]) {
+    f.noncritical_update[s] = false;
+    if (nc_count > 0) nc_count--;
+  }
+}
+
+inline void clear_slot_fetch_in_flight(int s, SlotFlags &f) {
+  f.fetch_in_flight[s] = false;
+  f.fetch_started_ms[s] = 0;
+}
+
+inline bool handle_slot_download_complete(int slot, SlotMeta &meta,
+                                          SlotFlags &flags, int &nc_count,
+                                          int &retries) {
+  if (meta.asset_id != meta.pending_asset_id) {
+    clear_slot_fetch_in_flight(slot, flags);
+    clear_noncritical(slot, flags, nc_count);
+    return false;
+  }
+  meta.ready = true;
+  clear_slot_fetch_in_flight(slot, flags);
+  clear_noncritical(slot, flags, nc_count);
+  retries = 0;
+  return true;
+}
+
+inline void copy_slot_to_display(const SlotMeta &slot, DisplayMeta &disp) {
+  static_cast<PhotoMeta &>(disp) = static_cast<const PhotoMeta &>(slot);
+}
+
+#include "components/espframe/slideshow_controller.h"
+
+static void test_date_and_url_helpers() {
+  assert(normalize_immich_base_url(" immich.local:2283/") == "http://immich.local:2283");
+  assert(normalize_immich_base_url("//photos.example.com/") == "https://photos.example.com");
+  assert(normalize_immich_base_url("HTTPS://photos.example.com///") == "https://photos.example.com");
+  assert(format_photo_age(2026, 4, 21, 2026, 4, 21) == "today");
+  assert(format_photo_age(2026, 4, 1, 2026, 4, 21) == "20 days ago");
+  assert(format_photo_date_full(2026, 4, 21) == "21 April 2026");
+}
+
+static void test_immich_body_helpers() {
+  ImmichDateRange range = resolve_immich_date_filter(
+      true, "Relative Range", 1, "Months", true, 2026, 3, 31, "", "");
+  assert(range.from == "2026-02-28");
+  assert(range.to == "2026-03-31");
+  assert(!range.relative_skipped_for_invalid_time);
+  assert(build_immich_date_filter_extra(range) ==
+         "\"takenAfter\":\"2026-02-28T00:00:00.000Z\","
+         "\"takenBefore\":\"2026-03-31T23:59:59.999Z\"");
+
+  ImmichDateRange skipped = resolve_immich_date_filter(
+      true, "Relative Range", 2, "Years", false, 0, 0, 0, "", "");
+  assert(skipped.relative_skipped_for_invalid_time);
+  assert(skipped.from.empty());
+  assert(skipped.to.empty());
+
+  ImmichDateRange fixed = resolve_immich_date_filter(
+      true, "Fixed Range", 1, "Months", true, 2026, 4, 21,
+      "2024-05-01", "2024-05-31");
+  assert(build_immich_companion_date_filter_extra("2024-05-10", fixed) ==
+         "\"takenAfter\":\"2024-05-10T00:00:00.000Z\","
+         "\"takenBefore\":\"2024-05-10T23:59:59.999Z\"");
+
+  assert(build_uuid_json_array(" a, b ,, c ") == "[\"a\",\"b\",\"c\"]");
+  assert(build_immich_search_body(1, true, "Favorites", "", "").find("\"isFavorite\":true") !=
+         std::string::npos);
+  assert(build_immich_search_body(1, false, "Person", "", "p1,p2").find("\"personIds\":[\"p1\"]") !=
+         std::string::npos);
+}
+
+static SlotMeta make_slot(const std::string &asset_id, bool portrait) {
+  SlotMeta meta;
+  meta.asset_id = asset_id;
+  meta.pending_asset_id = asset_id;
+  meta.image_url = "https://example.test/" + asset_id;
+  meta.datetime = "2026-04-21T12:34:56";
+  meta.is_portrait = portrait;
+  return meta;
+}
+
+static void test_slideshow_slot_actions() {
+  SlotFlags flags;
+  int noncritical_count = 0;
+  int retries = 2;
+  bool displayed = false;
+  DisplayMeta current;
+  PortraitState portrait;
+  int companion_slot = -1;
+  std::string search_datetime;
+  std::string primary_asset_id;
+
+  SlotMeta active = make_slot("landscape", false);
+  flags.fetch_in_flight[0] = true;
+  SlideshowAction action = SlideshowController::handle_slot_download_finished(
+      0, active, flags, noncritical_count, retries, 0, true, displayed, current,
+      portrait, companion_slot, -1, search_datetime, primary_asset_id);
+  assert(action == SLIDESHOW_ACTION_DISPLAY_CURRENT);
+  assert(active.ready);
+  assert(displayed);
+  assert(current.asset_id == "landscape");
+  assert(!flags.fetch_in_flight[0]);
+  assert(retries == 0);
+
+  displayed = false;
+  current = DisplayMeta{};
+  SlotMeta active_portrait = make_slot("portrait-active", true);
+  action = SlideshowController::handle_slot_download_finished(
+      1, active_portrait, flags, noncritical_count, retries, 1, true, displayed, current,
+      portrait, companion_slot, -1, search_datetime, primary_asset_id);
+  assert(action == SLIDESHOW_ACTION_START_ACTIVE_PAIR);
+  assert(!displayed);
+  assert(current.asset_id == "portrait-active");
+
+  SlotMeta queued_portrait = make_slot("portrait-prefetch", true);
+  action = SlideshowController::handle_slot_download_finished(
+      2, queued_portrait, flags, noncritical_count, retries, 0, true, displayed, current,
+      portrait, companion_slot, -1, search_datetime, primary_asset_id);
+  assert(action == SLIDESHOW_ACTION_FETCH_COMPANION);
+  assert(companion_slot == 2);
+  assert(search_datetime == queued_portrait.datetime);
+  assert(primary_asset_id == queued_portrait.asset_id);
+
+  SlotMeta stale = make_slot("new", false);
+  stale.pending_asset_id = "old";
+  flags.fetch_in_flight[0] = true;
+  action = SlideshowController::handle_slot_download_finished(
+      0, stale, flags, noncritical_count, retries, 0, true, displayed, current,
+      portrait, companion_slot, -1, search_datetime, primary_asset_id);
+  assert(action == SLIDESHOW_ACTION_NONE);
+  assert(!stale.ready);
+  assert(!flags.fetch_in_flight[0]);
+}
+
+static void test_fetch_queue_and_error_handling() {
+  SlotMeta slot0 = make_slot("active", false);
+  SlotMeta slot1 = make_slot("next", false);
+  SlotMeta slot2 = make_slot("next-next", false);
+  slot0.ready = true;
+  slot1.ready = false;
+  slot2.ready = false;
+
+  SlotFlags flags;
+  flags.fetch_in_flight[2] = true;
+  FetchQueue queue;
+  assert(SlideshowController::enqueue_prefetch_slots(queue, 0, slot0, slot1, slot2, flags, 1234));
+  FetchJob job;
+  assert(queue.pop(job));
+  assert(job.kind == FETCH_JOB_SLOT);
+  assert(job.slot == 1);
+  assert(job.priority == 20);
+  assert(job.queued_ms == 1234);
+  assert(queue.empty());
+
+  int noncritical_count = 1;
+  std::string reason;
+  int last_downloaded = -1;
+  flags.fetch_in_flight[1] = true;
+  flags.fetch_started_ms[1] = 4321;
+  flags.noncritical_update[1] = true;
+  SlideshowController::handle_slot_download_error(
+      1, flags, noncritical_count, reason, last_downloaded, "slot1 image error");
+  assert(!flags.fetch_in_flight[1]);
+  assert(flags.fetch_started_ms[1] == 0);
+  assert(!flags.noncritical_update[1]);
+  assert(noncritical_count == 0);
+  assert(reason == "slot1 image error");
+  assert(last_downloaded == 1);
+}
+
+int main() {
+  test_date_and_url_helpers();
+  test_immich_body_helpers();
+  test_slideshow_slot_actions();
+  test_fetch_queue_and_error_handling();
+  std::cout << "espframe helper tests passed\n";
+  return 0;
+}

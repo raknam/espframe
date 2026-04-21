@@ -12,6 +12,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/**"
+      - "tests/**"
 
 permissions:
   contents: read
@@ -36,6 +37,9 @@ jobs:
 
       - name: Check generated files
         run: npm run check:generated
+
+      - name: Run helper unit tests
+        run: npm run test:helpers
 
       - name: Build docs
         run: npm run docs:build
