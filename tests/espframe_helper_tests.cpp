@@ -561,6 +561,57 @@ static void test_slideshow_component_previous_flow() {
   assert(cmd.kind == SLIDESHOW_COMMAND_LOG_NO_PREVIOUS);
 }
 
+static void test_slideshow_component_companion_result_flow() {
+  EspFrameSlideshow slideshow;
+  SlotMeta slot0 = make_slot("active-portrait", true);
+  SlotMeta slot1 = make_slot("prefetch-portrait", true);
+  SlotMeta slot2 = make_slot("slot2", false);
+  PortraitState portrait;
+  std::string companion_url;
+  int preload_slot = -1;
+  bool preload_left_ready = true;
+  bool preload_right_ready = true;
+
+  bool handled = slideshow.on_companion_found(
+      "https://example.test/companion", portrait, companion_url, 0, 0,
+      slot0, slot1, slot2, preload_slot, preload_left_ready, preload_right_ready);
+  assert(handled);
+  assert(portrait.companion_found);
+  assert(portrait.left_requested);
+  assert(companion_url == "https://example.test/companion");
+  assert(slot0.companion_url == companion_url);
+  SlideshowCommand cmd;
+  assert(slideshow.pop_command(cmd));
+  assert(cmd.kind == SLIDESHOW_COMMAND_START_PORTRAIT_LEFT);
+  assert(cmd.slot == 0);
+
+  portrait = PortraitState{};
+  companion_url = "";
+  handled = slideshow.on_companion_found(
+      "https://example.test/preload-companion", portrait, companion_url, 1, 0,
+      slot0, slot1, slot2, preload_slot, preload_left_ready, preload_right_ready);
+  assert(handled);
+  assert(preload_slot == 1);
+  assert(!preload_left_ready);
+  assert(!preload_right_ready);
+  assert(slot1.companion_url == "https://example.test/preload-companion");
+  assert(slideshow.pop_command(cmd));
+  assert(cmd.kind == SLIDESHOW_COMMAND_START_PRELOAD_LEFT);
+  assert(cmd.slot == 1);
+
+  bool displayed = false;
+  portrait.workflow_busy = true;
+  slideshow.handle_companion_not_found(
+      portrait, companion_url, 0, 0, slot0, slot1, slot2, displayed);
+  assert(!portrait.companion_found);
+  assert(portrait.no_companion_active);
+  assert(!portrait.workflow_busy);
+  assert(displayed);
+  assert(slot0.companion_url.empty());
+  assert(slideshow.pop_command(cmd));
+  assert(cmd.kind == SLIDESHOW_COMMAND_DISPLAY_CURRENT);
+}
+
 int main() {
   test_date_and_url_helpers();
   test_immich_body_helpers();
@@ -572,6 +623,7 @@ int main() {
   test_slideshow_component_preload_flow();
   test_slideshow_component_navigation_flow();
   test_slideshow_component_previous_flow();
+  test_slideshow_component_companion_result_flow();
   std::cout << "espframe helper tests passed\n";
   return 0;
 }

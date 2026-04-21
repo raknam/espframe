@@ -27,21 +27,11 @@ script:
     mode: single
     then:
       - lambda: |-
-          id(portrait).companion_found = false;
-          id(portrait_companion_url) = "";
-          id(portrait).left_requested = false;
-          id(portrait).right_requested = false;
-          int ts = id(companion_target_slot);
-          auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
-          meta.companion_url = "";
-          if (id(companion_target_slot) == id(active_slot)) {
-            id(portrait).no_companion_active = true;
-            id(portrait).workflow_busy = false;
-            if (!id(active_slot_displayed)) {
-              id(active_slot_displayed) = true;
-              id(immich_display_current).execute();
-            }
-          }
+          id(espframe_core).slideshow().handle_companion_not_found(
+            id(portrait), id(portrait_companion_url), id(companion_target_slot),
+            id(active_slot), id(slot0), id(slot1), id(slot2),
+            id(active_slot_displayed));
+          id(espframe_slideshow_dispatch).execute();
 
   # ---------------------------------------------------------------------------
   # Fetch a memory ("on this day") — step 1: pick a random asset from memories
@@ -440,87 +430,20 @@ script:
                     id(handle_companion_not_found).execute();
                     return;
                   }
-                  auto doc = json::parse_json(body);
-                  if (doc.isNull() || !doc.is<JsonArray>()) {
-                    ESP_LOGW("immich", "Companion search: no results");
-                    id(handle_companion_not_found).execute();
-                    return;
-                  }
-                  JsonArray arr = doc.as<JsonArray>();
-                  std::string primary_id = id(portrait_primary_asset_id);
-                  std::string base = id(immich_url).state;
-                  std::string companion_url;
-
-                  for (size_t i = 0; i < arr.size(); i++) {
-                    JsonObject asset = arr[i].as<JsonObject>();
-                    if (asset.isNull() || !asset["id"].is<const char *>()) continue;
-                    std::string aid = asset["id"].as<std::string>();
-                    if (aid == primary_id) continue;
-
-                    JsonObject exif = asset["exifInfo"].as<JsonObject>();
-                    if (exif.isNull()) continue;
-                    int ew = 0, eh = 0;
-                    if (exif["exifImageWidth"].is<int>()) ew = exif["exifImageWidth"].as<int>();
-                    if (exif["exifImageHeight"].is<int>()) eh = exif["exifImageHeight"].as<int>();
-                    std::string ori;
-                    if (exif["orientation"].is<const char *>()) ori = exif["orientation"].as<std::string>();
-                    if (ori == "5" || ori == "6" || ori == "7" || ori == "8") std::swap(ew, eh);
-                    if (ew <= 0 || eh <= 0 || eh <= ew) continue;
-
-                    companion_url = base + "/api/assets/" + aid + "/thumbnail?size=preview";
-                    ESP_LOGI("immich", "COMPANION found: %s for slot %d",
-                             aid.c_str(), id(companion_target_slot));
-                    break;
-                  }
+                  std::string companion_url = find_immich_portrait_companion_url(
+                    body, id(immich_url).state, id(portrait_primary_asset_id));
 
                   if (companion_url.empty()) {
                     ESP_LOGI("immich", "NO COMPANION found for slot %d", id(companion_target_slot));
                     id(handle_companion_not_found).execute();
                     return;
                   }
-                  id(portrait).no_companion_active = false;
-                  id(portrait).companion_found = true;
-                  id(portrait_companion_url) = companion_url;
-                  int ts = id(companion_target_slot);
-                  auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
-                  meta.companion_url = companion_url;
-              - if:
-                  condition:
-                    lambda: 'return id(portrait).companion_found && id(companion_target_slot) == id(active_slot) && !id(portrait).left_requested && !id(portrait).left_ready;'
-                  then:
-                    - lambda: |-
-                        id(portrait).left_ready = false;
-                        id(portrait).right_ready = false;
-                        id(portrait).left_requested = true;
-                        id(portrait).right_requested = false;
-                    - remote_image.set_url:
-                        id: immich_portrait_left
-                        url: !lambda |-
-                          int ts = id(companion_target_slot);
-                          auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
-                          return meta.image_url;
-                        update: false
-                    - script.execute: deferred_portrait_left_update
-              - if:
-                  condition:
-                    lambda: 'return id(portrait).companion_found && id(companion_target_slot) != id(active_slot);'
-                  then:
-                    - lambda: |-
-                        int ts = id(companion_target_slot);
-                        auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
-                        id(portrait_preload_slot) = ts;
-                        id(portrait_preload_left_ready) = false;
-                        id(portrait_preload_right_ready) = false;
-                        ESP_LOGD("immich", "Starting portrait preload for slot %d (left first)", ts);
-                    # Start only left; right is started in preload_left on_download_finished to avoid socket exhaustion
-                    - remote_image.set_url:
-                        id: immich_portrait_preload_left
-                        url: !lambda |-
-                          int ts = id(companion_target_slot);
-                          auto &meta = get_slot(ts, id(slot0), id(slot1), id(slot2));
-                          return meta.image_url;
-                        update: false
-                    - script.execute: deferred_preload_left_update
+                  id(espframe_core).slideshow().on_companion_found(
+                    companion_url, id(portrait), id(portrait_companion_url),
+                    id(companion_target_slot), id(active_slot), id(slot0), id(slot1), id(slot2),
+                    id(portrait_preload_slot), id(portrait_preload_left_ready),
+                    id(portrait_preload_right_ready));
+                  id(espframe_slideshow_dispatch).execute();
           on_error:
             then:
               - lambda: |-

@@ -368,6 +368,61 @@ class EspFrameSlideshow {
     return true;
   }
 
+  void handle_companion_not_found(PortraitState &portrait,
+                                  std::string &portrait_companion_url,
+                                  int companion_target_slot, int active_slot,
+                                  SlotMeta &slot0, SlotMeta &slot1, SlotMeta &slot2,
+                                  bool &active_slot_displayed) {
+    portrait.companion_found = false;
+    portrait_companion_url = "";
+    portrait.left_requested = false;
+    portrait.right_requested = false;
+    SlotMeta &meta = this->slot_mut_(companion_target_slot, slot0, slot1, slot2);
+    meta.companion_url = "";
+    if (companion_target_slot == active_slot) {
+      portrait.no_companion_active = true;
+      portrait.workflow_busy = false;
+      if (!active_slot_displayed) {
+        active_slot_displayed = true;
+        this->emit_command(SLIDESHOW_COMMAND_DISPLAY_CURRENT, active_slot);
+      }
+    }
+  }
+
+  bool on_companion_found(const std::string &companion_url, PortraitState &portrait,
+                          std::string &portrait_companion_url, int companion_target_slot,
+                          int active_slot, SlotMeta &slot0, SlotMeta &slot1,
+                          SlotMeta &slot2, int &portrait_preload_slot,
+                          bool &portrait_preload_left_ready,
+                          bool &portrait_preload_right_ready) {
+    if (companion_url.empty()) return false;
+
+    portrait.no_companion_active = false;
+    portrait.companion_found = true;
+    portrait_companion_url = companion_url;
+    SlotMeta &meta = this->slot_mut_(companion_target_slot, slot0, slot1, slot2);
+    meta.companion_url = companion_url;
+
+    if (companion_target_slot == active_slot && !portrait.left_requested && !portrait.left_ready) {
+      portrait.left_ready = false;
+      portrait.right_ready = false;
+      portrait.left_requested = true;
+      portrait.right_requested = false;
+      this->emit_command(SLIDESHOW_COMMAND_START_PORTRAIT_LEFT, companion_target_slot);
+      return true;
+    }
+
+    if (companion_target_slot != active_slot) {
+      portrait_preload_slot = companion_target_slot;
+      portrait_preload_left_ready = false;
+      portrait_preload_right_ready = false;
+      this->emit_command(SLIDESHOW_COMMAND_START_PRELOAD_LEFT, companion_target_slot);
+      return true;
+    }
+
+    return true;
+  }
+
   bool request_prefetch(bool backlight_paused, bool retry_cooldown_active, uint32_t now_ms,
                         uint32_t &last_prefetch_start_ms, int active_slot, int &target_slot,
                         const SlotMeta &slot0, const SlotMeta &slot1, const SlotMeta &slot2,

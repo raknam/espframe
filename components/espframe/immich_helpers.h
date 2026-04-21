@@ -324,4 +324,38 @@ inline std::string parse_immich_asset(const std::string &body,
   return "";
 }
 
+inline std::string find_immich_portrait_companion_url(const std::string &body,
+                                                      const std::string &base_url,
+                                                      const std::string &primary_asset_id) {
+  auto doc = esphome::json::parse_json(body);
+  if (doc.isNull() || !doc.is<JsonArray>()) return "";
+
+  JsonArray arr = doc.as<JsonArray>();
+  for (size_t i = 0; i < arr.size(); i++) {
+    JsonObject asset = arr[i].as<JsonObject>();
+    if (asset.isNull() || !asset["id"].is<const char *>()) continue;
+
+    std::string asset_id = asset["id"].as<std::string>();
+    if (asset_id == primary_asset_id) continue;
+
+    JsonObject exif = asset["exifInfo"].as<JsonObject>();
+    if (exif.isNull()) continue;
+
+    int width = 0;
+    int height = 0;
+    if (exif["exifImageWidth"].is<int>()) width = exif["exifImageWidth"].as<int>();
+    if (exif["exifImageHeight"].is<int>()) height = exif["exifImageHeight"].as<int>();
+
+    std::string orientation;
+    if (exif["orientation"].is<const char *>()) orientation = exif["orientation"].as<std::string>();
+    if (orientation == "5" || orientation == "6" || orientation == "7" || orientation == "8")
+      std::swap(width, height);
+
+    if (width <= 0 || height <= 0 || height <= width) continue;
+    return base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview";
+  }
+
+  return "";
+}
+
 #endif  // USE_JSON
