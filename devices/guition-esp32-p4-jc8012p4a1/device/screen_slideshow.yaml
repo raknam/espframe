@@ -226,6 +226,7 @@ lvgl:
                   align: TOP_RIGHT
                   width: ${details_panel_width}
                   height: ${display_height}
+                  radius: 0
                   bg_color: 0x000000
                   bg_opa: 100%
                   border_width: 0
@@ -399,6 +400,34 @@ lvgl:
                                     text_font: roboto24_font
                                     text_color: 0xD8D8D8
                                     long_mode: WRAP
+                          - obj:
+                              id: photo_details_location_row
+                              width: ${details_panel_content_width}
+                              height: SIZE_CONTENT
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
+                              layout:
+                                type: flex
+                                flex_flow: ROW
+                                flex_align_main: START
+                                flex_align_cross: START
+                                pad_column: 14
+                              widgets:
+                                - label:
+                                    text: $icon_details_location
+                                    width: ${details_icon_width}
+                                    text_font: icon_font_details
+                                    text_color: 0xD8D8D8
+                                - label:
+                                    id: photo_details_location_label
+                                    text: ""
+                                    width: ${details_row_text_width}
+                                    text_font: roboto24_font
+                                    text_color: 0xD8D8D8
+                                    long_mode: WRAP
                           - label:
                               id: photo_details_empty_label
                               text: "Metadata unavailable"
@@ -406,37 +435,6 @@ lvgl:
                               text_font: roboto24_font
                               text_color: 0x888888
                               hidden: true
-                              long_mode: WRAP
-                    - obj:
-                        id: photo_details_location_row
-                        align: BOTTOM_LEFT
-                        x: ${details_panel_x_pad}
-                        y: -48
-                        width: ${details_panel_content_width}
-                        height: SIZE_CONTENT
-                        bg_opa: 0%
-                        border_width: 0
-                        pad_all: 0
-                        scrollable: false
-                        clickable: false
-                        layout:
-                          type: flex
-                          flex_flow: ROW
-                          flex_align_main: START
-                          flex_align_cross: START
-                          pad_column: 14
-                        widgets:
-                          - label:
-                              text: $icon_details_location
-                              width: ${details_icon_width}
-                              text_font: icon_font_details
-                              text_color: 0xD8D8D8
-                          - label:
-                              id: photo_details_location_label
-                              text: ""
-                              width: ${details_row_text_width}
-                              text_font: roboto24_font
-                              text_color: 0xD8D8D8
                               long_mode: WRAP
               - button:
                   id: photo_details_close_button
