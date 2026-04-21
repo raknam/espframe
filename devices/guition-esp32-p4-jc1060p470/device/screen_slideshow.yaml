@@ -9,7 +9,9 @@
 substitutions:
   immich_slide_interval: "2 minutes"
   slideshow_check_interval: "2s"
-  details_image_width: "684"
+  details_image_area_width: "684"
+  details_image_width: "624"
+  details_image_height: "540"
   details_panel_width: "340"
   details_panel_x_pad: "28"
   details_panel_content_width: "284"
@@ -215,7 +217,7 @@ lvgl:
               - obj:
                   x: 0
                   y: 0
-                  width: ${details_image_width}
+                  width: ${details_image_area_width}
                   height: ${display_height}
                   bg_color: 0x000000
                   bg_opa: 100%
@@ -443,9 +445,6 @@ lvgl:
                         on_press:
                           then:
                             - script.execute: close_photo_details
-                        on_release:
-                          then:
-                            - script.execute: close_photo_details
                         widgets:
                           - label:
                               align: CENTER
@@ -477,6 +476,10 @@ script:
       - if:
           condition:
             lambda: |-
+              if (id(photo_details_close_guard)) {
+                id(photo_details_close_guard) = false;
+                return false;
+              }
               return !id(touch_started_while_off) && !id(backlight_paused) && !id(photo_details_open);
           then:
             - script.execute: open_photo_details

@@ -48,6 +48,9 @@ globals:
   - id: photo_details_open
     type: bool
     initial_value: 'false'
+  - id: photo_details_close_guard
+    type: bool
+    initial_value: 'false'
   - id: photo_details_use_companion
     type: bool
     initial_value: 'false'
@@ -255,7 +258,7 @@ remote_image:
 
   - id: photo_details_remote_img
     url: "https://via.placeholder.com/1x1.jpg"
-    resize: ${details_image_width}x${display_height}
+    resize: ${details_image_width}x${details_image_height}
     type: RGB565
     byte_order: little_endian
     request_headers:
@@ -552,7 +555,7 @@ script:
           id(photo_details_remote_img).abort_download();
           id(photo_details_remote_img).release();
           if (!m.image_url.empty()) {
-            id(photo_details_remote_img).set_fill_mode(id(photo_display_mode).current_option() == "Fill");
+            id(photo_details_remote_img).set_fill_mode(false);
             id(photo_details_remote_img).set_url(m.image_url);
             id(photo_details_remote_img).update();
           }
@@ -568,6 +571,7 @@ script:
       - lambda: |-
           if (!id(photo_details_open)) return;
           id(photo_details_open) = false;
+          id(photo_details_close_guard) = true;
           id(photo_details_use_companion) = false;
           id(photo_details_remote_img).abort_download();
           id(photo_details_remote_img).release();
