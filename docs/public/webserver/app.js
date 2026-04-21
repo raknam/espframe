@@ -1003,7 +1003,7 @@
 
     function renderStep2() {
       var card = el("div", "card fade-in");
-      card.innerHTML = "<h3>Clock & Timezone</h3>";
+      card.innerHTML = "<h3>Clock & timezone</h3>";
 
       var f1 = field("Clock Format");
       f1.appendChild(
@@ -1419,7 +1419,7 @@
     srcBody.appendChild(albumField);
     srcBody.appendChild(personField);
 
-    immichWrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, true));
+    immichWrap.appendChild(makeCollapsibleCard("Photo source", srcBody, true));
 
     // Display Settings
     var photoBody = el("div");
@@ -1609,8 +1609,8 @@
     }
 
     filterBody.appendChild(filterDetails);
-    immichWrap.appendChild(makeCollapsibleCard("Advanced Filters", filterBody, true, filterBadge));
-    immichWrap.appendChild(makeCollapsibleCard("Display Settings", photoBody, true));
+    immichWrap.appendChild(makeCollapsibleCard("Advanced filters", filterBody, true, filterBadge));
+    immichWrap.appendChild(makeCollapsibleCard("Display settings", photoBody, true));
 
     immichApp.appendChild(immichWrap);
 
@@ -1667,7 +1667,7 @@
     updateSunInfo();
     dnDetails.appendChild(fSunInfo);
 
-    wrap.appendChild(makeCollapsibleCard("Screen Brightness", dnDetails, true));
+    wrap.appendChild(makeCollapsibleCard("Screen brightness", dnDetails, true));
 
     // Screen Tone
     var toneBadge = makeBadge(S.base_tone_enabled || S.warm_tones_enabled);
@@ -1769,7 +1769,7 @@
     nightDetails.appendChild(fOverride);
 
     warmBody.appendChild(nightDetails);
-    wrap.appendChild(makeCollapsibleCard("Screen Tone", warmBody, true, toneBadge));
+    wrap.appendChild(makeCollapsibleCard("Screen tone", warmBody, true, toneBadge));
 
     // Schedule
     var schedBadge = makeBadge(S.schedule_enabled);
@@ -1827,7 +1827,7 @@
     schedDetails.appendChild(fOffTime);
 
     schedBody.appendChild(schedDetails);
-    wrap.appendChild(makeCollapsibleCard("Screen Schedule", schedBody, true, schedBadge));
+    wrap.appendChild(makeCollapsibleCard("Screen schedule", schedBody, true, schedBadge));
 
     // Rotation
     var rotationBody = el("div");
@@ -2172,7 +2172,7 @@
     importBtn.innerHTML = "Import Settings";
     importBtn.onclick = importConfig;
     importBody.appendChild(importBtn);
-    return makeCollapsibleCard("Import Settings", importBody, false);
+    return makeCollapsibleCard("Import settings", importBody, false);
   }
 
   function field(labelText) {

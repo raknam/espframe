@@ -70,8 +70,6 @@ h2 {
   font-weight: 600;
   margin-bottom: 14px;
   color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   font-size: 0.8rem;
 }
 .card-header {
