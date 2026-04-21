@@ -405,6 +405,7 @@ interval:
             lambda: |-
               if (!id(immich_fetch_started)) return false;
               if (id(backlight_paused)) return false;
+              if (!id(active_slot_displayed)) return false;
               bool any_inflight = id(slot_flags).fetch_in_flight[0] || id(slot_flags).fetch_in_flight[1] || id(slot_flags).fetch_in_flight[2];
               if (any_inflight || id(portrait).workflow_busy || id(noncritical_remote_updates_in_flight) > 0) return false;
               int next1 = (id(active_slot) + 1) % 3;

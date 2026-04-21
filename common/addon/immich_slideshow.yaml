@@ -650,7 +650,7 @@ script:
             id(immich_retry_cooldown_until_ms) != 0 && millis() < id(immich_retry_cooldown_until_ms),
             millis(), id(last_prefetch_start_ms), id(active_slot), id(target_slot),
             id(slot0), id(slot1), id(slot2), id(slot_flags), id(fetch_queue), id(portrait),
-            id(noncritical_remote_updates_in_flight), id(portrait_preload_slot),
+            id(active_slot_displayed), id(noncritical_remote_updates_in_flight), id(portrait_preload_slot),
             id(portrait_preload_left_ready), id(portrait_preload_right_ready));
           id(espframe_slideshow_dispatch).execute();
 

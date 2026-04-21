@@ -345,8 +345,8 @@ void OnlineImage::loop() {
 #endif
     this->etag_ = this->downloader_->get_response_header(ETAG_HEADER_NAME);
     this->last_modified_ = this->downloader_->get_response_header(LAST_MODIFIED_HEADER_NAME);
-    this->download_finished_callback_.call(false);
     this->end_connection_();
+    this->download_finished_callback_.call(false);
     return;
   }
   // Download phase: pull data from the HTTP connection

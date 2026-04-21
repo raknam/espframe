@@ -480,9 +480,10 @@ class EspFrameSlideshow {
                         uint32_t &last_prefetch_start_ms, int active_slot, int &target_slot,
                         const SlotMeta &slot0, const SlotMeta &slot1, const SlotMeta &slot2,
                         const SlotFlags &flags, FetchQueue &queue, const PortraitState &portrait,
-                        int noncritical_count, int portrait_preload_slot,
+                        bool active_slot_displayed, int noncritical_count, int portrait_preload_slot,
                         bool portrait_preload_left_ready, bool portrait_preload_right_ready) {
     if (backlight_paused || retry_cooldown_active) return false;
+    if (!active_slot_displayed) return false;
 
     const SlotMeta &active = this->slot_const_(active_slot, slot0, slot1, slot2);
     bool active_portrait_busy = false;

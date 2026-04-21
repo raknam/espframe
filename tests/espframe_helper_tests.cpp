@@ -310,7 +310,7 @@ static void test_slideshow_component_prefetch_and_deferred_updates() {
 
   bool queued = slideshow.request_prefetch(
       false, false, 1000, last_prefetch, 0, target_slot, slot0, slot1, slot2,
-      flags, queue, portrait, 0, -1, false, false);
+      flags, queue, portrait, true, 0, -1, false, false);
   assert(queued);
   assert(target_slot == 1);
   assert(last_prefetch == 1000);
@@ -321,7 +321,13 @@ static void test_slideshow_component_prefetch_and_deferred_updates() {
 
   queued = slideshow.request_prefetch(
       false, false, 1200, last_prefetch, 0, target_slot, slot0, slot1, slot2,
-      flags, queue, portrait, 0, -1, false, false);
+      flags, queue, portrait, true, 0, -1, false, false);
+  assert(!queued);
+  assert(!slideshow.has_command());
+
+  queued = slideshow.request_prefetch(
+      false, false, 2000, last_prefetch, 0, target_slot, slot0, slot1, slot2,
+      flags, queue, portrait, false, 0, -1, false, false);
   assert(!queued);
   assert(!slideshow.has_command());
 
