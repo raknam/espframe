@@ -115,6 +115,54 @@ switch:
     web_server:
       sorting_group_id: sg_photos
 
+  - platform: template
+    name: "Photos: Show Metadata"
+    id: photo_metadata_enabled
+    internal: true
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    icon: "mdi:text-box-outline"
+    web_server:
+      sorting_group_id: sg_photos
+    on_turn_on:
+      then:
+        - script.execute: update_photo_metadata_display
+    on_turn_off:
+      then:
+        - script.execute: update_photo_metadata_display
+
+  - platform: template
+    name: "Photos: Metadata Time"
+    id: photo_metadata_time_enabled
+    internal: true
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    icon: "mdi:calendar-clock"
+    web_server:
+      sorting_group_id: sg_photos
+    on_turn_on:
+      then:
+        - script.execute: update_photo_metadata_display
+    on_turn_off:
+      then:
+        - script.execute: update_photo_metadata_display
+
+  - platform: template
+    name: "Photos: Metadata Location"
+    id: photo_metadata_location_enabled
+    internal: true
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    icon: "mdi:map-marker-outline"
+    web_server:
+      sorting_group_id: sg_photos
+    on_turn_on:
+      then:
+        - script.execute: update_photo_metadata_display
+    on_turn_off:
+      then:
+        - script.execute: update_photo_metadata_display
+
 # -----------------------------------------------------------------------------
 # 3-slot full-size ring buffer and portrait pair / preload remote_image components
 # -----------------------------------------------------------------------------
@@ -765,13 +813,22 @@ script:
     then:
       - lambda: |-
           std::string text;
-          if (id(active_slot_displayed) && !id(current_display).date.empty()) {
-            text = id(current_display).date;
-            if (!id(current_display).location.empty()) {
-              text += "\n" + id(current_display).location;
+          if (id(active_slot_displayed) && id(photo_metadata_enabled).state) {
+            if (id(photo_metadata_time_enabled).state) {
+              auto now = id(sntp_time).now();
+              if (now.is_valid()) {
+                text = format_photo_age(id(current_display).year, id(current_display).month, id(current_display).day,
+                                        now.year, now.month, now.day_of_month);
+              }
+            }
+            if (id(photo_metadata_location_enabled).state && !id(current_display).location.empty()) {
+              if (!text.empty()) text += "\n";
+              text += id(current_display).location;
             }
           }
 
+          lv_obj_set_style_text_line_space(id(photo_metadata_label), 10, LV_PART_MAIN);
+          lv_obj_set_style_text_line_space(id(photo_metadata_label_shadow), 10, LV_PART_MAIN);
           lv_label_set_text(id(photo_metadata_label), text.c_str());
           lv_label_set_text(id(photo_metadata_label_shadow), text.c_str());
           if (text.empty()) {

@@ -152,6 +152,12 @@ Returns a short relative date string: `"N months ago"`, `"1 year ago"`, `"N year
 std::string ago = format_time_ago(meta.year, meta.month, id(now_year), id(now_month));
 ```
 
+#### `format_photo_age(photo_year, photo_month, photo_day, now_year, now_month, now_day)`
+
+Returns a short relative photo age such as `"today"`, `"12 days ago"`, `"3 months ago"`, or `"4 years ago"`. Uses days as the smallest unit, then rounds to months or years for older photos.
+
+**Use when:** Showing relative photo time metadata in the slideshow UI.
+
 #### `format_photo_date(year, month)`
 
 Returns a string like `"Jan 2024"` for valid month (1–12), otherwise `""`. Uses `MONTH_NAMES`.

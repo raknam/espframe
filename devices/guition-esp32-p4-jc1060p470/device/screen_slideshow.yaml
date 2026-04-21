@@ -156,7 +156,7 @@ lvgl:
                   text_align: right
                   text_color: 0x000000
                   text_opa: 50%
-                  text_font: roboto30_font
+                  text_font: roboto24_font
               - label:
                   id: photo_metadata_label
                   x: 0
@@ -165,7 +165,7 @@ lvgl:
                   text: ""
                   text_align: right
                   text_color: 0xFFFFFF
-                  text_font: roboto30_font
+                  text_font: roboto24_font
         - obj:
             id: connection_failed_overlay
             align: CENTER
