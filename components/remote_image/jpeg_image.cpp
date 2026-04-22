@@ -191,6 +191,7 @@ int HOT JpegDecoder::decode(uint8_t *buffer, size_t size) {
     }
     this->current_scanline_++;
   }
+  App.feed_wdt();
 
   if (this->cinfo_->output_scanline >= this->cinfo_->output_height) {
     jpeg_finish_decompress(this->cinfo_);

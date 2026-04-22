@@ -40,7 +40,7 @@ class JpegDecoder : public ImageDecoder {
   bool big_endian_ = false;
   bool scaling_ = false;
 
-  static constexpr int SCANLINES_PER_CHUNK = 100;
+  static constexpr int SCANLINES_PER_CHUNK = 8;
 };
 
 }  // namespace remote_image

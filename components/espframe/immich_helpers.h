@@ -194,6 +194,10 @@ inline bool photo_orientation_matches(const ImmichAssetMeta &meta, const std::st
   return true;
 }
 
+inline std::string make_immich_preview_url(const std::string &base_url, const std::string &asset_id) {
+  return base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview&format=JPEG";
+}
+
 // ============================================================================
 // Immich asset parser — parse JSON asset and fill meta
 // ============================================================================
@@ -276,7 +280,7 @@ inline std::string parse_immich_asset_object(JsonObject asset,
     }
   }
 
-  std::string img_url = base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview";
+  std::string img_url = make_immich_preview_url(base_url, asset_id);
   out_meta->asset_id = asset_id;
   out_meta->image_url = img_url;
   out_meta->date = photo_date;
@@ -352,7 +356,7 @@ inline std::string find_immich_portrait_companion_url(const std::string &body,
       std::swap(width, height);
 
     if (width <= 0 || height <= 0 || height <= width) continue;
-    return base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview";
+    return make_immich_preview_url(base_url, asset_id);
   }
 
   return "";
