@@ -94,7 +94,7 @@ lvgl:
             id: info_overlay
             align: BOTTOM_LEFT
             x: 45
-            y: -10
+            y: -25
             width: SIZE_CONTENT
             height: SIZE_CONTENT
             bg_opa: 0%
@@ -107,7 +107,7 @@ lvgl:
               flex_flow: COLUMN
               flex_align_main: START
               flex_align_cross: START
-              pad_row: 8
+              pad_row: 0
             widgets:
               - obj:
                   id: clock_container
@@ -137,89 +137,95 @@ lvgl:
               - obj:
                   id: photo_metadata_overlay
                   hidden: true
-                  width: 520
-                  height: SIZE_CONTENT
+                  width: 650
+                  height: 42
                   bg_opa: 0%
                   border_width: 0
                   pad_all: 0
                   scrollable: false
                   clickable: false
-                  layout:
-                    type: flex
-                    flex_flow: COLUMN
-                    flex_align_main: START
-                    flex_align_cross: START
-                    pad_row: 8
                   widgets:
                     - obj:
-                        id: photo_metadata_location_container
-                        hidden: true
-                        width: 520
+                        id: photo_metadata_shadow_row
+                        x: 2
+                        y: 2
+                        width: SIZE_CONTENT
                         height: 42
                         bg_opa: 0%
                         border_width: 0
                         pad_all: 0
                         scrollable: false
                         clickable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_main: START
+                          flex_align_cross: CENTER
+                          pad_column: 14
                         widgets:
                           - label:
                               id: photo_metadata_location_label_shadow
-                              x: 2
-                              y: 2
-                              width: 520
+                              hidden: true
                               text: ""
-                              text_align: left
                               text_color: 0x000000
                               text_opa: 50%
                               text_font: roboto_light32_font
+                          - obj:
+                              id: photo_metadata_divider_shadow
+                              hidden: true
+                              width: 2
+                              height: 32
+                              bg_opa: 0%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
                           - label:
-                              id: photo_metadata_location_label
-                              x: 0
-                              y: 0
-                              width: 520
+                              id: photo_metadata_date_label_shadow
+                              hidden: true
                               text: ""
-                              text_align: left
-                              text_color: 0xFFFFFF
+                              text_color: 0x000000
+                              text_opa: 50%
                               text_font: roboto_light32_font
                     - obj:
-                        id: photo_metadata_divider
-                        hidden: true
-                        width: 520
-                        height: 2
-                        bg_color: 0xFFFFFF
-                        bg_opa: 50%
-                        border_width: 0
-                        pad_all: 0
-                        scrollable: false
-                        clickable: false
-                    - obj:
-                        id: photo_metadata_date_container
-                        hidden: true
-                        width: 520
+                        id: photo_metadata_row
+                        x: 0
+                        y: 0
+                        width: SIZE_CONTENT
                         height: 42
                         bg_opa: 0%
                         border_width: 0
                         pad_all: 0
                         scrollable: false
                         clickable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_main: START
+                          flex_align_cross: CENTER
+                          pad_column: 14
                         widgets:
                           - label:
-                              id: photo_metadata_date_label_shadow
-                              x: 2
-                              y: 2
-                              width: 520
+                              id: photo_metadata_location_label
+                              hidden: true
                               text: ""
-                              text_align: left
-                              text_color: 0x000000
-                              text_opa: 50%
+                              text_color: 0xFFFFFF
                               text_font: roboto_light32_font
+                          - obj:
+                              id: photo_metadata_divider
+                              hidden: true
+                              width: 2
+                              height: 32
+                              bg_color: 0xFFFFFF
+                              bg_opa: 50%
+                              border_width: 0
+                              pad_all: 0
+                              scrollable: false
+                              clickable: false
                           - label:
                               id: photo_metadata_date_label
-                              x: 0
-                              y: 0
-                              width: 520
+                              hidden: true
                               text: ""
-                              text_align: left
                               text_color: 0xFFFFFF
                               text_font: roboto_light32_font
         - obj:
