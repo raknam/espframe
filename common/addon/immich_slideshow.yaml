@@ -263,6 +263,7 @@ remote_image:
     url: "https://via.placeholder.com/1x1.jpg"
     resize: ${portrait_half_width}x${display_height}
     fill: true
+    horizontal_align: END
     type: RGB565
     byte_order: little_endian
     formats: [JPEG, WEBP]
@@ -286,6 +287,7 @@ remote_image:
     url: "https://via.placeholder.com/1x1.jpg"
     resize: ${portrait_half_width}x${display_height}
     fill: true
+    horizontal_align: START
     type: RGB565
     byte_order: little_endian
     formats: [JPEG, WEBP]
@@ -310,6 +312,7 @@ remote_image:
     url: "https://via.placeholder.com/1x1.jpg"
     resize: ${portrait_half_width}x${display_height}
     fill: true
+    horizontal_align: END
     type: RGB565
     byte_order: little_endian
     formats: [JPEG, WEBP]
@@ -337,6 +340,7 @@ remote_image:
     url: "https://via.placeholder.com/1x1.jpg"
     resize: ${portrait_half_width}x${display_height}
     fill: true
+    horizontal_align: START
     type: RGB565
     byte_order: little_endian
     formats: [JPEG, WEBP]
@@ -412,9 +416,11 @@ script:
                 id(immich_portrait_right).update();
                 break;
               case SLIDESHOW_COMMAND_UPDATE_PRELOAD_LEFT:
+                id(immich_portrait_preload_left).set_fill_mode(id(photo_display_mode).current_option() == "Fill");
                 id(immich_portrait_preload_left).update();
                 break;
               case SLIDESHOW_COMMAND_UPDATE_PRELOAD_RIGHT:
+                id(immich_portrait_preload_right).set_fill_mode(id(photo_display_mode).current_option() == "Fill");
                 id(immich_portrait_preload_right).update();
                 break;
               case SLIDESHOW_COMMAND_START_PORTRAIT_LEFT: {

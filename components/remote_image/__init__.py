@@ -53,12 +53,14 @@ CONF_FILL = "fill"
 CONF_PLACEHOLDER = "placeholder"
 CONF_UPDATE = "update"
 CONF_FORMATS = "formats"
+CONF_HORIZONTAL_ALIGN = "horizontal_align"
 
 _LOGGER = logging.getLogger(__name__)
 
 remote_image_ns = cg.esphome_ns.namespace("remote_image")
 
 ImageFormat = remote_image_ns.enum("ImageFormat")
+HorizontalAlignment = remote_image_ns.enum("HorizontalAlignment")
 
 
 class Format:
@@ -222,6 +224,9 @@ ONLINE_IMAGE_SCHEMA = (
             ),
             cv.Optional(CONF_PLACEHOLDER): cv.use_id(Image_),
             cv.Optional(CONF_FILL, default=False): cv.boolean,
+            cv.Optional(CONF_HORIZONTAL_ALIGN, default="CENTER"): cv.one_of(
+                "CENTER", "START", "END", upper=True
+            ),
             cv.Optional(CONF_BUFFER_SIZE, default=65536): cv.int_range(256, 524288),
             cv.Optional(CONF_ON_DOWNLOAD_FINISHED): automation.validate_automation(
                 {
@@ -325,6 +330,14 @@ async def to_code(config):
 
     if config[CONF_FILL]:
         cg.add(var.set_fill_mode(True))
+    cg.add(
+        var.set_horizontal_align(
+            getattr(
+                HorizontalAlignment,
+                f"HORIZONTAL_ALIGN_{config[CONF_HORIZONTAL_ALIGN]}",
+            )
+        )
+    )
 
     for key, value in config.get(CONF_REQUEST_HEADERS, {}).items():
         if isinstance(value, Lambda):

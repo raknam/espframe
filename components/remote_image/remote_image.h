@@ -33,6 +33,12 @@ enum ImageFormat {
   WEBP,
 };
 
+enum HorizontalAlignment {
+  HORIZONTAL_ALIGN_CENTER,
+  HORIZONTAL_ALIGN_START,
+  HORIZONTAL_ALIGN_END,
+};
+
 /**
  * @brief Download an image from a given URL, and decode it using the specified decoder.
  * The image will then be stored in a buffer, so that it can be re-displayed without the
@@ -109,6 +115,7 @@ class OnlineImage : public PollingComponent,
 
   void set_fill_mode(bool fill) { this->fill_mode_ = fill; }
   bool is_fill_mode() const { return this->fill_mode_; }
+  void set_horizontal_align(HorizontalAlignment align) { this->horizontal_align_ = align; }
   bool is_downloading() const { return this->downloader_ != nullptr || this->decoder_ != nullptr; }
 
   bool is_big_endian() const { return this->is_big_endian_; }
@@ -194,6 +201,7 @@ class OnlineImage : public PollingComponent,
    */
   bool is_big_endian_;
   bool fill_mode_{false};
+  HorizontalAlignment horizontal_align_{HORIZONTAL_ALIGN_CENTER};
   /**
    * Actual width of the current image. If fixed_width_ is specified,
    * this will be equal to it; otherwise it will be set once the decoding

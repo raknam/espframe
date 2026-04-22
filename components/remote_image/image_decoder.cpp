@@ -41,7 +41,23 @@ bool ImageDecoder::set_size(int width, int height) {
     this->y_scale_ = scale;
     this->scaled_width_ = static_cast<int>(width * scale);
     this->scaled_height_ = static_cast<int>(height * scale);
-    this->x_offset_ = (buf_w - this->scaled_width_) / 2;
+    int x_space = buf_w - this->scaled_width_;
+    if (x_space >= 0) {
+      switch (this->image_->horizontal_align_) {
+        case HORIZONTAL_ALIGN_START:
+          this->x_offset_ = 0;
+          break;
+        case HORIZONTAL_ALIGN_END:
+          this->x_offset_ = x_space;
+          break;
+        case HORIZONTAL_ALIGN_CENTER:
+        default:
+          this->x_offset_ = x_space / 2;
+          break;
+      }
+    } else {
+      this->x_offset_ = x_space / 2;
+    }
     this->y_offset_ = (buf_h - this->scaled_height_) / 2;
   }
 

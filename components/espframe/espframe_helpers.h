@@ -226,27 +226,42 @@ inline void fill_accent_color(esphome::image::Image *img) {
   const uint8_t *data = dsc->data;
   if (!data) return;
 
-  // Detect black letterbox/pillarbox bars by scanning from the center lines
-  // until the real photo content begins.
-  int x_off = 0;
+  // Detect black letterbox/pillarbox bars by scanning from the center lines.
+  // Left/right can differ for side-by-side portrait images aligned inward.
+  int left_off = 0;
   int mid_y = img_h / 2;
-  for (int x = 0; x < img_w / 2; x++) {
+  for (int x = 0; x < img_w; x++) {
     int pos = (x + mid_y * img_w) * 2;
     uint16_t px = data[pos] | (data[pos + 1] << 8);
-    if (px != 0x0000) { x_off = x; break; }
+    if (px != 0x0000) { left_off = x; break; }
   }
-  int y_off = 0;
+  int right_off = 0;
+  for (int x = img_w - 1; x >= left_off; x--) {
+    int pos = (x + mid_y * img_w) * 2;
+    uint16_t px = data[pos] | (data[pos + 1] << 8);
+    if (px != 0x0000) { right_off = img_w - 1 - x; break; }
+  }
+
+  int top_off = 0;
   int mid_x = img_w / 2;
-  for (int y = 0; y < img_h / 2; y++) {
+  for (int y = 0; y < img_h; y++) {
     int pos = (mid_x + y * img_w) * 2;
     uint16_t px = data[pos] | (data[pos + 1] << 8);
-    if (px != 0x0000) { y_off = y; break; }
+    if (px != 0x0000) { top_off = y; break; }
+  }
+  int bottom_off = 0;
+  for (int y = img_h - 1; y >= top_off; y--) {
+    int pos = (mid_x + y * img_w) * 2;
+    uint16_t px = data[pos] | (data[pos + 1] << 8);
+    if (px != 0x0000) { bottom_off = img_h - 1 - y; break; }
   }
 
-  if (x_off == 0 && y_off == 0) return;
+  if (left_off == 0 && right_off == 0 && top_off == 0 && bottom_off == 0) return;
 
-  int content_w = img_w - 2 * x_off;
-  int content_h = img_h - 2 * y_off;
+  int content_w = img_w - left_off - right_off;
+  int content_h = img_h - top_off - bottom_off;
+  if (content_w <= 0 || content_h <= 0) return;
+
   int grid = ACCENT_GRID_SIZE;
   int step_x = content_w / grid;
   int step_y = content_h / grid;
@@ -258,8 +273,8 @@ inline void fill_accent_color(esphome::image::Image *img) {
   int64_t r_wsum = 0, g_wsum = 0, b_wsum = 0;
   int64_t w_total = 0;
 
-  for (int sy = y_off + step_y / 2; sy < img_h - y_off; sy += step_y) {
-    for (int sx = x_off + step_x / 2; sx < img_w - x_off; sx += step_x) {
+  for (int sy = top_off + step_y / 2; sy < img_h - bottom_off; sy += step_y) {
+    for (int sx = left_off + step_x / 2; sx < img_w - right_off; sx += step_x) {
       int pos = (sx + sy * img_w) * 2;
       uint16_t rgb565 = data[pos] | (data[pos + 1] << 8);
       int r = ((rgb565 >> 11) & 0x1F);
@@ -295,27 +310,42 @@ inline void fill_accent_color(esphome::image::Image *img) {
   uint8_t *buf = const_cast<uint8_t*>(data);
   int row_bytes = img_w * 2;
 
-  if (y_off > 0) {
+  if (top_off > 0) {
     for (int x = 0; x < img_w; x++) {
       buf[x * 2] = lo; buf[x * 2 + 1] = hi;
     }
-    for (int y = 1; y < y_off; y++)
-      memcpy(buf + y * row_bytes, buf, row_bytes);
-    for (int y = img_h - y_off; y < img_h; y++)
+    for (int y = 1; y < top_off; y++)
       memcpy(buf + y * row_bytes, buf, row_bytes);
   }
 
-  if (x_off > 0) {
-    int col_bytes = x_off * 2;
+  if (bottom_off > 0) {
+    int first_bottom_y = img_h - bottom_off;
+    if (top_off == 0) {
+      for (int x = 0; x < img_w; x++) {
+        buf[first_bottom_y * row_bytes + x * 2] = lo;
+        buf[first_bottom_y * row_bytes + x * 2 + 1] = hi;
+      }
+    }
+    int src_y = top_off > 0 ? 0 : first_bottom_y;
+    int start_y = top_off > 0 ? first_bottom_y : first_bottom_y + 1;
+    for (int y = start_y; y < img_h; y++)
+      memcpy(buf + y * row_bytes, buf + src_y * row_bytes, row_bytes);
+  }
+
+  if (left_off > 0 || right_off > 0) {
+    int col_width = left_off > right_off ? left_off : right_off;
+    int col_bytes = col_width * 2;
     uint8_t col_buf[ACCENT_COL_BUF_MAX];
     if (col_bytes > (int)sizeof(col_buf)) return;
-    for (int x = 0; x < x_off; x++) {
+    for (int x = 0; x < col_width; x++) {
       col_buf[x * 2] = lo; col_buf[x * 2 + 1] = hi;
     }
-    for (int y = y_off; y < img_h - y_off; y++) {
+    for (int y = top_off; y < img_h - bottom_off; y++) {
       int row = y * row_bytes;
-      memcpy(buf + row, col_buf, col_bytes);
-      memcpy(buf + row + (img_w - x_off) * 2, col_buf, col_bytes);
+      if (left_off > 0)
+        memcpy(buf + row, col_buf, left_off * 2);
+      if (right_off > 0)
+        memcpy(buf + row + (img_w - right_off) * 2, col_buf, right_off * 2);
     }
   }
 }

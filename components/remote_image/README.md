@@ -59,6 +59,7 @@ remote_image:
 | `request_headers` | optional | `{}` | Extra HTTP request headers (e.g. `x-api-key: !lambda 'return id(api_key).state;'`). |
 | `placeholder` | optional | — | ID of another `image` to show until the download is ready. |
 | `fill` | optional | `false` | If `true`, scale image to fill the target area (crop if needed); otherwise fit (letterbox). |
+| `horizontal_align` | optional | `CENTER` | For fitted images, place visible content at `START`, `CENTER`, or `END` within the resized area. |
 | `buffer_size` | optional | `65536` | Download buffer size in bytes (256–524288). |
 | `resize` | optional | — | `[width, height]` to fix display size; omit for auto (image native size). |
 | `type` | optional | — | Image type (e.g. RGB565, RGB, BINARY, GRAYSCALE) per ESPHome image schema. |
