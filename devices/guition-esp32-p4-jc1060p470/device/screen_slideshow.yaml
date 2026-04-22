@@ -94,7 +94,7 @@ lvgl:
             align: BOTTOM_LEFT
             x: 45
             y: -25
-            width: SIZE_CONTENT
+            width: 934
             height: SIZE_CONTENT
             bg_opa: 0%
             border_width: 0
@@ -103,10 +103,10 @@ lvgl:
             clickable: false
             layout:
               type: flex
-              flex_flow: COLUMN
+              flex_flow: ROW
               flex_align_main: START
-              flex_align_cross: START
-              pad_row: 0
+              flex_align_cross: END
+              pad_column: 40
             widgets:
               - obj:
                   id: clock_container
@@ -136,9 +136,8 @@ lvgl:
               - obj:
                   id: photo_metadata_overlay
                   hidden: true
-                  width: 934
+                  width: 494
                   height: 52
-                  translate_y: -10
                   bg_opa: 0%
                   border_width: 0
                   pad_all: 0
@@ -149,7 +148,7 @@ lvgl:
                         id: photo_metadata_shadow_row
                         x: 2
                         y: 2
-                        width: 934
+                        width: 494
                         height: 52
                         bg_opa: 0%
                         border_width: 0
@@ -193,7 +192,7 @@ lvgl:
                         id: photo_metadata_row
                         x: 0
                         y: 0
-                        width: 934
+                        width: 494
                         height: 52
                         bg_opa: 0%
                         border_width: 0
