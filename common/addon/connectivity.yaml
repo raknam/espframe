@@ -25,14 +25,49 @@ http_request:
 # -----------------------------------------------------------------------------
 captive_portal:
 
+globals:
+  - id: wifi_setup_connect_timeout_expired
+    type: bool
+    initial_value: 'false'
+  - id: wifi_setup_seen_sta_credentials
+    type: bool
+    initial_value: 'false'
+
+script:
+  - id: wifi_connecting_before_setup
+    mode: restart
+    then:
+      - script.stop: setup_screen_dim
+      - lambda: |-
+          lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
+          lv_label_set_text(id(loading_title_label), "Connecting");
+          lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
+      - lvgl.page.show: loading_page
+      - delay: 60s
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - globals.set:
+                id: wifi_setup_connect_timeout_expired
+                value: 'true'
+            - lvgl.page.show: wifi_setup_page
+            - script.execute: setup_screen_dim
+
 wifi:
   reboot_timeout: 0s
   ap:
     ssid: "${name}"
   on_connect:
+    - script.stop: wifi_connecting_before_setup
     - script.stop: setup_screen_dim
+    - globals.set:
+        id: wifi_setup_connect_timeout_expired
+        value: 'false'
     - lambda: |-
         lv_bar_set_value(id(loading_progress_bar), 100, LV_ANIM_OFF);
+        lv_label_set_text(id(loading_title_label), "Starting up");
         lv_label_set_text(id(loading_status_label), "Connected");
     - delay: 800ms
     - if:
@@ -63,5 +98,43 @@ wifi:
         condition:
           lambda: 'return !id(boot_grace_period);'
         then:
-          - lvgl.page.show: wifi_setup_page
-          - script.execute: setup_screen_dim
+          - if:
+              condition:
+                lambda: 'return wifi::global_wifi_component != nullptr && wifi::global_wifi_component->has_sta();'
+              then:
+                - globals.set:
+                    id: wifi_setup_connect_timeout_expired
+                    value: 'false'
+                - script.execute: wifi_connecting_before_setup
+              else:
+                - lvgl.page.show: wifi_setup_page
+                - script.execute: setup_screen_dim
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              static std::string last_ssid;
+              static std::string last_password;
+              auto *wifi = wifi::global_wifi_component;
+              if (wifi == nullptr || !wifi->has_sta() || wifi->is_connected()) {
+                return false;
+              }
+
+              auto sta = wifi->get_sta();
+              if (sta.get_ssid() != last_ssid || sta.get_password() != last_password) {
+                if (id(wifi_setup_seen_sta_credentials)) {
+                  id(wifi_setup_connect_timeout_expired) = false;
+                }
+                last_ssid = sta.get_ssid();
+                last_password = sta.get_password();
+                id(wifi_setup_seen_sta_credentials) = true;
+              }
+
+              return !id(boot_grace_period) &&
+                     !id(wifi_setup_connect_timeout_expired) &&
+                     lv_scr_act() == id(wifi_setup_page)->obj;
+          then:
+            - script.execute: wifi_connecting_before_setup

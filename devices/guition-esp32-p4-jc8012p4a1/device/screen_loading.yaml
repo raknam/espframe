@@ -40,6 +40,7 @@ lvgl:
               pad_row: 40
             widgets:
               - label:
+                  id: loading_title_label
                   text: "Starting up"
                   text_font: roboto_light46_font
                   text_color: 0xFFFFFF
@@ -96,6 +97,7 @@ esphome:
       then:
         - lambda: |-
             lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
+            lv_label_set_text(id(loading_title_label), "Starting up");
             lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
         - lambda: |-
             std::string name = App.get_name();
@@ -108,5 +110,14 @@ esphome:
               not:
                 wifi.connected:
             then:
-              - lvgl.page.show: wifi_setup_page
-              - script.execute: setup_screen_dim
+              - if:
+                  condition:
+                    lambda: 'return wifi::global_wifi_component != nullptr && wifi::global_wifi_component->has_sta();'
+                  then:
+                    - globals.set:
+                        id: wifi_setup_connect_timeout_expired
+                        value: 'false'
+                    - script.execute: wifi_connecting_before_setup
+                  else:
+                    - lvgl.page.show: wifi_setup_page
+                    - script.execute: setup_screen_dim
