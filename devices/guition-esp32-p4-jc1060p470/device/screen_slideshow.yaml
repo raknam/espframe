@@ -116,8 +116,8 @@ lvgl:
               - obj:
                   id: photo_metadata_overlay
                   align: BOTTOM_RIGHT
-                  x: -45
-                  y: 0
+                  x: -50
+                  y: -50
                   hidden: true
                   width: ${metadata_overlay_width}
                   height: 104
