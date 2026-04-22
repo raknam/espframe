@@ -168,7 +168,7 @@ lvgl:
             id: clock_container
             align: BOTTOM_LEFT
             x: 50
-            y: -50
+            y: -20
             hidden: true
             width: SIZE_CONTENT
             height: SIZE_CONTENT
