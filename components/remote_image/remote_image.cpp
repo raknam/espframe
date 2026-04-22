@@ -1,5 +1,7 @@
 #include "remote_image.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstring>
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -13,6 +15,9 @@ static const char *const TAG = "remote_image";
 static const char *const ETAG_HEADER_NAME = "etag";
 static const char *const LAST_MODIFIED_HEADER_NAME = "last-modified";
 static const char *const CONTENT_TYPE_HEADER_NAME = "content-type";
+static const char *const CONTENT_ENCODING_HEADER_NAME = "content-encoding";
+static const char *const TRANSFER_ENCODING_HEADER_NAME = "transfer-encoding";
+static constexpr size_t MAX_SUPPORTED_CONTENT_LENGTH = 64UL * 1024UL * 1024UL;
 
 #include "image_decoder.h"
 
@@ -51,6 +56,12 @@ inline bool is_color_on(const Color &color) {
   // Approximation using fast integer computations; produces acceptable results
   // Equivalent to 0.25 * R + 0.5 * G + 0.25 * B
   return ((color.r >> 2) + (color.g >> 1) + (color.b >> 2)) & 0x80;
+}
+
+static std::string lower_header_value_(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return value;
 }
 
 OnlineImage::OnlineImage(const std::string &url, int width, int height, ImageFormat format, ImageType type,
@@ -204,7 +215,9 @@ void OnlineImage::update() {
     headers.push_back(http_request::Header{header.first, header.second.value()});
   }
 
-  this->downloader_ = this->parent_->get(this->url_, headers, {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME, CONTENT_TYPE_HEADER_NAME});
+  this->downloader_ = this->parent_->get(this->url_, headers,
+                                         {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME, CONTENT_TYPE_HEADER_NAME,
+                                          CONTENT_ENCODING_HEADER_NAME, TRANSFER_ENCODING_HEADER_NAME});
 
   if (this->downloader_ == nullptr) {
     ESP_LOGE(TAG, "Download failed.");
@@ -235,6 +248,9 @@ void OnlineImage::update() {
 
   ESP_LOGD(TAG, "Starting download");
   size_t total_size = this->downloader_->content_length;
+  if (!this->validate_response_body_(total_size)) {
+    return;
+  }
 
   ImageFormat resolved = this->detect_format_();
 
@@ -568,6 +584,39 @@ void OnlineImage::fail_download_(const char *reason, int error_code) {
   ESP_LOGW(TAG, "%s (%d)", reason, error_code);
   this->end_connection_();
   this->download_error_callback_.call();
+}
+
+bool OnlineImage::validate_response_body_(size_t content_length) {
+  if (!this->downloader_) {
+    return false;
+  }
+
+  std::string content_encoding = this->downloader_->get_response_header(CONTENT_ENCODING_HEADER_NAME);
+  if (!content_encoding.empty() && lower_header_value_(content_encoding) != "identity") {
+    ESP_LOGW(TAG, "Image response uses unsupported Content-Encoding: %s", content_encoding.c_str());
+    this->fail_download_("Image response body is transport-compressed", http_request::HTTP_ERROR_CONNECTION_CLOSED);
+    return false;
+  }
+
+  if (content_length == 0) {
+    std::string transfer_encoding = this->downloader_->get_response_header(TRANSFER_ENCODING_HEADER_NAME);
+    if (!transfer_encoding.empty()) {
+      ESP_LOGW(TAG, "Image response uses Transfer-Encoding: %s without a Content-Length", transfer_encoding.c_str());
+    } else {
+      ESP_LOGW(TAG, "Image response is missing Content-Length");
+    }
+    this->fail_download_("Image response has no usable Content-Length", http_request::HTTP_ERROR_CONNECTION_CLOSED);
+    return false;
+  }
+
+  if (content_length > MAX_SUPPORTED_CONTENT_LENGTH) {
+    ESP_LOGW(TAG, "Image Content-Length %zu exceeds maximum supported size %zu", content_length,
+             MAX_SUPPORTED_CONTENT_LENGTH);
+    this->fail_download_("Image response Content-Length is not usable", http_request::HTTP_ERROR_CONNECTION_CLOSED);
+    return false;
+  }
+
+  return true;
 }
 
 bool OnlineImage::validate_url_(const std::string &url) {
