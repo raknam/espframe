@@ -1552,7 +1552,6 @@
     };
     baseTr.appendChild(baseTog);
     fBaseToneToggle.appendChild(baseTr);
-    fBaseToneToggle.style.marginBottom = "8px";
     warmBody.appendChild(fBaseToneToggle);
 
     var fBaseTone = field("");
@@ -1575,7 +1574,6 @@
     rwBase.appendChild(baseLabelR);
     fBaseTone.appendChild(rwBase);
     baseDetails.appendChild(fBaseTone);
-    baseDetails.style.marginBottom = "28px";
     warmBody.appendChild(baseDetails);
 
     var fWarmToggle = field("");
@@ -1594,7 +1592,6 @@
     };
     warmTr.appendChild(warmTog);
     fWarmToggle.appendChild(warmTr);
-    fWarmToggle.style.marginBottom = "8px";
     warmBody.appendChild(fWarmToggle);
 
     var fWarmInt = field("");
