@@ -255,7 +255,7 @@ script:
                       else:
                         - lvgl.page.show: immich_setup_page
                 else:
-                  - lvgl.page.show: wifi_setup_page
+                  - script.execute: show_wifi_setup_page
 
   # Force the screen asleep because it is outside schedule hours.
   - id: screen_schedule_sleep

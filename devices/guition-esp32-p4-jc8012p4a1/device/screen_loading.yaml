@@ -119,5 +119,4 @@ esphome:
                         value: 'false'
                     - script.execute: wifi_connecting_before_setup
                   else:
-                    - lvgl.page.show: wifi_setup_page
-                    - script.execute: setup_screen_dim
+                    - script.execute: show_wifi_setup_page
