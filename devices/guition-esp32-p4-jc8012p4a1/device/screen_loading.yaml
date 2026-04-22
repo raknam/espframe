@@ -3,8 +3,8 @@
 # =============================================================================
 # Boot screen with progress bar. Must be the first page included in
 # packages.yaml so LVGL shows it at startup. on_boot advances the bar and
-# status text; after a grace period, if WiFi is not connected, switches to
-# wifi_setup_page.
+# status text. If saved WiFi exists it stays on this page while connecting;
+# otherwise it switches to wifi_setup_page.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -99,24 +99,22 @@ esphome:
             lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
             lv_label_set_text(id(loading_title_label), "Starting up");
             lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
-        - lambda: |-
-            std::string name = App.get_name();
-            std::string wifi_text = "Connect to the WiFi hotspot\n'" + name + "'\nto configure your network\n\nThen visit ${captive_portal_ip} in your browser";
-            lv_label_set_text(id(wifi_setup_instructions), wifi_text.c_str());
-        - delay: 10s
-        - lambda: 'id(boot_grace_period) = false;'
         - if:
             condition:
-              not:
-                wifi.connected:
+              lambda: 'return wifi::global_wifi_component != nullptr && wifi::global_wifi_component->has_sta();'
             then:
               - if:
                   condition:
-                    lambda: 'return wifi::global_wifi_component != nullptr && wifi::global_wifi_component->has_sta();'
+                    wifi.connected:
                   then:
+                    - lambda: 'id(boot_grace_period) = false;'
+                  else:
                     - globals.set:
                         id: wifi_setup_connect_timeout_expired
                         value: 'false'
                     - script.execute: wifi_connecting_before_setup
-                  else:
-                    - script.execute: show_wifi_setup_page
+                    - delay: 15s
+                    - lambda: 'id(boot_grace_period) = false;'
+            else:
+              - lambda: 'id(boot_grace_period) = false;'
+              - script.execute: show_wifi_setup_page

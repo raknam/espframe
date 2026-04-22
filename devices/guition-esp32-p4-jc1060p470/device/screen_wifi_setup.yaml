@@ -47,7 +47,6 @@ lvgl:
                         text_color: 0xFFFFFF
                         text_align: center
                     - label:
-                        id: wifi_setup_title
                         text: "WiFi Setup"
                         text_font: roboto_light46_font
                         text_color: 0xFFFFFF

@@ -35,6 +35,9 @@ globals:
   - id: wifi_setup_screen_active
     type: bool
     initial_value: 'false'
+  - id: wifi_connecting_screen_active
+    type: bool
+    initial_value: 'false'
 
 script:
   - id: show_wifi_setup_page
@@ -42,7 +45,7 @@ script:
     then:
       - lambda: |-
           id(wifi_setup_screen_active) = true;
-          lv_label_set_text(id(wifi_setup_title), "WiFi Setup");
+          id(wifi_connecting_screen_active) = false;
           std::string name = App.get_name();
           std::string wifi_text = "Connect to the WiFi hotspot\n'" + name + "'\nto configure your network\n\nThen visit ${captive_portal_ip} in your browser";
           lv_label_set_text(id(wifi_setup_instructions), wifi_text.c_str());
@@ -55,8 +58,7 @@ script:
       - script.stop: setup_screen_dim
       - lambda: |-
           id(wifi_setup_screen_active) = false;
-          lv_label_set_text(id(wifi_setup_title), "Connecting to WiFi");
-          lv_label_set_text(id(wifi_setup_instructions), "Trying the network details you entered.\nThis can take up to a minute.");
+          id(wifi_connecting_screen_active) = true;
           lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
           lv_label_set_text(id(loading_title_label), "Connecting");
           lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
@@ -70,6 +72,9 @@ script:
             - globals.set:
                 id: wifi_setup_connect_timeout_expired
                 value: 'true'
+            - globals.set:
+                id: wifi_connecting_screen_active
+                value: 'false'
             - script.execute: show_wifi_setup_page
 
 wifi:
@@ -84,6 +89,7 @@ wifi:
         value: 'false'
     - lambda: |-
         id(wifi_setup_screen_active) = false;
+        id(wifi_connecting_screen_active) = false;
         lv_bar_set_value(id(loading_progress_bar), 100, LV_ANIM_OFF);
         lv_label_set_text(id(loading_title_label), "Starting up");
         lv_label_set_text(id(loading_status_label), "Connected");
@@ -136,12 +142,17 @@ interval:
               static std::string last_ssid;
               static std::string last_password;
               auto *wifi = wifi::global_wifi_component;
-              if (wifi == nullptr || !wifi->has_sta() || wifi->is_connected()) {
+              if (wifi == nullptr || wifi->is_connected()) {
                 return false;
               }
 
               bool credentials_changed = false;
               auto sta = wifi->get_sta();
+              bool has_credentials = wifi->has_sta() || !sta.get_ssid().empty();
+              if (!has_credentials) {
+                return false;
+              }
+
               if (sta.get_ssid() != last_ssid || sta.get_password() != last_password) {
                 if (id(wifi_setup_seen_sta_credentials)) {
                   id(wifi_setup_connect_timeout_expired) = false;
@@ -154,6 +165,7 @@ interval:
 
               return !id(boot_grace_period) &&
                      !id(wifi_setup_connect_timeout_expired) &&
+                     !id(wifi_connecting_screen_active) &&
                      (id(wifi_setup_screen_active) || credentials_changed);
           then:
             - script.execute: wifi_connecting_before_setup
