@@ -167,8 +167,8 @@ lvgl:
         - obj:
             id: clock_container
             align: BOTTOM_LEFT
-            x: 45
-            y: 0
+            x: 50
+            y: -50
             hidden: true
             width: SIZE_CONTENT
             height: SIZE_CONTENT
