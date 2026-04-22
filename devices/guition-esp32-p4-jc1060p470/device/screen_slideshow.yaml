@@ -89,6 +89,17 @@ lvgl:
                         align: CENTER
                         scrollable: false
                         clickable: false
+              - obj:
+                  id: portrait_pair_divider
+                  align: CENTER
+                  width: 1
+                  height: ${display_height}
+                  bg_color: 0x000000
+                  bg_opa: 100%
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
         - obj:
             id: info_overlay
             align: BOTTOM_LEFT
