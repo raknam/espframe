@@ -11,9 +11,7 @@
 // safe to display.
 static const char *const TAG = "remote_image";
 static const char *const ETAG_HEADER_NAME = "etag";
-static const char *const IF_NONE_MATCH_HEADER_NAME = "if-none-match";
 static const char *const LAST_MODIFIED_HEADER_NAME = "last-modified";
-static const char *const IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
 static const char *const CONTENT_TYPE_HEADER_NAME = "content-type";
 
 #include "image_decoder.h"
@@ -156,10 +154,16 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
 
 void OnlineImage::update() {
   if (this->decoder_ || this->downloader_) {
-    ESP_LOGW(TAG, "Cancelling in-progress image download to fetch new URL");
+    if (this->url_ == this->active_url_) {
+      ESP_LOGW(TAG, "Image download already in progress for %s; skipping duplicate update", this->url_.c_str());
+      return;
+    }
+    ESP_LOGW(TAG, "Cancelling in-progress image download for %s to fetch %s",
+             this->active_url_.c_str(), this->url_.c_str());
     this->end_connection_();
   }
   ESP_LOGI(TAG, "Updating image %s", this->url_.c_str());
+  this->active_url_ = this->url_;
 
   std::vector<http_request::Header> headers = {};
 
@@ -194,15 +198,9 @@ void OnlineImage::update() {
   }
   accept_header.value = accept_mime_type + ",*/*;q=0.8";
 
-  // Reuse HTTP cache validators when available so unchanged photos do not waste
-  // bandwidth or decoder memory on small ESP32 devices.
-  if (!this->etag_.empty()) {
-    headers.push_back(http_request::Header{IF_NONE_MATCH_HEADER_NAME, this->etag_});
-  }
-
-  if (!this->last_modified_.empty()) {
-    headers.push_back(http_request::Header{IF_MODIFIED_SINCE_HEADER_NAME, this->last_modified_});
-  }
+  // Do not send HTTP cache validators here. ESPHome's ESP-IDF HTTP layer marks
+  // 304 responses as errors, and a no-body 304 is unsafe if a previous transfer
+  // for the same URL was cancelled before a complete decoded image was cached.
 
   headers.push_back(accept_header);
 
@@ -221,10 +219,15 @@ void OnlineImage::update() {
 
   int http_code = this->downloader_->status_code;
   if (http_code == HTTP_CODE_NOT_MODIFIED) {
-    // Image hasn't changed on server. Skip download.
-    ESP_LOGI(TAG, "Server returned HTTP 304 (Not Modified). Download skipped.");
-    this->end_connection_();
-    this->download_finished_callback_.call(true);
+    if (this->data_start_ != nullptr && this->width_ > 0 && this->height_ > 0) {
+      ESP_LOGI(TAG, "Server returned HTTP 304 (Not Modified). Using existing decoded image.");
+      this->end_connection_();
+      this->download_finished_callback_.call(true);
+    } else {
+      ESP_LOGW(TAG, "Server returned HTTP 304 but no decoded image is cached");
+      this->end_connection_();
+      this->download_error_callback_.call();
+    }
     return;
   }
   if (http_code != HTTP_CODE_OK) {
@@ -559,6 +562,7 @@ void OnlineImage::end_connection_() {
     this->downloader_->end();
     this->downloader_ = nullptr;
   }
+  this->active_url_ = "";
   this->decoder_.reset();
   this->download_buffer_.reset();
   this->download_buffer_.shrink(this->download_buffer_initial_size_);

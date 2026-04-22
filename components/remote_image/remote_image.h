@@ -228,6 +228,11 @@ class OnlineImage : public PollingComponent,
    * The value of the Last-Modified HTTP header provided in the last response.
    */
   std::string last_modified_ = "";
+  /**
+   * URL currently being downloaded. Used to ignore duplicate update() calls for
+   * the same image instead of aborting and restarting the same transfer.
+   */
+  std::string active_url_ = "";
 
   time_t start_time_;
   uint32_t last_progress_millis_{0};
