@@ -172,7 +172,7 @@ lvgl:
                           flex_flow: ROW
                           flex_align_main: START
                           flex_align_cross: CENTER
-                          pad_column: 70
+                          pad_column: 50
                         widgets:
                           - label:
                               id: photo_metadata_date_label_shadow
@@ -206,7 +206,7 @@ lvgl:
                           flex_flow: ROW
                           flex_align_main: START
                           flex_align_cross: CENTER
-                          pad_column: 70
+                          pad_column: 50
                         widgets:
                           - label:
                               id: photo_metadata_date_label
