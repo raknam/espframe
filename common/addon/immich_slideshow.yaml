@@ -695,6 +695,8 @@ script:
             lv_obj_set_width(id(photo_metadata_date_label), date_width);
             lv_obj_set_width(id(photo_metadata_date_label_shadow), date_width);
           }
+          lv_obj_update_layout(id(photo_metadata_shadow_row));
+          lv_obj_update_layout(id(photo_metadata_row));
 
           if (!has_location && !has_date) {
             lv_obj_add_flag(id(photo_metadata_overlay), LV_OBJ_FLAG_HIDDEN);
