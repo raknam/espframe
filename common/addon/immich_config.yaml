@@ -23,8 +23,10 @@ esphome:
     then:
       - lambda: |-
           std::string url = normalize_immich_base_url(id(immich_url).state);
-          if (!url.empty() && is_http_url(url) && url != id(immich_url).state) {
+          if (!url.empty() && is_valid_http_url(url) && url != id(immich_url).state) {
             id(immich_url).publish_state(url);
+          } else if (!url.empty() && !is_valid_http_url(url)) {
+            ESP_LOGW("immich", "Stored Immich URL is invalid; expected valid http(s)://host[:port]");
           }
 
 # -----------------------------------------------------------------------------
@@ -49,8 +51,8 @@ text:
       - lambda: |-
           if (x.empty()) return;
           std::string url = normalize_immich_base_url(x);
-          if (!is_http_url(url)) {
-            ESP_LOGW("immich", "Immich URL must start with http:// or https://");
+          if (!is_valid_http_url(url)) {
+            ESP_LOGW("immich", "Immich URL must be a valid http(s)://host[:port] URL");
             return;
           }
           id(immich_url).publish_state(url);
@@ -143,7 +145,7 @@ script:
     then:
       - if:
           condition:
-            lambda: 'return !id(immich_url).state.empty() && !id(immich_api_key_text).state.empty() && !id(immich_fetch_started);'
+            lambda: 'return is_valid_http_url(id(immich_url).state) && !id(immich_api_key_text).state.empty() && !id(immich_fetch_started);'
           then:
             - lvgl.page.show: slideshow_page
             - lambda: 'id(target_slot) = 0;'

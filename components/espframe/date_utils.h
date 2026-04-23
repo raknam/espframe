@@ -57,6 +57,17 @@ inline bool is_http_url(const std::string &url) {
   return lower.rfind("http://", 0) == 0 || lower.rfind("https://", 0) == 0;
 }
 
+inline bool is_valid_port_number(const std::string &port) {
+  if (port.empty()) return false;
+  int value = 0;
+  for (char c : port) {
+    if (!is_ascii_digit(c)) return false;
+    value = value * 10 + (c - '0');
+    if (value > 65535) return false;
+  }
+  return value >= 1;
+}
+
 inline std::string extract_url_authority(const std::string &url_without_scheme) {
   size_t start = 0;
   if (url_without_scheme.rfind("//", 0) == 0) start = 2;
@@ -116,6 +127,12 @@ inline std::string extract_url_port(const std::string &url_without_scheme) {
   return authority.substr(port_start, port_end - port_start);
 }
 
+inline bool url_authority_has_invalid_port(const std::string &url_without_scheme) {
+  if (!url_authority_has_port(url_without_scheme)) return false;
+  std::string port = extract_url_port(url_without_scheme);
+  return !is_valid_port_number(port);
+}
+
 inline bool is_ipv4_literal_host(const std::string &host) {
   int dot_count = 0;
   int part_value = 0;
@@ -154,7 +171,7 @@ inline std::string normalize_immich_base_url(const std::string &input) {
   } else if (!url_has_scheme(url)) {
     std::string host = extract_url_host(url);
     std::string port = extract_url_port(url);
-    bool use_http = is_local_immich_host(host) || url_authority_has_port(url);
+    bool use_http = is_local_immich_host(host) || !port.empty();
     if (port == "443") use_http = false;
     url = std::string(use_http ? "http://" : "https://") + url;
   } else {
@@ -164,6 +181,20 @@ inline std::string normalize_immich_base_url(const std::string &input) {
   }
 
   return strip_trailing_slashes(url);
+}
+
+inline bool is_valid_http_url(const std::string &url) {
+  if (!is_http_url(url)) return false;
+  size_t scheme_pos = url.find("://");
+  if (scheme_pos == std::string::npos) return false;
+  std::string rest = url.substr(scheme_pos + 3);
+  std::string host = extract_url_host(rest);
+  if (host.empty()) return false;
+  if (host[0] == '[') {
+    if (host.size() < 3 || host.back() != ']') return false;
+  }
+  if (url_authority_has_invalid_port(rest)) return false;
+  return true;
 }
 
 inline std::string format_time_ago(int photo_year, int photo_month, int now_year, int now_month) {
