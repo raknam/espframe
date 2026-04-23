@@ -102,8 +102,8 @@ lvgl:
                   clickable: false
         - obj:
             id: info_overlay
-            align: BOTTOM_LEFT
-            x: 45
+            align: BOTTOM_RIGHT
+            x: -45
             y: -20
             width: 934
             height: SIZE_CONTENT
@@ -148,7 +148,7 @@ lvgl:
                   id: photo_metadata_overlay
                   hidden: true
                   width: 934
-                  height: 52
+                  height: SIZE_CONTENT
                   translate_y: -10
                   bg_opa: 0%
                   border_width: 0
@@ -169,27 +169,30 @@ lvgl:
                         clickable: false
                         layout:
                           type: flex
-                          flex_flow: ROW
+                          flex_flow: COLUMN
                           flex_align_main: START
-                          flex_align_cross: CENTER
-                          pad_column: 40
+                          flex_align_cross: END
+                          pad_row: 4
                         widgets:
-                          - label:
-                              id: photo_metadata_date_label_shadow
-                              hidden: true
-                              text: ""
-                              text_color: 0x000000
-                              text_opa: 20%
-                              text_font: roboto_light40_font
                           - label:
                               id: photo_metadata_location_label_shadow
                               hidden: true
-                              width: SIZE_CONTENT
+                              width: 934
                               text: ""
                               long_mode: DOT
+                              text_align: right
                               text_color: 0x000000
                               text_opa: 20%
                               text_font: noto_location_light40_font
+                          - label:
+                              id: photo_metadata_date_label_shadow
+                              hidden: true
+                              width: 934
+                              text: ""
+                              text_align: right
+                              text_color: 0x000000
+                              text_opa: 20%
+                              text_font: roboto_light40_font
                     - obj:
                         id: photo_metadata_row
                         x: 0
@@ -203,25 +206,28 @@ lvgl:
                         clickable: false
                         layout:
                           type: flex
-                          flex_flow: ROW
+                          flex_flow: COLUMN
                           flex_align_main: START
-                          flex_align_cross: CENTER
-                          pad_column: 40
+                          flex_align_cross: END
+                          pad_row: 4
                         widgets:
-                          - label:
-                              id: photo_metadata_date_label
-                              hidden: true
-                              text: ""
-                              text_color: 0xFFFFFF
-                              text_font: roboto_light40_font
                           - label:
                               id: photo_metadata_location_label
                               hidden: true
-                              width: SIZE_CONTENT
+                              width: 934
                               text: ""
                               long_mode: DOT
+                              text_align: right
                               text_color: 0xFFFFFF
                               text_font: noto_location_light40_font
+                          - label:
+                              id: photo_metadata_date_label
+                              hidden: true
+                              width: 934
+                              text: ""
+                              text_align: right
+                              text_color: 0xFFFFFF
+                              text_font: roboto_light40_font
         - obj:
             id: connection_failed_overlay
             align: CENTER
