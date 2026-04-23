@@ -76,30 +76,21 @@
   };
 
   var CSS = __ESPFRAME_CSS__;
+  var BMC_CSS = [
+    ".bmc-floating{position:fixed;right:18px;bottom:18px;z-index:9998;display:inline-flex;align-items:center;justify-content:center;min-width:190px;height:58px;padding:0 20px;border-radius:12px;background:#ffdd00;color:#111;text-decoration:none;font-size:17px;font-weight:700;line-height:1;box-shadow:var(--shadow-3);transition:transform .2s ease,box-shadow .2s ease}",
+    ".bmc-floating:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(0,0,0,.42),0 2px 8px rgba(0,0,0,.24)}",
+    ".bmc-floating:focus-visible{outline:3px solid rgba(255,255,255,.8);outline-offset:3px}",
+    "@media(max-width:480px){.bmc-floating{right:12px;bottom:12px;min-width:162px;height:52px;padding:0 16px;font-size:15px}}"
+  ].join("");
 
   var style = document.createElement("style");
-  style.textContent = CSS;
+  style.textContent = CSS + BMC_CSS;
   document.head.appendChild(style);
 
   var fonts = document.createElement("link");
   fonts.rel = "stylesheet";
   fonts.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
   document.head.appendChild(fonts);
-
-  function loadBuyMeCoffeeWidget() {
-    var script = document.createElement("script");
-    script.setAttribute("data-name", "BMC-Widget");
-    script.setAttribute("data-cfasync", "false");
-    script.src = "https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js";
-    script.setAttribute("data-id", "jtenniswood");
-    script.setAttribute("data-description", "Support me on Buy me a coffee!");
-    script.setAttribute("data-message", "");
-    script.setAttribute("data-color", "#FFDD00");
-    script.setAttribute("data-position", "Right");
-    script.setAttribute("data-x_margin", "18");
-    script.setAttribute("data-y_margin", "18");
-    document.head.appendChild(script);
-  }
 
   var els = {};
   var app;
@@ -118,6 +109,7 @@
     buildImmichPage(root);
     buildSettingsPage(root);
     buildLogsPage(root);
+    buildBuyMeCoffeeButton(root);
 
     var espApp = document.querySelector("esp-app");
     if (espApp) {
@@ -158,6 +150,17 @@
 
     header.appendChild(nav);
     parent.appendChild(header);
+  }
+
+  function buildBuyMeCoffeeButton(parent) {
+    var link = document.createElement("a");
+    link.className = "bmc-floating";
+    link.href = "https://www.buymeacoffee.com/jtenniswood";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", "Buy Me A Coffee");
+    link.textContent = "Buy Me A Coffee";
+    parent.appendChild(link);
   }
 
   var immichApp;
@@ -2462,6 +2465,5 @@
   // --- Init ---
 
   buildUI();
-  loadBuyMeCoffeeWidget();
   initSSE();
 })();
