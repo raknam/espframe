@@ -21,8 +21,8 @@ substitutions:
 # Clock and numeric (minimal glyph set for lower memory)
 # -----------------------------------------------------------------------------
 font:
-  - file: "gfonts://Noto Sans@275"
-    id: noto_275_150_font
+  - file: "gfonts://Noto Sans@325"
+    id: noto_325_150_font
     size: 150
     bpp: 4
     glyphs: " 0123456789:"
