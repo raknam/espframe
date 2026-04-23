@@ -55,8 +55,8 @@ font:
     glyphs: "${latin_extended_glyphs}${greek_cyrillic_vietnamese_glyphs}"
 
   - file: "gfonts://Roboto@Light"
-    id: roboto_light40_font
-    size: 40
+    id: roboto_light20_font
+    size: 20
     bpp: 4
     glyphs: "${latin_extended_glyphs}${greek_cyrillic_vietnamese_glyphs}"
 
