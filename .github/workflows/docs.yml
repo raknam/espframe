@@ -13,6 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: read
   pages: write
   id-token: write
@@ -23,7 +24,7 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  PAGES_ARTIFACT_NAME: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+  PAGES_ARTIFACT_NAME: github-pages-${{ github.run_id }}
 
 jobs:
   build-docs:
@@ -72,6 +73,18 @@ jobs:
             gh release download "$BETA_TAG" \
               --pattern '*.ota.bin' \
               --dir docs/.vitepress/dist/firmware/beta/ || true
+          fi
+
+      - name: Remove stale Pages artifact from reruns
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXISTING_IDS=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts \
+            --jq '.artifacts[] | select(.name == "'"${PAGES_ARTIFACT_NAME}"'") | .id')
+          if [ -n "$EXISTING_IDS" ]; then
+            while IFS= read -r ARTIFACT_ID; do
+              gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/${ARTIFACT_ID}
+            done <<< "$EXISTING_IDS"
           fi
 
       - name: Upload pages artifact
