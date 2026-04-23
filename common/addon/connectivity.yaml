@@ -25,73 +25,14 @@ http_request:
 # -----------------------------------------------------------------------------
 captive_portal:
 
-globals:
-  - id: wifi_setup_connect_timeout_expired
-    type: bool
-    initial_value: 'false'
-  - id: wifi_setup_seen_sta_credentials
-    type: bool
-    initial_value: 'false'
-  - id: wifi_setup_screen_active
-    type: bool
-    initial_value: 'false'
-  - id: wifi_connecting_screen_active
-    type: bool
-    initial_value: 'false'
-
-script:
-  - id: show_wifi_setup_page
-    mode: restart
-    then:
-      - lambda: |-
-          id(wifi_setup_screen_active) = true;
-          id(wifi_connecting_screen_active) = false;
-          std::string name = App.get_name();
-          std::string wifi_text = "Connect to the WiFi hotspot\n'" + name + "'\nto configure your network\n\nThen visit ${captive_portal_ip} in your browser";
-          lv_label_set_text(id(wifi_setup_instructions), wifi_text.c_str());
-      - lvgl.page.show: wifi_setup_page
-      - script.execute: setup_screen_dim
-
-  - id: wifi_connecting_before_setup
-    mode: restart
-    then:
-      - script.stop: setup_screen_dim
-      - lambda: |-
-          id(wifi_setup_screen_active) = false;
-          id(wifi_connecting_screen_active) = true;
-          lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
-          lv_label_set_text(id(loading_title_label), "Connecting");
-          lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
-      - lvgl.page.show: loading_page
-      - delay: 60s
-      - if:
-          condition:
-            not:
-              wifi.connected:
-          then:
-            - globals.set:
-                id: wifi_setup_connect_timeout_expired
-                value: 'true'
-            - globals.set:
-                id: wifi_connecting_screen_active
-                value: 'false'
-            - script.execute: show_wifi_setup_page
-
 wifi:
   reboot_timeout: 0s
   ap:
     ssid: "${name}"
   on_connect:
-    - script.stop: wifi_connecting_before_setup
     - script.stop: setup_screen_dim
-    - globals.set:
-        id: wifi_setup_connect_timeout_expired
-        value: 'false'
     - lambda: |-
-        id(wifi_setup_screen_active) = false;
-        id(wifi_connecting_screen_active) = false;
         lv_bar_set_value(id(loading_progress_bar), 100, LV_ANIM_OFF);
-        lv_label_set_text(id(loading_title_label), "Starting up");
         lv_label_set_text(id(loading_status_label), "Connected");
     - delay: 800ms
     - if:
@@ -122,50 +63,5 @@ wifi:
         condition:
           lambda: 'return !id(boot_grace_period);'
         then:
-          - if:
-              condition:
-                lambda: 'return wifi::global_wifi_component != nullptr && wifi::global_wifi_component->has_sta();'
-              then:
-                - globals.set:
-                    id: wifi_setup_connect_timeout_expired
-                    value: 'false'
-                - script.execute: wifi_connecting_before_setup
-              else:
-                - script.execute: show_wifi_setup_page
-
-interval:
-  - interval: 1s
-    then:
-      - if:
-          condition:
-            lambda: |-
-              static std::string last_ssid;
-              static std::string last_password;
-              auto *wifi = wifi::global_wifi_component;
-              if (wifi == nullptr || wifi->is_connected()) {
-                return false;
-              }
-
-              bool credentials_changed = false;
-              auto sta = wifi->get_sta();
-              bool has_credentials = wifi->has_sta() || !sta.get_ssid().empty();
-              if (!has_credentials) {
-                return false;
-              }
-
-              if (sta.get_ssid() != last_ssid || sta.get_password() != last_password) {
-                if (id(wifi_setup_seen_sta_credentials)) {
-                  id(wifi_setup_connect_timeout_expired) = false;
-                  credentials_changed = true;
-                }
-                last_ssid = sta.get_ssid();
-                last_password = sta.get_password();
-                id(wifi_setup_seen_sta_credentials) = true;
-              }
-
-              return !id(boot_grace_period) &&
-                     !id(wifi_setup_connect_timeout_expired) &&
-                     !id(wifi_connecting_screen_active) &&
-                     (id(wifi_setup_screen_active) || credentials_changed);
-          then:
-            - script.execute: wifi_connecting_before_setup
+          - lvgl.page.show: wifi_setup_page
+          - script.execute: setup_screen_dim

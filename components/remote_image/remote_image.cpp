@@ -1,7 +1,5 @@
 #include "remote_image.h"
 
-#include <algorithm>
-#include <cctype>
 #include <cstring>
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -13,11 +11,10 @@
 // safe to display.
 static const char *const TAG = "remote_image";
 static const char *const ETAG_HEADER_NAME = "etag";
+static const char *const IF_NONE_MATCH_HEADER_NAME = "if-none-match";
 static const char *const LAST_MODIFIED_HEADER_NAME = "last-modified";
+static const char *const IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
 static const char *const CONTENT_TYPE_HEADER_NAME = "content-type";
-static const char *const CONTENT_ENCODING_HEADER_NAME = "content-encoding";
-static const char *const TRANSFER_ENCODING_HEADER_NAME = "transfer-encoding";
-static constexpr size_t MAX_SUPPORTED_CONTENT_LENGTH = 64UL * 1024UL * 1024UL;
 
 #include "image_decoder.h"
 
@@ -56,12 +53,6 @@ inline bool is_color_on(const Color &color) {
   // Approximation using fast integer computations; produces acceptable results
   // Equivalent to 0.25 * R + 0.5 * G + 0.25 * B
   return ((color.r >> 2) + (color.g >> 1) + (color.b >> 2)) & 0x80;
-}
-
-static std::string lower_header_value_(std::string value) {
-  std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-  return value;
 }
 
 OnlineImage::OnlineImage(const std::string &url, int width, int height, ImageFormat format, ImageType type,
@@ -134,9 +125,6 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
       this->data_start_ = nullptr;
       this->width_ = 0;
       this->height_ = 0;
-#ifdef USE_LVGL
-      memset(&this->dsc_, 0, sizeof(this->dsc_));
-#endif
       return new_size;
     }
     this->allocator_.deallocate(this->buffer_, this->get_buffer_size_());
@@ -168,16 +156,10 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
 
 void OnlineImage::update() {
   if (this->decoder_ || this->downloader_) {
-    if (this->url_ == this->active_url_) {
-      ESP_LOGW(TAG, "Image download already in progress for %s; skipping duplicate update", this->url_.c_str());
-      return;
-    }
-    ESP_LOGW(TAG, "Cancelling in-progress image download for %s to fetch %s",
-             this->active_url_.c_str(), this->url_.c_str());
+    ESP_LOGW(TAG, "Cancelling in-progress image download to fetch new URL");
     this->end_connection_();
   }
   ESP_LOGI(TAG, "Updating image %s", this->url_.c_str());
-  this->active_url_ = this->url_;
 
   std::vector<http_request::Header> headers = {};
 
@@ -212,9 +194,15 @@ void OnlineImage::update() {
   }
   accept_header.value = accept_mime_type + ",*/*;q=0.8";
 
-  // Do not send HTTP cache validators here. ESPHome's ESP-IDF HTTP layer marks
-  // 304 responses as errors, and a no-body 304 is unsafe if a previous transfer
-  // for the same URL was cancelled before a complete decoded image was cached.
+  // Reuse HTTP cache validators when available so unchanged photos do not waste
+  // bandwidth or decoder memory on small ESP32 devices.
+  if (!this->etag_.empty()) {
+    headers.push_back(http_request::Header{IF_NONE_MATCH_HEADER_NAME, this->etag_});
+  }
+
+  if (!this->last_modified_.empty()) {
+    headers.push_back(http_request::Header{IF_MODIFIED_SINCE_HEADER_NAME, this->last_modified_});
+  }
 
   headers.push_back(accept_header);
 
@@ -222,9 +210,7 @@ void OnlineImage::update() {
     headers.push_back(http_request::Header{header.first, header.second.value()});
   }
 
-  this->downloader_ = this->parent_->get(this->url_, headers,
-                                         {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME, CONTENT_TYPE_HEADER_NAME,
-                                          CONTENT_ENCODING_HEADER_NAME, TRANSFER_ENCODING_HEADER_NAME});
+  this->downloader_ = this->parent_->get(this->url_, headers, {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME, CONTENT_TYPE_HEADER_NAME});
 
   if (this->downloader_ == nullptr) {
     ESP_LOGE(TAG, "Download failed.");
@@ -235,15 +221,10 @@ void OnlineImage::update() {
 
   int http_code = this->downloader_->status_code;
   if (http_code == HTTP_CODE_NOT_MODIFIED) {
-    if (this->data_start_ != nullptr && this->width_ > 0 && this->height_ > 0) {
-      ESP_LOGI(TAG, "Server returned HTTP 304 (Not Modified). Using existing decoded image.");
-      this->end_connection_();
-      this->download_finished_callback_.call(true);
-    } else {
-      ESP_LOGW(TAG, "Server returned HTTP 304 but no decoded image is cached");
-      this->end_connection_();
-      this->download_error_callback_.call();
-    }
+    // Image hasn't changed on server. Skip download.
+    ESP_LOGI(TAG, "Server returned HTTP 304 (Not Modified). Download skipped.");
+    this->end_connection_();
+    this->download_finished_callback_.call(true);
     return;
   }
   if (http_code != HTTP_CODE_OK) {
@@ -255,9 +236,6 @@ void OnlineImage::update() {
 
   ESP_LOGD(TAG, "Starting download");
   size_t total_size = this->downloader_->content_length;
-  if (!this->validate_response_body_(total_size)) {
-    return;
-  }
 
   ImageFormat resolved = this->detect_format_();
 
@@ -266,9 +244,6 @@ void OnlineImage::update() {
     // the first bytes of the file and detect_format_ checks the file signature.
     ESP_LOGD(TAG, "Image format not identified from Content-Type, deferring to magic-byte detection");
     this->data_start_ = nullptr;
-#ifdef USE_LVGL
-    memset(&this->dsc_, 0, sizeof(this->dsc_));
-#endif
     this->start_time_ = ::time(nullptr);
     this->last_progress_millis_ = millis();
     this->enable_loop();
@@ -289,15 +264,7 @@ void OnlineImage::update() {
     this->download_error_callback_.call();
     return;
   }
-  // Hide the previously published buffer while the same storage is being
-  // reused for a new decode. This avoids LVGL reading from a buffer that is
-  // actively being rewritten.
   this->data_start_ = nullptr;
-  this->width_ = 0;
-  this->height_ = 0;
-#ifdef USE_LVGL
-  memset(&this->dsc_, 0, sizeof(this->dsc_));
-#endif
   this->enable_loop();
   ESP_LOGI(TAG, "Downloading image (Size: %zu)", total_size);
   this->start_time_ = ::time(nullptr);
@@ -363,8 +330,9 @@ void OnlineImage::loop() {
     return;
   }
   if (this->decoder_->is_finished()) {
-    // Publish the new dimensions after decode is complete. If an older image was
-    // already visible, its descriptor stayed valid while this transfer ran.
+    // Only publish width_/height_ after decode is complete. ESPHome display
+    // code treats non-zero dimensions as drawable, so this prevents partially
+    // decoded images from flashing on screen.
     this->data_start_ = buffer_;
     this->width_ = buffer_width_;
     this->height_ = buffer_height_;
@@ -591,7 +559,6 @@ void OnlineImage::end_connection_() {
     this->downloader_->end();
     this->downloader_ = nullptr;
   }
-  this->active_url_ = "";
   this->decoder_.reset();
   this->download_buffer_.reset();
   this->download_buffer_.shrink(this->download_buffer_initial_size_);
@@ -601,39 +568,6 @@ void OnlineImage::fail_download_(const char *reason, int error_code) {
   ESP_LOGW(TAG, "%s (%d)", reason, error_code);
   this->end_connection_();
   this->download_error_callback_.call();
-}
-
-bool OnlineImage::validate_response_body_(size_t content_length) {
-  if (!this->downloader_) {
-    return false;
-  }
-
-  std::string content_encoding = this->downloader_->get_response_header(CONTENT_ENCODING_HEADER_NAME);
-  if (!content_encoding.empty() && lower_header_value_(content_encoding) != "identity") {
-    ESP_LOGW(TAG, "Image response uses unsupported Content-Encoding: %s", content_encoding.c_str());
-    this->fail_download_("Image response body is transport-compressed", http_request::HTTP_ERROR_CONNECTION_CLOSED);
-    return false;
-  }
-
-  if (content_length == 0) {
-    std::string transfer_encoding = this->downloader_->get_response_header(TRANSFER_ENCODING_HEADER_NAME);
-    if (!transfer_encoding.empty()) {
-      ESP_LOGW(TAG, "Image response uses Transfer-Encoding: %s without a Content-Length", transfer_encoding.c_str());
-    } else {
-      ESP_LOGW(TAG, "Image response is missing Content-Length");
-    }
-    this->fail_download_("Image response has no usable Content-Length", http_request::HTTP_ERROR_CONNECTION_CLOSED);
-    return false;
-  }
-
-  if (content_length > MAX_SUPPORTED_CONTENT_LENGTH) {
-    ESP_LOGW(TAG, "Image Content-Length %zu exceeds maximum supported size %zu", content_length,
-             MAX_SUPPORTED_CONTENT_LENGTH);
-    this->fail_download_("Image response Content-Length is not usable", http_request::HTTP_ERROR_CONNECTION_CLOSED);
-    return false;
-  }
-
-  return true;
 }
 
 bool OnlineImage::validate_url_(const std::string &url) {

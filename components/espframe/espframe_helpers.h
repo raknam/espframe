@@ -7,7 +7,6 @@
 #include <cstring>
 #include <cmath>
 #include "esp_heap_caps.h"
-#include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 
 #ifdef USE_LVGL
@@ -21,7 +20,6 @@ static constexpr int MAX_ERROR_RETRIES = 3;
 static constexpr int ACCENT_GRID_SIZE = 20;
 static constexpr int WARM_TONE_LEAD_MINUTES = 60;
 static constexpr int ACCENT_COL_BUF_MAX = 2560;
-static constexpr uint32_t ESPFRAME_LONG_TASK_SERVICE_INTERVAL_MS = 50;
 
 inline int minutes_since_midnight(int h, int m) { return h * 60 + m; }
 
@@ -45,15 +43,6 @@ inline bool is_http_auth_error(int status) { return status == 401; }
 inline bool is_http_retryable(int status) { return status >= 500 || status == 429; }
 inline bool is_http_client_error(int status) {
   return status >= 400 && status < 500 && !is_http_auth_error(status) && status != 429;
-}
-
-inline void espframe_service_long_task(uint32_t &last_service_ms) {
-  uint32_t now = esphome::millis();
-  if (now - last_service_ms < ESPFRAME_LONG_TASK_SERVICE_INTERVAL_MS) return;
-  esphome::App.feed_wdt();
-  // Do not yield while mutating LVGL image buffers; re-entering ESPHome/LVGL
-  // mid-write can expose partially updated image state to other callbacks.
-  last_service_ms = now;
 }
 
 struct PhotoMeta {
@@ -228,23 +217,12 @@ template<typename T> auto get_lv_image_descriptor_(T *img, long) -> decltype(img
   return img->get_lv_img_dsc();
 }
 
-template<typename T> auto image_is_downloading_(T *img, int) -> decltype(img->is_downloading(), bool()) {
-  return img->is_downloading();
-}
-
-template<typename T> bool image_is_downloading_(T *img, long) {
-  return false;
-}
-
-template<typename T> inline void fill_accent_color(T *img) {
-  if (!img || image_is_downloading_(img, 0)) return;
+inline void fill_accent_color(esphome::image::Image *img) {
   int img_w = img->get_width();
   int img_h = img->get_height();
   if (img_w <= 0 || img_h <= 0) return;
-  uint32_t service_ms = esphome::millis();
 
   lv_img_dsc_t *dsc = get_lv_image_descriptor_(img, 0);
-  if (!dsc) return;
   const uint8_t *data = dsc->data;
   if (!data) return;
 
@@ -336,10 +314,8 @@ template<typename T> inline void fill_accent_color(T *img) {
     for (int x = 0; x < img_w; x++) {
       buf[x * 2] = lo; buf[x * 2 + 1] = hi;
     }
-    for (int y = 1; y < top_off; y++) {
+    for (int y = 1; y < top_off; y++)
       memcpy(buf + y * row_bytes, buf, row_bytes);
-      if ((y & 0x1F) == 0) espframe_service_long_task(service_ms);
-    }
   }
 
   if (bottom_off > 0) {
@@ -352,10 +328,8 @@ template<typename T> inline void fill_accent_color(T *img) {
     }
     int src_y = top_off > 0 ? 0 : first_bottom_y;
     int start_y = top_off > 0 ? first_bottom_y : first_bottom_y + 1;
-    for (int y = start_y; y < img_h; y++) {
+    for (int y = start_y; y < img_h; y++)
       memcpy(buf + y * row_bytes, buf + src_y * row_bytes, row_bytes);
-      if ((y & 0x1F) == 0) espframe_service_long_task(service_ms);
-    }
   }
 
   if (left_off > 0 || right_off > 0) {
@@ -372,7 +346,6 @@ template<typename T> inline void fill_accent_color(T *img) {
         memcpy(buf + row, col_buf, left_off * 2);
       if (right_off > 0)
         memcpy(buf + row + (img_w - right_off) * 2, col_buf, right_off * 2);
-      if ((y & 0x1F) == 0) espframe_service_long_task(service_ms);
     }
   }
 }
@@ -429,13 +402,12 @@ inline void build_warm_tone_luts(float last_w, float new_w, WarmToneLuts &luts) 
 }
 
 #ifdef USE_LVGL
-template<typename T> inline void tint_image_buffer(T *img, const WarmToneLuts &luts) {
-  if (!img || image_is_downloading_(img, 0)) return;
+inline void tint_image_buffer(esphome::image::Image *img, const WarmToneLuts &luts) {
+  if (!img) return;
   lv_img_dsc_t *dsc = get_lv_image_descriptor_(img, 0);
   if (!dsc || !dsc->data) return;
   uint8_t *buf = const_cast<uint8_t*>(dsc->data);
   int total = img->get_width() * img->get_height();
-  uint32_t service_ms = esphome::millis();
   // RGB565 stores only 5/6/5 bits per channel, so the LUTs operate directly on
   // those channel indices instead of converting every pixel through RGB888.
   for (int i = 0; i < total; i++) {
@@ -447,7 +419,6 @@ template<typename T> inline void tint_image_buffer(T *img, const WarmToneLuts &l
     uint16_t out = (r5 << 11) | (g6 << 5) | b5;
     buf[pos]     = out & 0xFF;
     buf[pos + 1] = (out >> 8) & 0xFF;
-    if ((i & 0x3FFF) == 0) espframe_service_long_task(service_ms);
   }
 }
 #endif  // USE_LVGL

@@ -20,16 +20,6 @@ script:
     mode: restart
     then:
       - lambda: |-
-          if (id(immich_img_0).is_downloading() ||
-              id(immich_img_1).is_downloading() ||
-              id(immich_img_2).is_downloading() ||
-              id(immich_portrait_left).is_downloading() ||
-              id(immich_portrait_right).is_downloading() ||
-              id(immich_portrait_preload_left).is_downloading() ||
-              id(immich_portrait_preload_right).is_downloading()) {
-            return;
-          }
-
           if (id(portrait).is_pair) {
             if (id(portrait).using_preload) {
               fill_accent_color(id(immich_portrait_preload_left));

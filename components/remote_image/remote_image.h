@@ -168,7 +168,6 @@ class OnlineImage : public PollingComponent,
 
   void end_connection_();
   void fail_download_(const char *reason, int error_code);
-  bool validate_response_body_(size_t content_length);
 
   CallbackManager<void(bool)> download_finished_callback_{};
   CallbackManager<void()> download_error_callback_{};
@@ -208,19 +207,19 @@ class OnlineImage : public PollingComponent,
    * this will be equal to it; otherwise it will be set once the decoding
    * starts and the original size is known.
    * This needs to be separate from "BaseImage::get_width()" because the latter
-   * remains 0 until the first image has been decoded. After that, it keeps the
-   * last complete image drawable while the next transfer runs.
+   * must return 0 until the image has been decoded (to avoid showing partially
+   * decoded images).
    */
-  int buffer_width_{0};
+  int buffer_width_;
   /**
    * Actual height of the current image. If fixed_height_ is specified,
    * this will be equal to it; otherwise it will be set once the decoding
    * starts and the original size is known.
    * This needs to be separate from "BaseImage::get_height()" because the latter
-   * remains 0 until the first image has been decoded. After that, it keeps the
-   * last complete image drawable while the next transfer runs.
+   * must return 0 until the image has been decoded (to avoid showing partially
+   * decoded images).
    */
-  int buffer_height_{0};
+  int buffer_height_;
   /**
    * The value of the ETag HTTP header provided in the last response.
    */
@@ -229,13 +228,8 @@ class OnlineImage : public PollingComponent,
    * The value of the Last-Modified HTTP header provided in the last response.
    */
   std::string last_modified_ = "";
-  /**
-   * URL currently being downloaded. Used to ignore duplicate update() calls for
-   * the same image instead of aborting and restarting the same transfer.
-   */
-  std::string active_url_ = "";
 
-  time_t start_time_{0};
+  time_t start_time_;
   uint32_t last_progress_millis_{0};
   static constexpr uint32_t DOWNLOAD_STALL_TIMEOUT_MS = 30000;
 

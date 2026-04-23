@@ -111,8 +111,6 @@ static void test_date_and_url_helpers() {
   assert(normalize_immich_base_url("photos.example.com:443/") == "https://photos.example.com:443");
   assert(normalize_immich_base_url("//photos.example.com/") == "https://photos.example.com");
   assert(normalize_immich_base_url("HTTPS://photos.example.com///") == "https://photos.example.com");
-  assert(make_immich_preview_url("https://photos.example.com", "asset-1") ==
-         "https://photos.example.com/api/assets/asset-1/thumbnail?size=preview");
   assert(format_photo_age(2026, 4, 21, 2026, 4, 21) == "today");
   assert(format_photo_age(2026, 4, 1, 2026, 4, 21) == "20 days ago");
   assert(format_photo_date_full(2026, 4, 21) == "21 April, 2026");

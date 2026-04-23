@@ -87,14 +87,6 @@ h2 {
 .card-body {
   padding-top: 14px;
 }
-.card-body > div:not(.fw-body) {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-.card-body > div:not(.fw-body) > .field {
-  margin-bottom: 0;
-}
 .card-chevron {
   display: inline-flex;
   align-items: center;
@@ -397,9 +389,6 @@ select option {
   font-size: 0.8rem;
   color: var(--text2);
   margin-top: 4px;
-}
-.status:empty {
-  display: none;
 }
 .dot {
   width: 8px;

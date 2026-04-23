@@ -109,7 +109,6 @@ class JPEGFormat(Format):
             if os.path.exists(dest_path):
                 shutil.rmtree(dest_path)
             shutil.copytree(src_path, dest_path)
-        cg.add_build_flag(f"-I{dest_path}/src")
 
 
 class PNGFormat(Format):
