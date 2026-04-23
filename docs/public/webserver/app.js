@@ -1004,6 +1004,10 @@
     updateConnectionApplyState();
     connBody.appendChild(applyBtn);
 
+    connBody.appendChild(connStatus);
+    immichWrap.appendChild(makeCollapsibleCard("Server Settings", connBody, true));
+
+    var connectionBody = el("div");
     var fConnTimeout = field("Connection Timeout");
     fConnTimeout.appendChild(
       selectFromOptions(S.conn_timeout_options, S.conn_timeout, function (v) {
@@ -1011,10 +1015,7 @@
         post(endpoints.conn_timeout + "/set", { option: v });
       })
     );
-    connBody.appendChild(fConnTimeout);
-
-    connBody.appendChild(connStatus);
-    immichWrap.appendChild(makeCollapsibleCard("Connection", connBody, true));
+    connectionBody.appendChild(fConnTimeout);
 
     // Frequency
     var dispBody = el("div");
@@ -1480,6 +1481,7 @@
     filterBody.appendChild(filterDetails);
     immichWrap.appendChild(makeCollapsibleCard("Advanced Filters", filterBody, true, filterBadge));
     immichWrap.appendChild(makeCollapsibleCard("Display Settings", photoBody, true));
+    immichWrap.appendChild(makeCollapsibleCard("Connection", connectionBody, true));
 
     immichApp.appendChild(immichWrap);
 
