@@ -41,6 +41,16 @@ script:
     then:
       - if:
           condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log:
+                level: DEBUG
+                tag: immich
+                format: "Skipping memories fetch (wifi disconnected)"
+            - script.stop: immich_fetch_memory_into_slot
+      - if:
+          condition:
             lambda: 'return id(immich_url).state.empty() || id(immich_api_key_text).state.empty();'
           then:
             - script.stop: immich_fetch_memory_into_slot
@@ -120,6 +130,16 @@ script:
   - id: immich_fetch_memory_asset
     mode: single
     then:
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log:
+                level: DEBUG
+                tag: immich
+                format: "Skipping memory asset fetch (wifi disconnected)"
+            - script.stop: immich_fetch_memory_asset
       - http_request.get:
           id: http_req
           url: !lambda 'return id(immich_url).state + "/api/assets/" + id(immich_memory_asset_id);'
@@ -180,6 +200,16 @@ script:
   - id: immich_fetch_into_slot
     mode: single
     then:
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log:
+                level: DEBUG
+                tag: immich
+                format: "Fetch paused (wifi disconnected)"
+            - script.stop: immich_fetch_into_slot
       - if:
           condition:
             lambda: 'return id(immich_url).state.empty() || id(immich_api_key_text).state.empty();'
@@ -382,6 +412,16 @@ script:
   - id: immich_fetch_portrait_companion
     mode: single
     then:
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log:
+                level: DEBUG
+                tag: immich
+                format: "Companion search paused (wifi disconnected)"
+            - script.stop: immich_fetch_portrait_companion
       - if:
           condition:
             lambda: 'return id(immich_url).state.empty() || id(immich_api_key_text).state.empty();'
