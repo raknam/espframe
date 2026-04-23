@@ -195,7 +195,7 @@ inline bool photo_orientation_matches(const ImmichAssetMeta &meta, const std::st
 }
 
 inline std::string make_immich_preview_url(const std::string &base_url, const std::string &asset_id) {
-  return base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview&format=JPEG";
+  return base_url + "/api/assets/" + asset_id + "/thumbnail?size=preview";
 }
 
 // ============================================================================

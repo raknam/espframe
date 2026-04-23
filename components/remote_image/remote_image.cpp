@@ -128,8 +128,15 @@ size_t OnlineImage::resize_(int width_in, int height_in) {
   size_t new_size = this->get_buffer_size_(width, height);
   if (this->buffer_) {
     if (new_size <= this->get_buffer_size_()) {
+      memset(this->buffer_, 0, this->get_buffer_size_());
       this->buffer_width_ = width;
       this->buffer_height_ = height;
+      this->data_start_ = nullptr;
+      this->width_ = 0;
+      this->height_ = 0;
+#ifdef USE_LVGL
+      memset(&this->dsc_, 0, sizeof(this->dsc_));
+#endif
       return new_size;
     }
     this->allocator_.deallocate(this->buffer_, this->get_buffer_size_());
@@ -258,6 +265,10 @@ void OnlineImage::update() {
     // Some servers omit or mislabel Content-Type. In that case the loop buffers
     // the first bytes of the file and detect_format_ checks the file signature.
     ESP_LOGD(TAG, "Image format not identified from Content-Type, deferring to magic-byte detection");
+    this->data_start_ = nullptr;
+#ifdef USE_LVGL
+    memset(&this->dsc_, 0, sizeof(this->dsc_));
+#endif
     this->start_time_ = ::time(nullptr);
     this->last_progress_millis_ = millis();
     this->enable_loop();
@@ -278,9 +289,15 @@ void OnlineImage::update() {
     this->download_error_callback_.call();
     return;
   }
-  // Keep the last complete image published during transfer. LVGL widgets keep a
-  // pointer to this descriptor, so clearing it mid-download can leave the display
-  // reading a temporarily invalid image source.
+  // Hide the previously published buffer while the same storage is being
+  // reused for a new decode. This avoids LVGL reading from a buffer that is
+  // actively being rewritten.
+  this->data_start_ = nullptr;
+  this->width_ = 0;
+  this->height_ = 0;
+#ifdef USE_LVGL
+  memset(&this->dsc_, 0, sizeof(this->dsc_));
+#endif
   this->enable_loop();
   ESP_LOGI(TAG, "Downloading image (Size: %zu)", total_size);
   this->start_time_ = ::time(nullptr);

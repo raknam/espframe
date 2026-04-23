@@ -126,6 +126,16 @@ script:
     mode: restart
     then:
       - lambda: |-
+          if (id(immich_img_0).is_downloading() ||
+              id(immich_img_1).is_downloading() ||
+              id(immich_img_2).is_downloading() ||
+              id(immich_portrait_left).is_downloading() ||
+              id(immich_portrait_right).is_downloading() ||
+              id(immich_portrait_preload_left).is_downloading() ||
+              id(immich_portrait_preload_right).is_downloading()) {
+            return;
+          }
+
           bool retint = id(warm_tone_retint);
           id(warm_tone_retint) = false;
 
