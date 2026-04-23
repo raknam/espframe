@@ -335,6 +335,12 @@ script:
     mode: single
     then:
       - lambda: |-
+          if (!wifi::global_wifi_component->is_connected()) {
+            lv_label_set_text(id(connection_failed_title), "WiFi disconnected");
+            lv_label_set_text(id(connection_failed_subtitle), "Trying to reconnect in the background.\nYour slideshow will resume automatically.");
+            lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+            return;
+          }
           if (!lv_obj_has_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN)) {
             id(connection_failed_dim).stop();
             id(connection_failed_shift).stop();
