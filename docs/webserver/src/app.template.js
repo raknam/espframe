@@ -214,6 +214,7 @@
   var endpoints = {
     immich_url: eid("text", "Connection: Server URL"),
     api_key: eid("text", "Connection: API Key"),
+    wifi_reconfigure: eid("button", "Connection: Reconfigure WiFi"),
     clock_format: eid("select", "Clock: Format"),
     timezone: eid("select", "Clock: Timezone"),
     interval: eid("select", "Photos: Slideshow Interval"),
@@ -1005,6 +1006,37 @@
       })
     );
     connBody.appendChild(fConnTimeout);
+
+    var wifiResetHint = el("div", "field-hint");
+    wifiResetHint.textContent =
+      "Reconfigure WiFi without clearing your saved Immich settings. The frame will disconnect from this page, create its own hotspot, and use the same captive-portal setup flow as first install.";
+    connBody.appendChild(wifiResetHint);
+
+    var wifiResetBtn = el("button", "btn btn-danger btn-block");
+    wifiResetBtn.textContent = "Reconfigure WiFi";
+    wifiResetBtn.type = "button";
+    wifiResetBtn.onclick = function () {
+      var confirmed = window.confirm(
+        "Reconfigure WiFi now?\n\n" +
+        "Your browser will disconnect from the frame.\n" +
+        "The frame will create its own WiFi hotspot.\n" +
+        "Your saved Immich settings will be kept."
+      );
+      if (!confirmed) return;
+
+      wifiResetBtn.disabled = true;
+      wifiResetBtn.textContent = "Starting…";
+      connStatus.innerHTML =
+        '<span class="dot orange"></span> Switching to WiFi setup mode. If this page disconnects, join the frame hotspot and visit 192.168.4.1.';
+
+      fetch(endpoints.wifi_reconfigure + "/press", {
+        method: "POST",
+        keepalive: true
+      }).catch(function (err) {
+        console.warn("WiFi reconfigure request may have disconnected early:", err);
+      });
+    };
+    connBody.appendChild(wifiResetBtn);
 
     connBody.appendChild(connStatus);
     immichWrap.appendChild(makeCollapsibleCard("Connection", connBody, true));

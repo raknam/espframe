@@ -20,6 +20,14 @@ http_request:
   buffer_size_rx: 4096
   buffer_size_tx: 1024
 
+globals:
+  - id: wifi_setup_screen_active
+    type: bool
+    initial_value: 'false'
+  - id: wifi_reconfigure_requested
+    type: bool
+    initial_value: 'false'
+
 # -----------------------------------------------------------------------------
 # Captive portal and WiFi (connect / disconnect → page navigation)
 # -----------------------------------------------------------------------------
@@ -29,7 +37,11 @@ wifi:
   reboot_timeout: 0s
   ap:
     ssid: "${name}"
+    ap_timeout: 15min
   on_connect:
+    - lambda: |-
+        id(wifi_setup_screen_active) = false;
+        id(wifi_reconfigure_requested) = false;
     - script.stop: setup_screen_dim
     - script.stop: connection_failed_dim
     - script.stop: connection_failed_shift
@@ -63,30 +75,78 @@ wifi:
           - lvgl.page.show: immich_setup_page
           - script.execute: setup_screen_dim
   on_disconnect:
+    - lambda: 'id(wifi_setup_screen_active) = false;'
     - if:
         condition:
-          lambda: 'return !id(boot_grace_period) && !id(immich_url).state.empty() && !id(immich_api_key_text).state.empty();'
+          lambda: 'return id(wifi_reconfigure_requested);'
         then:
-          - lvgl.page.show: slideshow_page
-          - script.stop: setup_screen_dim
-          - lambda: |-
-              if (id(last_photo_displayed_ms) == 0) {
-                id(last_photo_displayed_ms) = millis();
-              }
-              lv_label_set_text(id(connection_failed_title), "WiFi disconnected");
-              lv_label_set_text(id(connection_failed_subtitle), "Trying to reconnect in the background.\nYour slideshow will resume automatically.");
-              lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
-              id(immich_last_http_status) = 0;
-              id(immich_retry_cooldown_until_ms) = millis() + 10000;
-              clear_slot_fetch_in_flight(0, id(slot_flags));
-              clear_slot_fetch_in_flight(1, id(slot_flags));
-              clear_slot_fetch_in_flight(2, id(slot_flags));
-          - script.execute: connection_failed_dim
-          - script.execute: connection_failed_shift
+          - script.execute: show_wifi_setup_screen
         else:
           - if:
               condition:
-                lambda: 'return !id(boot_grace_period);'
+                lambda: 'return !id(boot_grace_period) && !id(immich_url).state.empty() && !id(immich_api_key_text).state.empty();'
               then:
-                - lvgl.page.show: wifi_setup_page
-                - script.execute: setup_screen_dim
+                - lvgl.page.show: slideshow_page
+                - script.stop: setup_screen_dim
+                - lambda: |-
+                    if (id(last_photo_displayed_ms) == 0) {
+                      id(last_photo_displayed_ms) = millis();
+                    }
+                    lv_label_set_text(id(connection_failed_title), "WiFi disconnected");
+                    lv_label_set_text(id(connection_failed_subtitle), "Trying to reconnect in the background.\nYour slideshow will resume automatically.");
+                    lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+                    id(immich_last_http_status) = 0;
+                    id(immich_retry_cooldown_until_ms) = millis() + 10000;
+                    clear_slot_fetch_in_flight(0, id(slot_flags));
+                    clear_slot_fetch_in_flight(1, id(slot_flags));
+                    clear_slot_fetch_in_flight(2, id(slot_flags));
+                - script.execute: connection_failed_dim
+                - script.execute: connection_failed_shift
+              else:
+                - if:
+                    condition:
+                      lambda: 'return !id(boot_grace_period);'
+                    then:
+                      - script.execute: show_wifi_setup_screen
+
+script:
+  - id: update_wifi_setup_instructions
+    mode: restart
+    then:
+      - lambda: |-
+          std::string name = App.get_name();
+          std::string wifi_text = "Connect to the WiFi hotspot\n'" + name + "'\nto configure your network\n\nThen visit ${captive_portal_ip} in your browser";
+          lv_label_set_text(id(wifi_setup_instructions), wifi_text.c_str());
+
+  - id: show_wifi_setup_screen
+    mode: restart
+    then:
+      - lambda: 'id(wifi_setup_screen_active) = true;'
+      - script.stop: connection_failed_dim
+      - script.stop: connection_failed_shift
+      - script.execute: update_wifi_setup_instructions
+      - lambda: |-
+          lv_obj_align(id(connection_failed_content), LV_ALIGN_CENTER, 0, 0);
+          lv_obj_add_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+      - lvgl.page.show: wifi_setup_page
+      - script.execute: setup_screen_dim
+
+  - id: start_wifi_reconfigure_mode
+    mode: restart
+    then:
+      - lambda: 'id(wifi_reconfigure_requested) = true;'
+      - script.execute: show_wifi_setup_screen
+      - lambda: 'esphome::espframe::force_wifi_reconfigure_mode();'
+
+interval:
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return !id(wifi_setup_screen_active) &&
+                     !id(boot_grace_period) &&
+                     !wifi::global_wifi_component->is_connected() &&
+                     esphome::espframe::is_wifi_reconfigure_portal_active();
+          then:
+            - script.execute: show_wifi_setup_screen
