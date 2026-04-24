@@ -83,7 +83,7 @@
 
   var fonts = document.createElement("link");
   fonts.rel = "stylesheet";
-  fonts.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+  fonts.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap";
   document.head.appendChild(fonts);
 
   var els = {};
