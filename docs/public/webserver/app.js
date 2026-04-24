@@ -998,15 +998,6 @@
     updateConnectionApplyState();
     connBody.appendChild(applyBtn);
 
-    var fConnTimeout = field("Connection Timeout");
-    fConnTimeout.appendChild(
-      selectFromOptions(S.conn_timeout_options, S.conn_timeout, function (v) {
-        S.conn_timeout = v;
-        post(endpoints.conn_timeout + "/set", { option: v });
-      })
-    );
-    connBody.appendChild(fConnTimeout);
-
     connBody.appendChild(connStatus);
     immichWrap.appendChild(makeCollapsibleCard("Connection", connBody, true));
 
@@ -1935,6 +1926,15 @@
     wrap.appendChild(makeCollapsibleCard("Firmware", fwBody, true));
 
     var wifiBody = el("div");
+    var fConnTimeout = field("Connection Timeout");
+    fConnTimeout.appendChild(
+      selectFromOptions(S.conn_timeout_options, S.conn_timeout, function (v) {
+        S.conn_timeout = v;
+        post(endpoints.conn_timeout + "/set", { option: v });
+      })
+    );
+    wifiBody.appendChild(fConnTimeout);
+
     var wifiHint = el("div", "field-hint");
     wifiHint.textContent =
       "Reconfigure WiFi without clearing your saved Immich settings. The frame will disconnect from this page, create its own hotspot, and use the same captive-portal setup flow as first install.";
