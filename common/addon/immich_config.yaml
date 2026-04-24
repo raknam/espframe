@@ -156,13 +156,3 @@ button:
     id: reboot_screen_button
     name: "Device: Reboot Screen"
     internal: true
-  - platform: template
-    id: reconfigure_wifi_button
-    name: "Connection: Reconfigure WiFi"
-    internal: true
-    entity_category: config
-    icon: "mdi:wifi-refresh"
-    web_server:
-      sorting_group_id: sg_connection
-    on_press:
-      - script.execute: start_wifi_reconfigure_mode
