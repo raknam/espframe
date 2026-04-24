@@ -1,9 +1,9 @@
 # =============================================================================
 # FONTS - Clock, UI, and slideshow text
 # =============================================================================
-# Roboto at multiple sizes. The 150px clock font uses a minimal glyph set
+# Noto Sans at multiple sizes. The 150px clock font uses a minimal glyph set
 # for digits; smaller sizes include broader glyphs for setup screens and text.
-# Location metadata uses broad Roboto glyph coverage for Immich place names.
+# Location metadata uses broad Noto glyph coverage for Immich place names.
 # Middle East scripts use script-specific Noto extras so the main location font
 # can keep its existing European coverage.
 # =============================================================================
@@ -21,7 +21,7 @@ substitutions:
 # Clock and numeric (minimal glyph set for lower memory)
 # -----------------------------------------------------------------------------
 font:
-  - file: "gfonts://Roboto@300"
+  - file: "gfonts://Noto Sans@325"
     id: noto_325_150_font
     size: 150
     bpp: 4
@@ -30,31 +30,31 @@ font:
 # -----------------------------------------------------------------------------
 # UI and setup text (full Latin + extended glyphs)
 # -----------------------------------------------------------------------------
-  - file: "gfonts://Roboto@400"
+  - file: "gfonts://Noto Sans@400"
     id: noto_400_46_font
     size: 46
     bpp: 4
     glyphs: "${latin_extended_glyphs}"
 
-  - file: "gfonts://Roboto@400"
+  - file: "gfonts://Noto Sans@400"
     id: noto_400_30_font
     size: 30
     bpp: 4
     glyphs: "${latin_extended_glyphs}"
 
-  - file: "gfonts://Roboto@400"
+  - file: "gfonts://Noto Sans@400"
     id: noto_400_28_font
     size: 28
     bpp: 4
     glyphs: "${latin_extended_glyphs}"
 
-  - file: "gfonts://Roboto@400"
+  - file: "gfonts://Noto Sans@400"
     id: noto_400_32_font
     size: 32
     bpp: 4
     glyphs: "${latin_extended_glyphs}${greek_cyrillic_vietnamese_glyphs}"
 
-  - file: "gfonts://Roboto@400"
+  - file: "gfonts://Noto Sans@400"
     id: noto_location_400_36_font
     size: 36
     bpp: 4
