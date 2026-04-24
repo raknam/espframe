@@ -32,12 +32,30 @@ inline void force_wifi_reconfigure_mode() {
     return;
   }
 
+  wifi->wifi_disconnect_();
   wifi->clear_sta();
+
+  wifi::SavedWifiSettings saved_wifi{};
+  wifi->pref_.save(&saved_wifi);
+#ifdef USE_WIFI_FAST_CONNECT
+  wifi::SavedWifiFastConnectSettings fast_connect{};
+  fast_connect.ap_index = -1;
+  wifi->fast_connect_pref_.save(&fast_connect);
+#endif
+  global_preferences->sync();
+
+  wifi->has_completed_scan_after_captive_portal_start_ = false;
+  wifi->ap_setup_ = false;
   wifi->setup_ap_config_();
+  wifi->wifi_sta_pre_setup_();
+  wifi->start_scanning();
 
 #ifdef USE_CAPTIVE_PORTAL
   auto *portal = captive_portal::global_captive_portal;
-  if (portal != nullptr && !portal->is_active()) {
+  if (portal != nullptr) {
+    if (portal->is_active()) {
+      portal->end();
+    }
     portal->start();
   }
 #endif
