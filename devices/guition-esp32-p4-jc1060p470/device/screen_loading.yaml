@@ -90,18 +90,26 @@ esphome:
     - priority: -100
       then:
         - lambda: |-
-            lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
-            lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
-        - lambda: |-
             std::string name = App.get_name();
             std::string wifi_text = "Connect to the WiFi hotspot\n'" + name + "'\nto configure your network\n\nThen visit ${captive_portal_ip} in your browser";
             lv_label_set_text(id(wifi_setup_instructions), wifi_text.c_str());
-        - delay: 10s
-        - lambda: 'id(boot_grace_period) = false;'
         - if:
             condition:
-              not:
-                wifi.connected:
+              lambda: 'return ${factory_wifi_setup};'
             then:
+              - lambda: 'id(boot_grace_period) = false;'
               - lvgl.page.show: wifi_setup_page
               - script.execute: setup_screen_dim
+            else:
+              - lambda: |-
+                  lv_bar_set_value(id(loading_progress_bar), 50, LV_ANIM_OFF);
+                  lv_label_set_text(id(loading_status_label), "Connecting to WiFi");
+              - delay: 10s
+              - lambda: 'id(boot_grace_period) = false;'
+              - if:
+                  condition:
+                    not:
+                      wifi.connected:
+                  then:
+                    - lvgl.page.show: wifi_setup_page
+                    - script.execute: setup_screen_dim
