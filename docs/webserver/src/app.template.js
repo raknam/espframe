@@ -761,7 +761,7 @@
       card.innerHTML = "<h3>Connection</h3>";
 
       var f1 = field("Immich Server URL");
-      var urlInput = input("url", S.immich_url, "https://photos.example.com");
+      var urlInput = input("url", S.immich_url, "http://192.168.0.1:2283");
       f1.appendChild(urlInput);
       card.appendChild(f1);
 
@@ -785,17 +785,17 @@
       var nextBtn = el("button", "btn btn-primary");
       nextBtn.textContent = "Connect";
       nextBtn.onclick = function () {
-        var u = normalizeImmichUrl(urlInput.value);
+        var u = urlInput.value.trim();
         var k = keyInput.value.trim();
         if (!u || !k) return;
         nextBtn.disabled = true;
         nextBtn.textContent = "Saving\u2026";
-        postTextValueSet(endpoints.immich_url + "/set", u, true)
+        post(endpoints.immich_url + "/set", { value: u })
           .then(function () {
             return new Promise(function (r) { setTimeout(r, 500); });
           })
           .then(function () {
-            return postTextValueSet(endpoints.api_key + "/set", k, true);
+            return post(endpoints.api_key + "/set", { value: k });
           })
           .then(function () {
             S.immich_url = u;
@@ -885,117 +885,65 @@
     }
 
     var f1 = field("Immich Server URL");
-    var urlInput = input("url", S.immich_url, "https://photos.example.com");
+    var urlInput = input("url", S.immich_url, "http://192.168.0.1:2283");
+    urlInput.onchange = function () {
+      post(endpoints.immich_url + "/set", { value: urlInput.value.trim() });
+      showSaved("URL saved");
+    };
     f1.appendChild(urlInput);
     connBody.appendChild(f1);
 
     var f2 = field("API Key");
     var keyConfigured = S.api_key && S.api_key.length > 0;
-    var apiKeyDirty = false;
-    var API_KEY_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-    var keyInput = input("password", keyConfigured ? API_KEY_MASK : "", "Paste your Immich API key");
-    keyInput.autocomplete = "new-password";
-    keyInput.onfocus = function () {
-      if (keyConfigured && !apiKeyDirty) {
-        keyInput.value = "";
-        keyInput.placeholder = "Paste replacement Immich API key";
-        apiKeyDirty = true;
-        updateConnectionApplyState();
-      }
-    };
-    keyInput.onblur = function () {
-      if (keyConfigured && apiKeyDirty && !keyInput.value.trim()) {
-        apiKeyDirty = false;
-        keyInput.value = API_KEY_MASK;
-        keyInput.placeholder = "Paste your Immich API key";
-        updateConnectionApplyState();
-      }
-    };
-    keyInput.oninput = function () {
-      apiKeyDirty = true;
-      updateConnectionApplyState();
-    };
+    var keyWrap = el("div");
 
-    f2.appendChild(keyInput);
+    function showKeyMasked() {
+      keyWrap.innerHTML = "";
+      var row = el("div", "input-group");
+      var mask = el("div");
+      mask.className = "key-mask";
+      mask.textContent = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+      var cb = el("button", "btn btn-secondary");
+      cb.textContent = "Change";
+      cb.type = "button";
+      cb.onclick = function () {
+        keyWrap.innerHTML = "";
+        keyWrap.appendChild(makeKeyInput());
+      };
+      row.appendChild(mask);
+      row.appendChild(cb);
+      keyWrap.appendChild(row);
+    }
+
+    function makeKeyInput() {
+      var grp = el("div", "input-group");
+      var keyInput = input("text", "", "Paste your Immich API key");
+      var saveBtn = el("button", "btn btn-primary");
+      saveBtn.textContent = "Save";
+      saveBtn.type = "button";
+      saveBtn.onclick = function () {
+        var v = keyInput.value.trim();
+        if (!v) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving\u2026";
+        post(endpoints.api_key + "/set", { value: v }).then(function () {
+          showSaved("API key saved");
+          showKeyMasked();
+        });
+      };
+      grp.appendChild(keyInput);
+      grp.appendChild(saveBtn);
+      return grp;
+    }
+
+    if (keyConfigured) {
+      showKeyMasked();
+    } else {
+      keyWrap.appendChild(makeKeyInput());
+    }
+
+    f2.appendChild(keyWrap);
     connBody.appendChild(f2);
-
-    var applyBtn = el("button", "btn btn-primary btn-block mb-12");
-    applyBtn.textContent = "Apply";
-    applyBtn.type = "button";
-
-    function connectionUrlChanged() {
-      return normalizeImmichUrl(urlInput.value) !== normalizeImmichUrl(S.immich_url);
-    }
-
-    function updateConnectionApplyState() {
-      applyBtn.disabled = !(connectionUrlChanged() || apiKeyDirty);
-    }
-
-    urlInput.oninput = updateConnectionApplyState;
-    urlInput.onblur = function () {
-      urlInput.value = normalizeImmichUrl(urlInput.value);
-      updateConnectionApplyState();
-    };
-
-    applyBtn.onclick = function () {
-      var u = normalizeImmichUrl(urlInput.value);
-      var saveUrl = u !== normalizeImmichUrl(S.immich_url);
-      var saveApiKey = apiKeyDirty;
-      var apiKey = keyInput.value.trim();
-
-      urlInput.value = u;
-      if (saveUrl && !u) {
-        showConnectionError("Enter the Immich Server URL before applying.");
-        updateConnectionApplyState();
-        return;
-      }
-      if (saveApiKey && !apiKey) {
-        showConnectionError("Enter a replacement API key before applying.");
-        updateConnectionApplyState();
-        return;
-      }
-      if (!saveUrl && !saveApiKey) {
-        updateConnectionApplyState();
-        return;
-      }
-
-      applyBtn.disabled = true;
-      applyBtn.textContent = "Applying\u2026";
-      var apply = Promise.resolve();
-      if (saveUrl) {
-        apply = apply.then(function () {
-          return postTextValueSet(endpoints.immich_url + "/set", u, true);
-        }).then(function () {
-          S.immich_url = u;
-        });
-      }
-      if (saveUrl && saveApiKey) {
-        apply = apply.then(function () {
-          return new Promise(function (r) { setTimeout(r, 500); });
-        });
-      }
-      if (saveApiKey) {
-        apply = apply.then(function () {
-          return postTextValueSet(endpoints.api_key + "/set", apiKey, true);
-        }).then(function () {
-          S.api_key = apiKey;
-          keyConfigured = true;
-          apiKeyDirty = false;
-          keyInput.value = API_KEY_MASK;
-          keyInput.placeholder = "Paste your Immich API key";
-        });
-      }
-      apply.then(function () {
-        showSaved("Connection settings applied");
-      }).catch(function () {
-        showConnectionError("Failed to apply connection settings.");
-      }).then(function () {
-        applyBtn.textContent = "Apply";
-        updateConnectionApplyState();
-      });
-    };
-    updateConnectionApplyState();
-    connBody.appendChild(applyBtn);
 
     var fConnTimeout = field("Connection Timeout");
     fConnTimeout.appendChild(
