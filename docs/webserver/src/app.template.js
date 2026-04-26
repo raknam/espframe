@@ -855,9 +855,7 @@
       );
       card.appendChild(f2);
 
-      card.appendChild(ntpServerField("NTP Server 1", "ntp_server_1", "0.pool.ntp.org"));
-      card.appendChild(ntpServerField("NTP Server 2", "ntp_server_2", "1.pool.ntp.org"));
-      card.appendChild(ntpServerField("NTP Server 3", "ntp_server_3", "2.pool.ntp.org"));
+      card.appendChild(ntpServersField());
 
       var nav = el("div", "wizard-nav");
       var backBtn = el("button", "btn btn-secondary");
@@ -1780,9 +1778,7 @@
       })
     );
     clkBody.appendChild(f7);
-    clkBody.appendChild(ntpServerField("NTP Server 1", "ntp_server_1", "0.pool.ntp.org"));
-    clkBody.appendChild(ntpServerField("NTP Server 2", "ntp_server_2", "1.pool.ntp.org"));
-    clkBody.appendChild(ntpServerField("NTP Server 3", "ntp_server_3", "2.pool.ntp.org"));
+    clkBody.appendChild(ntpServersField());
     wrap.appendChild(makeCollapsibleCard("Clock", clkBody, true, clockBadge));
 
     // Firmware
@@ -2124,14 +2120,23 @@
     return f;
   }
 
-  function ntpServerField(labelText, key, placeholder) {
-    var f = field(labelText);
-    var serverInput = input("text", S[key], placeholder, MAX_NTP_SERVER_LENGTH);
-    serverInput.onchange = function () {
-      saveNtpServer(key, serverInput.value);
-      serverInput.value = S[key];
-    };
-    f.appendChild(serverInput);
+  function ntpServersField() {
+    var f = field("NTP Servers");
+    var list = el("div", "photo-id-list");
+    [
+      { key: "ntp_server_1", placeholder: "0.pool.ntp.org", label: "NTP Server 1" },
+      { key: "ntp_server_2", placeholder: "1.pool.ntp.org", label: "NTP Server 2" },
+      { key: "ntp_server_3", placeholder: "2.pool.ntp.org", label: "NTP Server 3" }
+    ].forEach(function (spec) {
+      var serverInput = input("text", S[spec.key], spec.placeholder, MAX_NTP_SERVER_LENGTH);
+      serverInput.setAttribute("aria-label", spec.label);
+      serverInput.onchange = function () {
+        saveNtpServer(spec.key, serverInput.value);
+        serverInput.value = S[spec.key];
+      };
+      list.appendChild(serverInput);
+    });
+    f.appendChild(list);
     return f;
   }
 
