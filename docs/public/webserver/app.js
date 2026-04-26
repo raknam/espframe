@@ -69,7 +69,10 @@
     display_mode_options: ["Fill", "Fit"],
     photo_metadata_date_enabled: true,
     photo_metadata_date_format: "Date Taken",
-    photo_metadata_date_format_options: ["Relative Date", "Date Taken"],
+    photo_metadata_date_format_options: [
+      "Relative Date", "Date Taken", "Month Day, Year",
+      "Month Day Ordinal, Year", "YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY"
+    ],
     photo_metadata_location_enabled: true,
     screen_rotation: "0",
     screen_rotation_options: ["0", "180"],
