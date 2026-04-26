@@ -1269,7 +1269,7 @@
 
     immichWrap.appendChild(makeCollapsibleCard("Photo Source", srcBody, true));
 
-    // Display Settings
+    // Layout
     var photoBody = el("div");
 
     var fPairToggle = field("");
@@ -1458,7 +1458,7 @@
 
     filterBody.appendChild(filterDetails);
     immichWrap.appendChild(makeCollapsibleCard("Advanced Filters", filterBody, true, filterBadge));
-    immichWrap.appendChild(makeCollapsibleCard("Display Settings", photoBody, true));
+    immichWrap.appendChild(makeCollapsibleCard("Layout", photoBody, true));
 
     immichApp.appendChild(immichWrap);
 

@@ -92,9 +92,9 @@ Use relative mode for ranges like the last 6 months, last 1 year, or last 2 year
 
 ---
 
-## Display Settings
+## Layout
 
-Use **Display Settings** to control how photos are chosen and fitted to the screen.
+Use **Layout** to control how photos are chosen and fitted to the screen.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
