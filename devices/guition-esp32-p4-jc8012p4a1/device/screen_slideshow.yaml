@@ -104,7 +104,7 @@ lvgl:
             id: clock_container
             align: BOTTOM_LEFT
             x: 45
-            y: -50
+            y: -45
             hidden: true
             width: SIZE_CONTENT
             height: SIZE_CONTENT
@@ -132,7 +132,7 @@ lvgl:
             id: info_overlay
             align: BOTTOM_RIGHT
             x: -45
-            y: -50
+            y: -45
             width: 1190
             height: SIZE_CONTENT
             bg_opa: 0%
