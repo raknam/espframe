@@ -11,6 +11,8 @@ substitutions:
   display_height: "600"
   portrait_half_width: "512"
   screen_rotation: "0"
+  clock_font_size: "150"
+  clock_font_weight: "325"
   screen_rotation_0: "0"
   screen_rotation_180: "180"
   captive_portal_ip: "192.168.4.1"

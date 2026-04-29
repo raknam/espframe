@@ -120,14 +120,14 @@ lvgl:
                   text: ""
                   text_color: 0x000000
                   text_opa: 20%
-                  text_font: noto_325_150_font
+                  text_font: clock_font
               - label:
                   id: time_label
                   x: 0
                   y: 0
                   text: ""
                   text_color: 0xFFFFFF
-                  text_font: noto_325_150_font
+                  text_font: clock_font
         - obj:
             id: info_overlay
             align: BOTTOM_RIGHT
