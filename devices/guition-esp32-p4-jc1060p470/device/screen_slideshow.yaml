@@ -103,8 +103,8 @@ lvgl:
         - obj:
             id: clock_container
             align: BOTTOM_LEFT
-            x: 45
-            y: -45
+            x: 25
+            y: -25
             hidden: true
             width: SIZE_CONTENT
             height: SIZE_CONTENT
@@ -130,11 +130,28 @@ lvgl:
                   text: ""
                   text_color: 0xFFFFFF
                   text_font: clock_font
+              - label:
+                  id: date_label_shadow
+                  align: TOP_LEFT
+                  x: 2
+                  y: 0
+                  text: ""
+                  text_color: 0x000000
+                  text_opa: 20%
+                  text_font: noto_location_400_36_font
+              - label:
+                  id: date_label
+                  align: TOP_LEFT
+                  x: 0
+                  y: 0
+                  text: ""
+                  text_color: 0xFFFFFF
+                  text_font: noto_location_400_36_font
         - obj:
             id: info_overlay
             align: BOTTOM_RIGHT
-            x: -45
-            y: -45
+            x: -25
+            y: -25
             width: 934
             height: SIZE_CONTENT
             bg_opa: 0%
@@ -188,7 +205,7 @@ lvgl:
                               text_align: right
                               text_color: 0x000000
                               text_opa: 20%
-                              text_font: noto_location_400_36_font
+                              text_font: noto_location_400_28_font
                           - label:
                               id: photo_metadata_date_label_shadow
                               hidden: true
@@ -197,7 +214,7 @@ lvgl:
                               text_align: right
                               text_color: 0x000000
                               text_opa: 20%
-                              text_font: noto_400_28_font
+                              text_font: noto_400_14_font
                     - obj:
                         id: photo_metadata_row
                         x: 0
@@ -222,17 +239,18 @@ lvgl:
                               width: 934
                               text: ""
                               long_mode: DOT
-                              text_align: right
+                              text_align: RIGHT
                               text_color: 0xFFFFFF
-                              text_font: noto_location_400_36_font
+                              text_font: noto_location_400_28_font
                           - label:
                               id: photo_metadata_date_label
                               hidden: true
                               width: 934
                               text: ""
-                              text_align: right
+                              text_align: RIGHT
                               text_color: 0xFFFFFF
-                              text_font: noto_400_28_font
+                              text_font: noto_400_14_font
+                              
         - obj:
             id: connection_failed_overlay
             align: CENTER
@@ -337,7 +355,7 @@ script:
     mode: single
     then:
       - lambda: |-
-          int y = (int)(-(45 - (${clock_font_size} * 0.2)));
+          int y = (int)(-(15 - (${clock_font_size} * 0.2)));
           lv_obj_set_y(id(clock_container), y);
 
   - id: hide_connection_failed

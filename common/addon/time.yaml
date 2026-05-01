@@ -252,6 +252,7 @@ script:
           if (!now.is_valid()) return;
           int hour = now.hour;
           char buf[6];
+          char date_buf[24];
           if (id(clock_format_select).current_option() == "12 Hour") {
             hour = hour % 12;
             if (hour == 0) hour = 12;
@@ -261,6 +262,19 @@ script:
           }
           lv_label_set_text(id(time_label), buf);
           lv_label_set_text(id(time_label_shadow), buf);
+
+          // Format français personnalisé
+          const char* months_fr[] = {"Janv.", "Fév.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."};
+          int day = now.day_of_month;
+          const char* day_str = (day == 1) ? "1er" : nullptr;
+          if (day_str) {
+            snprintf(date_buf, sizeof(date_buf), "%s %s %d", day_str, months_fr[now.month - 1], now.year);
+          } else {
+            snprintf(date_buf, sizeof(date_buf), "%02d %s %d", day, months_fr[now.month - 1], now.year);
+          }
+          lv_label_set_text(id(date_label), date_buf);
+          lv_label_set_text(id(date_label_shadow), date_buf);
+
           if (id(show_clock).state && id(active_slot_displayed)) {
             lv_obj_clear_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
           } else {
@@ -287,7 +301,7 @@ time:
 # Unified 60-second periodic interval for clock, backlight, and warm tones
 # -----------------------------------------------------------------------------
 interval:
-  - interval: 60s
+  - interval: 59s
     then:
       - script.execute: update_clock_display
       - script.execute: update_photo_metadata_display

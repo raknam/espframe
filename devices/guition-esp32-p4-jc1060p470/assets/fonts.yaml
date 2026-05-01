@@ -37,6 +37,12 @@ font:
     glyphs: "${latin_extended_glyphs}"
 
   - file: "gfonts://Noto Sans@400"
+    id: noto_400_32_font
+    size: 32
+    bpp: 4
+    glyphs: "${latin_extended_glyphs}${greek_cyrillic_vietnamese_glyphs}"
+
+  - file: "gfonts://Noto Sans@400"
     id: noto_400_30_font
     size: 30
     bpp: 4
@@ -49,14 +55,31 @@ font:
     glyphs: "${latin_extended_glyphs}"
 
   - file: "gfonts://Noto Sans@400"
-    id: noto_400_32_font
-    size: 32
+    id: noto_400_14_font
+    size: 14
     bpp: 4
-    glyphs: "${latin_extended_glyphs}${greek_cyrillic_vietnamese_glyphs}"
+    glyphs: "${latin_extended_glyphs}"
 
   - file: "gfonts://Noto Sans@400"
     id: noto_location_400_36_font
     size: 36
+    bpp: 4
+    glyphsets:
+      - GF_Latin_Core
+      - GF_Latin_Beyond
+      - GF_Latin_Vietnamese
+      - GF_Greek_Core
+      - GF_Cyrillic_Plus
+    glyphs: "${latin_extended_glyphs}${greek_cyrillic_vietnamese_glyphs}"
+    extras:
+      - file: "gfonts://Noto Sans Arabic@400"
+        glyphs: "${arabic_location_glyphs}"
+      - file: "gfonts://Noto Sans Hebrew@400"
+        glyphs: "${hebrew_location_glyphs}"
+        
+  - file: "gfonts://Noto Sans@400"
+    id: noto_location_400_28_font
+    size: 28
     bpp: 4
     glyphsets:
       - GF_Latin_Core
