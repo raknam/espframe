@@ -104,7 +104,7 @@ lvgl:
             id: clock_container
             align: BOTTOM_LEFT
             x: 45
-            y: -20
+            y: -45
             hidden: true
             width: SIZE_CONTENT
             height: SIZE_CONTENT
@@ -115,24 +115,26 @@ lvgl:
             widgets:
               - label:
                   id: time_label_shadow
+                  align: BOTTOM_LEFT
                   x: 2
-                  y: 2
+                  y: 0
                   text: ""
                   text_color: 0x000000
                   text_opa: 20%
-                  text_font: noto_325_150_font
+                  text_font: clock_font
               - label:
                   id: time_label
+                  align: BOTTOM_LEFT
                   x: 0
-                  y: 0
+                  y: -2
                   text: ""
                   text_color: 0xFFFFFF
-                  text_font: noto_325_150_font
+                  text_font: clock_font
         - obj:
             id: info_overlay
             align: BOTTOM_RIGHT
             x: -45
-            y: -50
+            y: -45
             width: 1190
             height: SIZE_CONTENT
             bg_opa: 0%
@@ -332,6 +334,13 @@ script:
     then:
       - script.stop: backlight_hold_timer
 
+  - id: set_clock_container_y
+    mode: single
+    then:
+      - lambda: |-
+          int y = (int)(-(45 - (${clock_font_size} * 0.2)));
+          lv_obj_set_y(id(clock_container), y);
+
   - id: hide_connection_failed
     mode: single
     then:
@@ -520,3 +529,8 @@ interval:
                   id(target_slot) = id(active_slot);
                   id(immich_fetch_into_slot).execute();
                 }
+
+esphome:
+  on_boot:
+    then:
+      - script.execute: set_clock_container_y

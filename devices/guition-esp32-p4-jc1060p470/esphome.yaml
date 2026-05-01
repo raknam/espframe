@@ -10,8 +10,4 @@ wifi:
 
 # Packages
 packages:
-  espframe:
-    url: https://github.com/jtenniswood/espframe
-    files: [devices/guition-esp32-p4-jc1060p470/packages.yaml]
-    ref: main
-    refresh: 1s
+  espframe: !include packages.yaml

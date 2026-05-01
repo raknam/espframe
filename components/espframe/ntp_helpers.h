@@ -12,7 +12,7 @@
 #include "lwip/ip_addr.h"
 #endif
 
-static constexpr size_t ESPFRAME_NTP_SERVER_COUNT = 3;
+static constexpr size_t ESPFRAME_NTP_SERVER_COUNT = 1;
 static constexpr size_t ESPFRAME_NTP_SERVER_MAX_LENGTH = 253;
 
 inline std::string espframe_trim_ntp_server(const std::string &value) {
@@ -39,11 +39,9 @@ inline bool espframe_is_valid_ntp_server(const std::string &value) {
 }
 
 inline std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> espframe_normalize_ntp_servers(
-    const std::string &server1, const std::string &server2, const std::string &server3) {
+    const std::string &server1) {
   std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> raw = {
       espframe_trim_ntp_server(server1),
-      espframe_trim_ntp_server(server2),
-      espframe_trim_ntp_server(server3),
   };
 
   std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> normalized = {};
@@ -54,23 +52,18 @@ inline std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> espframe_normalize_ntp
 
   if (next == 0) {
     normalized[0] = "0.pool.ntp.org";
-    normalized[1] = "1.pool.ntp.org";
-    normalized[2] = "2.pool.ntp.org";
   }
 
   return normalized;
 }
 
-inline bool espframe_apply_sntp_servers(
-    const std::string &server1, const std::string &server2, const std::string &server3) {
-  if (!espframe_is_valid_ntp_server(server1) ||
-      !espframe_is_valid_ntp_server(server2) ||
-      !espframe_is_valid_ntp_server(server3)) {
+inline bool espframe_apply_sntp_servers(const std::string &server1) {
+  if (!espframe_is_valid_ntp_server(server1)) {
     ESP_LOGW("sntp", "NTP server names must be hostnames or IP addresses without spaces");
     return false;
   }
 
-  const auto servers = espframe_normalize_ntp_servers(server1, server2, server3);
+  const auto servers = espframe_normalize_ntp_servers(server1);
 
 #if defined(USE_ESP32)
   static std::array<std::array<char, ESPFRAME_NTP_SERVER_MAX_LENGTH + 1>, ESPFRAME_NTP_SERVER_COUNT> storage = {};
@@ -94,10 +87,8 @@ inline bool espframe_apply_sntp_servers(
   }
 
   esp_sntp_init();
-  ESP_LOGI("sntp", "NTP servers applied: %s, %s, %s",
-           servers[0].empty() ? "-" : servers[0].c_str(),
-           servers[1].empty() ? "-" : servers[1].c_str(),
-           servers[2].empty() ? "-" : servers[2].c_str());
+  ESP_LOGI("sntp", "NTP servers applied: %s",
+           servers[0].empty() ? "-" : servers[0].c_str());
   return true;
 #else
   ESP_LOGW("sntp", "Runtime NTP server changes are only supported on ESP32");
