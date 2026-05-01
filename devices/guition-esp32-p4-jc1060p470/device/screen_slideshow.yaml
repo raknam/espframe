@@ -333,6 +333,13 @@ script:
     then:
       - script.stop: backlight_hold_timer
 
+  - id: set_clock_container_y
+    mode: single
+    then:
+      - lambda: |-
+          int y = (int)(-(45 - (${clock_font_size} * 0.2)));
+          lv_obj_set_y(id(clock_container), y);
+
   - id: hide_connection_failed
     mode: single
     then:
@@ -527,3 +534,8 @@ interval:
                   id(target_slot) = id(active_slot);
                   id(immich_fetch_into_slot).execute();
                 }
+
+esphome:
+  on_boot:
+    then:
+      - script.execute: set_clock_container_y
