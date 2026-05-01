@@ -11,6 +11,7 @@
 # Build and log
 # -----------------------------------------------------------------------------
 substitutions:
+  package_repo: "jtenniswood/espframe"
   package_ref: "main"
   log_level: "INFO"
 
@@ -121,7 +122,7 @@ ota:
 external_components:
   - source:
       type: git
-      url: https://github.com/jtenniswood/espframe
+      url: "https://github.com/${package_repo}"
       ref: ${package_ref}
       path: components
     components: [remote_image, espframe]
