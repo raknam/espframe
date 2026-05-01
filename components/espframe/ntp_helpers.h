@@ -39,7 +39,7 @@ inline bool espframe_is_valid_ntp_server(const std::string &value) {
 }
 
 inline std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> espframe_normalize_ntp_servers(
-    const std::string &server1, const std::string &server2, const std::string &server3) {
+    const std::string &server1) {
   std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> raw = {
       espframe_trim_ntp_server(server1),
   };
@@ -57,8 +57,7 @@ inline std::array<std::string, ESPFRAME_NTP_SERVER_COUNT> espframe_normalize_ntp
   return normalized;
 }
 
-inline bool espframe_apply_sntp_servers(
-    const std::string &server1) {
+inline bool espframe_apply_sntp_servers(const std::string &server1) {
   if (!espframe_is_valid_ntp_server(server1)) {
     ESP_LOGW("sntp", "NTP server names must be hostnames or IP addresses without spaces");
     return false;
