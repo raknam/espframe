@@ -51,8 +51,6 @@ Current local builds use ESPHome `2026.4.0`. The shared configuration includes c
 | `immich_slide_interval` | `2 minutes` | Slideshow interval |
 | `immich_verify_ssl` | `false` | Set `true` to verify TLS certificates |
 | `ntp_server_1` | `0.pool.ntp.org` | First NTP server used for clock sync |
-| `ntp_server_2` | `1.pool.ntp.org` | Second NTP server used for clock sync |
-| `ntp_server_3` | `2.pool.ntp.org` | Third NTP server used for clock sync |
 
 ## Pre-filling Immich credentials
 
@@ -71,6 +69,4 @@ You can change NTP servers later in the Espframe web settings under **Clock**. T
 
 ```yaml
 ntp_server_1: "172.20.32.1"
-ntp_server_2: "172.20.41.1"
-ntp_server_3: "172.20.32.1"
 ```

@@ -26,8 +26,6 @@
     api_key: "",
     timezone: "Europe/London (GMT+0)",
     ntp_server_1: "0.pool.ntp.org",
-    ntp_server_2: "1.pool.ntp.org",
-    ntp_server_3: "2.pool.ntp.org",
     firmware: "",
     installed_version: "",
     latest_version: "",
@@ -233,8 +231,6 @@
     clock_format: eid("select", "Clock: Format"),
     timezone: eid("select", "Clock: Timezone"),
     ntp_server_1: eid("text", "Clock: NTP Server 1"),
-    ntp_server_2: eid("text", "Clock: NTP Server 2"),
-    ntp_server_3: eid("text", "Clock: NTP Server 3"),
     interval: eid("select", "Photos: Slideshow Interval"),
     conn_timeout: eid("select", "Screen: Connection Timeout"),
     backlight: eid("light", "Screen: Backlight"),
@@ -518,8 +514,6 @@
     "select/Clock: Format": { key: "clock_format", optionsKey: "clock_options", default: "24 Hour" },
     "select/Clock: Timezone": { key: "timezone", optionsKey: "tz_options", default: "" },
     "text/Clock: NTP Server 1": { key: "ntp_server_1", default: "0.pool.ntp.org" },
-    "text/Clock: NTP Server 2": { key: "ntp_server_2", default: "1.pool.ntp.org" },
-    "text/Clock: NTP Server 3": { key: "ntp_server_3", default: "2.pool.ntp.org" },
     "select/Photos: Slideshow Interval": { key: "interval", optionsKey: "interval_options", default: "2 minutes" },
     "select/Screen: Connection Timeout": { key: "conn_timeout", optionsKey: "conn_timeout_options", default: "2 minutes" },
     "switch/Clock: Show": { key: "show_clock", boolFromState: true },
@@ -629,7 +623,7 @@
   // Single source for settings fetched on load; KEY_TO_ENTITY_ID derived from ENTITY_STATE_MAP.
   var INITIAL_FETCH_KEYS = [
     "firmware", "auto_update", "update_frequency",
-    "clock_format", "timezone", "ntp_server_1", "ntp_server_2", "ntp_server_3",
+    "clock_format", "timezone", "ntp_server_1",
     "photo_source", "album_ids", "album_labels", "person_ids", "person_labels",
     "date_filter_enabled", "date_filter_mode", "date_from", "date_to", "relative_amount", "relative_unit",
     "photo_orientation",
@@ -2168,9 +2162,7 @@
     var f = field("NTP Servers");
     var list = el("div", "photo-id-list");
     [
-      { key: "ntp_server_1", placeholder: "0.pool.ntp.org", label: "NTP Server 1" },
-      { key: "ntp_server_2", placeholder: "1.pool.ntp.org", label: "NTP Server 2" },
-      { key: "ntp_server_3", placeholder: "2.pool.ntp.org", label: "NTP Server 3" }
+      { key: "ntp_server_1", placeholder: "0.pool.ntp.org", label: "NTP Server 1" }
     ].forEach(function (spec) {
       var serverInput = input("text", S[spec.key], spec.placeholder, MAX_NTP_SERVER_LENGTH);
       serverInput.setAttribute("aria-label", spec.label);
@@ -2246,9 +2238,7 @@
         format: S.clock_format,
         timezone: S.timezone,
         ntp_servers: [
-          S.ntp_server_1,
-          S.ntp_server_2,
-          S.ntp_server_3
+          S.ntp_server_1
         ]
       },
       screen: {
@@ -2423,7 +2413,7 @@
           post(endpoints.timezone + "/set", { option: S.timezone });
         }
         if (Array.isArray(clk.ntp_servers)) {
-          ["ntp_server_1", "ntp_server_2", "ntp_server_3"].forEach(function (key, idx) {
+          ["ntp_server_1"].forEach(function (key, idx) {
             if (clk.ntp_servers[idx] === undefined) return;
             saveNtpServer(key, clk.ntp_servers[idx]);
           });

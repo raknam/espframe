@@ -720,8 +720,7 @@ script:
               if (mode == "Relative Date") {
                 auto now = id(sntp_time).now();
                 if (now.is_valid()) {
-                  date_text = format_photo_age(id(current_display).year, id(current_display).month, id(current_display).day,
-                                               now.year, now.month, now.day_of_month);
+                  date_text = format_photo_age(id(current_display).year, id(current_display).month, id(current_display).day, now.year, now.month, now.day_of_month);
                 }
               } else {
                 const std::string format = id(photo_metadata_date_taken_format).current_option();
