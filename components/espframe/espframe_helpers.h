@@ -452,4 +452,5 @@ inline std::string parse_immich_asset_and_fill_slot(const std::string &body,
   meta->is_portrait = tmp.is_portrait;
   return img_url;
 }
+
 #endif  // USE_JSON

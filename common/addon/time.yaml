@@ -263,7 +263,6 @@ script:
           lv_label_set_text(id(time_label), buf);
           lv_label_set_text(id(time_label_shadow), buf);
 
-          // Format français personnalisé
           const char* months_fr[] = {"Janv.", "Fév.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."};
           int day = now.day_of_month;
           const char* day_str = (day == 1) ? "1er" : nullptr;

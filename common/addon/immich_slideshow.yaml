@@ -60,6 +60,15 @@ globals:
   - id: immich_download_retries
     type: int
     initial_value: '0'
+  - id: immich_consecutive_failures
+    type: int
+    initial_value: '0'
+  - id: immich_failure_window_started_ms
+    type: uint32_t
+    initial_value: '0'
+  - id: immich_api_retry_delay_ms
+    type: uint32_t
+    initial_value: '2000'
   - id: immich_retry_cooldown_until_ms
     type: uint32_t
     initial_value: '0'
@@ -101,6 +110,15 @@ globals:
     initial_value: 'false'
   - id: last_photo_displayed_ms
     type: uint32_t
+    initial_value: '0'
+  - id: photo_source_menu_open
+    type: bool
+    initial_value: 'false'
+  - id: photo_source_swipe_triggered
+    type: bool
+    initial_value: 'false'
+  - id: photo_source_menu_selection_index
+    type: int
     initial_value: '0'
 
 # -----------------------------------------------------------------------------
@@ -387,6 +405,7 @@ script:
     mode: queued
     then:
       - lambda: |-
+          if (id(photo_source_menu_open)) return;
           SlideshowCommand cmd;
           while (id(espframe_core).slideshow().pop_command(cmd)) {
             switch (cmd.kind) {
@@ -427,15 +446,25 @@ script:
                     id(delayed_prefetch_chain).execute();
                     break;
                   }
+                  bool portrait_screen = id(screen_rotation_select).current_option() == "90" ||
+                                         id(screen_rotation_select).current_option() == "270";
+                  int target_w = portrait_screen ? ${portrait_display_width} : ${display_width};
+                  int target_h = portrait_screen ? ${portrait_display_height} : ${display_height};
+                  auto apply_slot_layout = [&](auto *img, SlotMeta &meta) {
+                    bool fill = portrait_screen
+                      ? (id(photo_display_mode).current_option() == "Fill")
+                      : ((id(photo_display_mode).current_option() == "Fill") && !meta.is_portrait);
+                    img->set_target_size(target_w, target_h);
+                    img->set_fill_mode(fill);
+                    img->set_vertical_align(portrait_screen ? esphome::remote_image::VERTICAL_ALIGN_START : esphome::remote_image::VERTICAL_ALIGN_CENTER);
+                    img->update();
+                  };
                   if (cmd.slot == 0) {
-                    id(immich_img_0).set_fill_mode((id(photo_display_mode).current_option() == "Fill") && !id(slot0).is_portrait);
-                    id(immich_img_0).update();
+                    apply_slot_layout(id(immich_img_0), id(slot0));
                   } else if (cmd.slot == 1) {
-                    id(immich_img_1).set_fill_mode((id(photo_display_mode).current_option() == "Fill") && !id(slot1).is_portrait);
-                    id(immich_img_1).update();
+                    apply_slot_layout(id(immich_img_1), id(slot1));
                   } else if (cmd.slot == 2) {
-                    id(immich_img_2).set_fill_mode((id(photo_display_mode).current_option() == "Fill") && !id(slot2).is_portrait);
-                    id(immich_img_2).update();
+                    apply_slot_layout(id(immich_img_2), id(slot2));
                   }
                 }
                 break;
@@ -498,10 +527,17 @@ script:
               case SLIDESHOW_COMMAND_LOAD_PREVIOUS_SLOT: {
                 int s = cmd.slot;
                 auto &meta = get_slot(s, id(slot0), id(slot1), id(slot2));
-                bool fill = (id(photo_display_mode).current_option() == "Fill");
-                if (s == 0) { id(immich_img_0).set_fill_mode(fill); id(immich_img_0).set_url(meta.image_url); id(immich_img_0).update(); }
-                else if (s == 1) { id(immich_img_1).set_fill_mode(fill); id(immich_img_1).set_url(meta.image_url); id(immich_img_1).update(); }
-                else if (s == 2) { id(immich_img_2).set_fill_mode(fill); id(immich_img_2).set_url(meta.image_url); id(immich_img_2).update(); }
+                bool portrait_screen = id(screen_rotation_select).current_option() == "90" ||
+                                       id(screen_rotation_select).current_option() == "270";
+                int target_w = portrait_screen ? ${portrait_display_width} : ${display_width};
+                int target_h = portrait_screen ? ${portrait_display_height} : ${display_height};
+                bool fill = portrait_screen
+                  ? (id(photo_display_mode).current_option() == "Fill")
+                  : ((id(photo_display_mode).current_option() == "Fill") && !meta.is_portrait);
+                auto valign = portrait_screen ? esphome::remote_image::VERTICAL_ALIGN_START : esphome::remote_image::VERTICAL_ALIGN_CENTER;
+                if (s == 0) { id(immich_img_0).set_target_size(target_w, target_h); id(immich_img_0).set_fill_mode(fill); id(immich_img_0).set_vertical_align(valign); id(immich_img_0).set_url(meta.image_url); id(immich_img_0).update(); }
+                else if (s == 1) { id(immich_img_1).set_target_size(target_w, target_h); id(immich_img_1).set_fill_mode(fill); id(immich_img_1).set_vertical_align(valign); id(immich_img_1).set_url(meta.image_url); id(immich_img_1).update(); }
+                else if (s == 2) { id(immich_img_2).set_target_size(target_w, target_h); id(immich_img_2).set_fill_mode(fill); id(immich_img_2).set_vertical_align(valign); id(immich_img_2).set_url(meta.image_url); id(immich_img_2).update(); }
                 break;
               }
               case SLIDESHOW_COMMAND_LOG_NO_PREVIOUS:
@@ -544,6 +580,102 @@ script:
             }
           }
 
+  - id: show_photo_source_menu
+    mode: single
+    then:
+      - lambda: |-
+          if (!id(developer_features_enabled).state) return;
+          if (lv_scr_act() != id(slideshow_page)->obj) return;
+          id(backlight_hold_timer).stop();
+          id(last_short_tap_ms) = 0;
+          id(photo_source_menu_open) = true;
+          lv_obj_set_size(id(photo_source_menu_overlay), lv_pct(100), lv_pct(100));
+          lv_obj_align(id(photo_source_menu_overlay), LV_ALIGN_CENTER, 0, 0);
+          lv_label_set_text(id(photo_source_menu_title), "Photo Source");
+          lv_label_set_text(id(photo_source_menu_message), "");
+          lv_obj_add_flag(id(photo_source_menu_message), LV_OBJ_FLAG_HIDDEN);
+          const std::string current = id(photo_source_select).current_option();
+          auto set_source_style = [&](lv_obj_t *label, const char *source) {
+            const bool selected = current == source;
+            lv_obj_set_style_text_color(label, lv_color_hex(selected ? 0xFFD166 : 0xFFFFFF), LV_PART_MAIN);
+            lv_obj_set_style_text_opa(label, selected ? LV_OPA_COVER : LV_OPA_70, LV_PART_MAIN);
+          };
+          set_source_style(id(photo_source_all_label), "All Photos");
+          set_source_style(id(photo_source_favorites_label), "Favorites");
+          set_source_style(id(photo_source_album_label), "Album");
+          set_source_style(id(photo_source_person_label), "Person");
+          set_source_style(id(photo_source_memories_label), "Memories");
+          lv_obj_clear_flag(id(photo_source_menu_overlay), LV_OBJ_FLAG_HIDDEN);
+
+  - id: close_photo_source_menu
+    mode: single
+    then:
+      - lambda: |-
+          id(photo_source_menu_open) = false;
+          id(immich_last_advance_ms) = millis();
+          id(last_photo_displayed_ms) = millis();
+          lv_obj_add_flag(id(photo_source_menu_message), LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(id(photo_source_menu_overlay), LV_OBJ_FLAG_HIDDEN);
+          id(espframe_slideshow_dispatch).execute();
+
+  - id: select_photo_source_from_menu
+    mode: single
+    then:
+      - lambda: |-
+          if (!id(photo_source_menu_open)) return;
+          std::string source = "All Photos";
+          switch (id(photo_source_menu_selection_index)) {
+            case 1:
+              source = "Favorites";
+              break;
+            case 2:
+              source = "Album";
+              break;
+            case 3:
+              source = "Person";
+              break;
+            case 4:
+              source = "Memories";
+              break;
+            case 0:
+            default:
+              source = "All Photos";
+              break;
+          }
+
+          auto has_configured_ids = [](std::string value) -> bool {
+            value.erase(0, value.find_first_not_of(" \t\r\n,"));
+            value.erase(value.find_last_not_of(" \t\r\n,") + 1);
+            return !value.empty();
+          };
+
+          if (source == "Album" && !has_configured_ids(id(immich_album_ids).state)) {
+            lv_label_set_text(id(photo_source_menu_message), "Set up album IDs in the web settings first.");
+            lv_obj_clear_flag(id(photo_source_menu_message), LV_OBJ_FLAG_HIDDEN);
+            return;
+          }
+          if (source == "Person" && !has_configured_ids(id(immich_person_ids).state)) {
+            lv_label_set_text(id(photo_source_menu_message), "Set up person IDs in the web settings first.");
+            lv_obj_clear_flag(id(photo_source_menu_message), LV_OBJ_FLAG_HIDDEN);
+            return;
+          }
+
+          const bool changed = source != id(photo_source_select).current_option();
+          id(photo_source_menu_open) = false;
+          id(immich_last_advance_ms) = millis();
+          id(last_photo_displayed_ms) = millis();
+          lv_obj_add_flag(id(photo_source_menu_message), LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(id(photo_source_menu_overlay), LV_OBJ_FLAG_HIDDEN);
+
+          if (changed) {
+            id(espframe_core).slideshow().clear_commands();
+            auto call = id(photo_source_select).make_call();
+            call.set_option(source);
+            call.perform();
+          } else {
+            id(espframe_slideshow_dispatch).execute();
+          }
+
   - id: log_immich_diag
     mode: restart
     then:
@@ -577,8 +709,17 @@ script:
           else:
             - lambda: 'id(immich_download_retries) = 0;'
             - lambda: |-
-                id(immich_retry_cooldown_until_ms) = millis() + 30000;
-                ESP_LOGW("immich", "Download retries exhausted; pausing Immich fetches for 30s");
+                id(immich_consecutive_failures)++;
+                if (id(immich_failure_window_started_ms) == 0) {
+                  id(immich_failure_window_started_ms) = millis();
+                }
+                uint32_t cooldown_ms = 5000;
+                if (id(immich_consecutive_failures) >= 4) cooldown_ms = 10000;
+                if (id(immich_consecutive_failures) >= 8) cooldown_ms = 20000;
+                id(immich_retry_cooldown_until_ms) = millis() + cooldown_ms;
+                ESP_LOGW("immich",
+                         "Download retries exhausted; pausing fetches for %us (consecutive failures=%d)",
+                         (unsigned) (cooldown_ms / 1000), id(immich_consecutive_failures));
 
   # Start portrait pair download for the active slot (left then right or companion search)
   - id: immich_start_portrait_active
@@ -630,6 +771,44 @@ script:
       - script.execute: update_clock_display
       - script.execute: update_photo_metadata_display
 
+  - id: immich_reapply_current_image_layout
+    mode: restart
+    then:
+      - script.execute: update_clock_display
+      - script.execute: update_photo_metadata_display
+      - lambda: |-
+          id(immich_portrait_left).abort_download();
+          id(immich_portrait_right).abort_download();
+          id(immich_portrait_preload_left).abort_download();
+          id(immich_portrait_preload_right).abort_download();
+          lv_obj_add_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
+          id(portrait) = PortraitState{};
+          id(portrait_preload_slot) = -1;
+          id(portrait_preload_left_ready) = false;
+          id(portrait_preload_right_ready) = false;
+          if (id(preload_noncritical_in_flight)) {
+            id(preload_noncritical_in_flight) = false;
+            if (id(noncritical_remote_updates_in_flight) > 0) {
+              id(noncritical_remote_updates_in_flight)--;
+            }
+          }
+          if (!id(active_slot_displayed)) return;
+          int s = id(active_slot);
+          auto &meta = get_slot(s, id(slot0), id(slot1), id(slot2));
+          if (meta.image_url.empty()) return;
+          id(active_slot_displayed) = false;
+          bool portrait_screen = id(screen_rotation_select).current_option() == "90" ||
+                                 id(screen_rotation_select).current_option() == "270";
+          int target_w = portrait_screen ? ${portrait_display_width} : ${display_width};
+          int target_h = portrait_screen ? ${portrait_display_height} : ${display_height};
+          bool fill = portrait_screen
+            ? (id(photo_display_mode).current_option() == "Fill")
+            : ((id(photo_display_mode).current_option() == "Fill") && !meta.is_portrait);
+          auto valign = portrait_screen ? esphome::remote_image::VERTICAL_ALIGN_START : esphome::remote_image::VERTICAL_ALIGN_CENTER;
+          if (s == 0) { id(immich_img_0).set_target_size(target_w, target_h); id(immich_img_0).set_fill_mode(fill); id(immich_img_0).set_vertical_align(valign); id(immich_img_0).set_url(meta.image_url); id(immich_img_0).update(); }
+          else if (s == 1) { id(immich_img_1).set_target_size(target_w, target_h); id(immich_img_1).set_fill_mode(fill); id(immich_img_1).set_vertical_align(valign); id(immich_img_1).set_url(meta.image_url); id(immich_img_1).update(); }
+          else if (s == 2) { id(immich_img_2).set_target_size(target_w, target_h); id(immich_img_2).set_fill_mode(fill); id(immich_img_2).set_vertical_align(valign); id(immich_img_2).set_url(meta.image_url); id(immich_img_2).update(); }
+
   # Advance forward: move ring index, display if ready, else fetch into slot
   - id: immich_advance_forward
     mode: single
@@ -663,6 +842,13 @@ script:
     then:
       - script.execute: hide_connection_failed
       - lambda: |-
+          const bool portrait_screen = id(screen_rotation_select).current_option() == "90" ||
+                                       id(screen_rotation_select).current_option() == "270";
+          if (portrait_screen || !id(portrait_pairing_enabled).state) {
+            lv_obj_add_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
+            id(portrait) = PortraitState{};
+            return;
+          }
           if (!id(portrait).left_ready || !id(portrait).right_ready) {
             ESP_LOGW("immich", "Portrait pair display deferred (left_ready=%d right_ready=%d)",
                      id(portrait).left_ready, id(portrait).right_ready);
@@ -671,14 +857,6 @@ script:
             id(delayed_prefetch_chain).execute();
             return;
           }
-          id(portrait).is_pair = true;
-          id(active_slot_displayed) = true;
-          id(portrait).workflow_busy = false;
-          lv_img_set_zoom(id(slideshow_img), ZOOM_IDENTITY);
-          lv_obj_add_flag(id(slideshow_img), LV_OBJ_FLAG_HIDDEN);
-          lv_obj_clear_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
-          ESP_LOGI("immich", "PAIR displayed for slot %d", id(active_slot));
-      - lambda: |-
           auto *left_dsc = get_lv_image_descriptor_(id(immich_portrait_left), 0);
           auto *right_dsc = get_lv_image_descriptor_(id(immich_portrait_right), 0);
           if (left_dsc == nullptr || right_dsc == nullptr ||
@@ -698,6 +876,13 @@ script:
           }
           lv_img_set_src(id(portrait_left_img), left_dsc);
           lv_img_set_src(id(portrait_right_img), right_dsc);
+          id(portrait).is_pair = true;
+          id(active_slot_displayed) = true;
+          id(portrait).workflow_busy = false;
+          lv_img_set_zoom(id(slideshow_img), ZOOM_IDENTITY);
+          lv_obj_add_flag(id(slideshow_img), LV_OBJ_FLAG_HIDDEN);
+          lv_obj_clear_flag(id(portrait_pair_container), LV_OBJ_FLAG_HIDDEN);
+          ESP_LOGI("immich", "PAIR displayed for slot %d", id(active_slot));
       - script.execute: extract_accent_color
       - script.execute: apply_warm_tones
       - script.execute: update_clock_display
@@ -739,20 +924,42 @@ script:
           lv_label_set_text(id(photo_metadata_location_label_shadow), location_text.c_str());
           lv_label_set_text(id(photo_metadata_date_label), date_text.c_str());
           lv_label_set_text(id(photo_metadata_date_label_shadow), date_text.c_str());
+          lv_label_set_text(id(portrait_metadata_location_label), location_text.c_str());
+          lv_label_set_text(id(portrait_metadata_location_label_shadow), location_text.c_str());
+          lv_label_set_text(id(portrait_metadata_date_label), date_text.c_str());
+          lv_label_set_text(id(portrait_metadata_date_label_shadow), date_text.c_str());
 
-          if (has_location) {
+          const bool portrait_screen = id(screen_rotation_select).current_option() == "90" ||
+                                       id(screen_rotation_select).current_option() == "270";
+
+          if (has_location && !portrait_screen) {
             lv_obj_clear_flag(id(photo_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(id(photo_metadata_location_label_shadow), LV_OBJ_FLAG_HIDDEN);
           } else {
             lv_obj_add_flag(id(photo_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(id(photo_metadata_location_label_shadow), LV_OBJ_FLAG_HIDDEN);
           }
-          if (has_date) {
+          if (has_date && !portrait_screen) {
             lv_obj_clear_flag(id(photo_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(id(photo_metadata_date_label_shadow), LV_OBJ_FLAG_HIDDEN);
           } else {
             lv_obj_add_flag(id(photo_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(id(photo_metadata_date_label_shadow), LV_OBJ_FLAG_HIDDEN);
+          }
+
+          if (has_location && portrait_screen) {
+            lv_obj_clear_flag(id(portrait_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(portrait_metadata_location_label_shadow), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_obj_add_flag(id(portrait_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(portrait_metadata_location_label_shadow), LV_OBJ_FLAG_HIDDEN);
+          }
+          if (has_date && portrait_screen) {
+            lv_obj_clear_flag(id(portrait_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(portrait_metadata_date_label_shadow), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_obj_add_flag(id(portrait_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(portrait_metadata_date_label_shadow), LV_OBJ_FLAG_HIDDEN);
           }
 
           lv_obj_update_layout(id(info_overlay));
@@ -765,7 +972,7 @@ script:
           lv_obj_set_width(id(photo_metadata_date_label), metadata_width);
           lv_obj_set_width(id(photo_metadata_date_label_shadow), metadata_width);
 
-          if (!has_location && !has_date) {
+          if (portrait_screen || (!has_location && !has_date)) {
             lv_obj_add_flag(id(photo_metadata_overlay), LV_OBJ_FLAG_HIDDEN);
           } else {
             lv_obj_clear_flag(id(photo_metadata_overlay), LV_OBJ_FLAG_HIDDEN);
@@ -776,6 +983,7 @@ script:
     mode: single
     then:
       - lambda: |-
+          if (id(photo_source_menu_open)) return;
           id(espframe_core).slideshow().request_prefetch(
             id(backlight_paused),
             id(immich_retry_cooldown_until_ms) != 0 && millis() < id(immich_retry_cooldown_until_ms),

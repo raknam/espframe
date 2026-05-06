@@ -18,8 +18,34 @@ globals:
   - id: immich_memory_asset_id
     type: std::string
     initial_value: '""'
+  - id: immich_album_selected_id
+    type: std::string
+    initial_value: '""'
+  - id: immich_album_time_bucket
+    type: std::string
+    initial_value: '""'
+  - id: immich_album_asset_id
+    type: std::string
+    initial_value: '""'
 
 script:
+  - id: immich_register_fetch_failure
+    mode: restart
+    then:
+      - lambda: |-
+          id(immich_api_retries) = 0;
+          id(immich_consecutive_failures)++;
+          if (id(immich_failure_window_started_ms) == 0) {
+            id(immich_failure_window_started_ms) = millis();
+          }
+          uint32_t cooldown_ms = 3000;
+          if (id(immich_consecutive_failures) >= 3) cooldown_ms = 7000;
+          if (id(immich_consecutive_failures) >= 6) cooldown_ms = 15000;
+          id(immich_retry_cooldown_until_ms) = millis() + cooldown_ms;
+          ESP_LOGW("immich",
+                   "Fetch failure registered; pausing fetches for %us (consecutive failures=%d)",
+                   (unsigned) (cooldown_ms / 1000), id(immich_consecutive_failures));
+
   # ---------------------------------------------------------------------------
   # Display fallback when companion portrait search fails or finds nothing
   # ---------------------------------------------------------------------------
@@ -160,6 +186,9 @@ script:
                   }
                   id(immich_fetch_started) = true;
                   id(immich_api_retries) = 0;
+                  id(immich_consecutive_failures) = 0;
+                  id(immich_failure_window_started_ms) = 0;
+                  id(immich_retry_cooldown_until_ms) = 0;
                   std::string img_url = parse_immich_asset_and_fill_slot(
                     body, id(immich_url).state, id(target_slot), id(slot0), id(slot1), id(slot2),
                     id(photo_orientation_filter).current_option());
@@ -193,6 +222,219 @@ script:
                   id(immich_memory_fallback) = true;
                   clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
               - script.execute: immich_fetch_into_slot
+
+  # ---------------------------------------------------------------------------
+  # Fetch a random asset from an album using Immich's timeline endpoints.
+  #
+  # The web app uses timeline buckets for album grids; following that path keeps
+  # shared album contents aligned with what the same user sees in Immich.
+  # ---------------------------------------------------------------------------
+  - id: immich_fetch_album_into_slot
+    mode: single
+    then:
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log:
+                level: DEBUG
+                tag: immich
+                format: "Skipping album fetch (wifi disconnected)"
+            - script.stop: immich_fetch_album_into_slot
+      - if:
+          condition:
+            lambda: 'return id(immich_url).state.empty() || id(immich_api_key_text).state.empty() || id(immich_album_ids).state.empty();'
+          then:
+            - lambda: |-
+                ESP_LOGW("immich", "Album source selected but Immich URL, API key, or album IDs are missing");
+                clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+            - script.stop: immich_fetch_album_into_slot
+      - http_request.get:
+          id: http_req
+          url: !lambda |-
+            id(immich_album_selected_id) = pick_one_uuid_from_csv(id(immich_album_ids).state);
+            return id(immich_url).state + "/api/timeline/buckets?albumId=" + id(immich_album_selected_id);
+          capture_response: true
+          max_response_buffer_size: 24kB
+          request_headers:
+            Accept: application/json
+            x-api-key: !lambda 'return id(immich_api_key_text).state.c_str();'
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("immich", "Album buckets HTTP %d", response->status_code);
+                    clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                    id(immich_last_http_status) = response->status_code;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    return;
+                  }
+                  id(immich_fetch_started) = true;
+                  id(immich_last_http_status) = 0;
+                  id(immich_album_time_bucket) = pick_immich_time_bucket(body);
+                  if (id(immich_album_time_bucket).empty()) {
+                    clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                    ESP_LOGW("immich", "No album time buckets in response");
+                    id(immich_api_retries) = 0;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    return;
+                  }
+                  ESP_LOGD("immich", "Album bucket selected: %s", id(immich_album_time_bucket).c_str());
+                  id(immich_fetch_album_bucket).execute();
+          on_error:
+            then:
+              - lambda: |-
+                  id(immich_api_retries)++;
+                  ESP_LOGW("immich", "Album buckets request error for slot %d (attempt %d)", id(target_slot), id(immich_api_retries));
+                  clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                  id(immich_diag_reason) = "album buckets request error";
+                  id(log_immich_diag).execute();
+              - if:
+                  condition:
+                    lambda: 'return id(immich_api_retries) < MAX_ERROR_RETRIES;'
+                  then:
+                    - script.execute: immich_fetch_retry
+                  else:
+                    - lambda: |-
+                        id(immich_api_retries) = 0;
+                        id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                        ESP_LOGW("immich", "Album retries exhausted; pausing Immich fetches for 30s");
+
+  - id: immich_fetch_album_bucket
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(immich_album_selected_id).empty() || id(immich_album_time_bucket).empty();'
+          then:
+            - lambda: |-
+                ESP_LOGW("immich", "Album bucket fetch missing album or bucket");
+                clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+            - script.stop: immich_fetch_album_bucket
+      - http_request.get:
+          id: http_req
+          url: !lambda |-
+            return id(immich_url).state + "/api/timeline/bucket?albumId=" +
+                   id(immich_album_selected_id) + "&timeBucket=" + id(immich_album_time_bucket);
+          capture_response: true
+          max_response_buffer_size: 96kB
+          request_headers:
+            Accept: application/json
+            x-api-key: !lambda 'return id(immich_api_key_text).state.c_str();'
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("immich", "Album bucket HTTP %d", response->status_code);
+                    clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                    id(immich_last_http_status) = response->status_code;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    return;
+                  }
+                  std::string orientation = id(photo_orientation_filter).current_option();
+                  id(immich_album_asset_id) = pick_immich_timeline_asset_id(body, orientation);
+                  if (id(immich_album_asset_id).empty()) {
+                    clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                    ESP_LOGW("immich", "No usable album asset in bucket");
+                    id(immich_api_retries) = 0;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    return;
+                  }
+                  id(immich_fetch_album_asset).execute();
+          on_error:
+            then:
+              - lambda: |-
+                  id(immich_api_retries)++;
+                  ESP_LOGW("immich", "Album bucket request error for slot %d (attempt %d)", id(target_slot), id(immich_api_retries));
+                  clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                  id(immich_diag_reason) = "album bucket request error";
+                  id(log_immich_diag).execute();
+              - if:
+                  condition:
+                    lambda: 'return id(immich_api_retries) < MAX_ERROR_RETRIES;'
+                  then:
+                    - script.execute: immich_fetch_retry
+                  else:
+                    - lambda: |-
+                        id(immich_api_retries) = 0;
+                        id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                        ESP_LOGW("immich", "Album retries exhausted; pausing Immich fetches for 30s");
+
+  - id: immich_fetch_album_asset
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(immich_album_asset_id).empty();'
+          then:
+            - lambda: |-
+                ESP_LOGW("immich", "Album asset fetch missing asset ID");
+                clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+            - script.stop: immich_fetch_album_asset
+      - http_request.get:
+          id: http_req
+          url: !lambda 'return id(immich_url).state + "/api/assets/" + id(immich_album_asset_id);'
+          capture_response: true
+          max_response_buffer_size: 16kB
+          request_headers:
+            Accept: application/json
+            x-api-key: !lambda 'return id(immich_api_key_text).state.c_str();'
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("immich", "Album asset HTTP %d", response->status_code);
+                    clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                    id(immich_last_http_status) = response->status_code;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    return;
+                  }
+                  std::string img_url = parse_immich_asset_and_fill_slot(
+                    body, id(immich_url).state, id(target_slot), id(slot0), id(slot1), id(slot2),
+                    id(photo_orientation_filter).current_option());
+                  if (img_url.empty()) {
+                    clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                    ESP_LOGW("immich", "Album asset parse failed");
+                    id(immich_api_retries) = 0;
+                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                    return;
+                  }
+                  id(immich_api_retries) = 0;
+                  int slot = id(target_slot);
+                  auto &meta = get_slot(slot, id(slot0), id(slot1), id(slot2));
+                  ESP_LOGI("immich", "ALBUM slot %d: %s | %s | %s | %s | portrait=%d",
+                           slot, meta.asset_id.c_str(), meta.date.c_str(), meta.person.c_str(), meta.location.c_str(), meta.is_portrait);
+                  id(espframe_core).slideshow().clear_preload_for_slot(
+                    slot, id(portrait_preload_slot), id(portrait_preload_left_ready),
+                    id(portrait_preload_right_ready), id(preload_noncritical_in_flight),
+                    id(noncritical_remote_updates_in_flight));
+                  if (slot == 0) { id(immich_img_0).set_url(img_url); }
+                  else if (slot == 1) { id(immich_img_1).set_url(img_url); }
+                  else { id(immich_img_2).set_url(img_url); }
+              - lambda: |-
+                  int s = id(target_slot);
+                  if (s == 0) id(deferred_slot0_image_update).execute();
+                  else if (s == 1) id(deferred_slot1_image_update).execute();
+                  else id(deferred_slot2_image_update).execute();
+          on_error:
+            then:
+              - lambda: |-
+                  id(immich_api_retries)++;
+                  ESP_LOGW("immich", "Album asset request error for slot %d (attempt %d)", id(target_slot), id(immich_api_retries));
+                  clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
+                  id(immich_diag_reason) = "album asset request error";
+                  id(log_immich_diag).execute();
+              - if:
+                  condition:
+                    lambda: 'return id(immich_api_retries) < MAX_ERROR_RETRIES;'
+                  then:
+                    - script.execute: immich_fetch_retry
+                  else:
+                    - lambda: |-
+                        id(immich_api_retries) = 0;
+                        id(immich_retry_cooldown_until_ms) = millis() + 30000;
+                        ESP_LOGW("immich", "Album retries exhausted; pausing Immich fetches for 30s");
 
   # ---------------------------------------------------------------------------
   # Fetch API metadata and start image download into target_slot
@@ -281,6 +523,12 @@ script:
             - script.execute: immich_fetch_memory_into_slot
             - script.stop: immich_fetch_into_slot
       - lambda: 'id(immich_memory_fallback) = false;'
+      - if:
+          condition:
+            lambda: 'return id(photo_source_select).current_option() == "Album";'
+          then:
+            - script.execute: immich_fetch_album_into_slot
+            - script.stop: immich_fetch_into_slot
       - http_request.post:
           id: http_req
           url: !lambda 'return id(immich_url).state + "/api/search/random";'
@@ -314,30 +562,32 @@ script:
                     id(immich_last_http_status) = code;
                     clear_slot_fetch_in_flight(id(target_slot), id(slot_flags));
                     if (is_http_auth_error(code)) {
+                      if (id(immich_failure_window_started_ms) == 0) {
+                        id(immich_failure_window_started_ms) = millis();
+                      }
                       lv_label_set_text(id(connection_failed_title), "Invalid API Key");
                       lv_label_set_text(id(connection_failed_subtitle), "Check your Immich API key in\nthe espframe settings.");
+                      lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
+                      id(connection_failed_dim).execute();
+                      id(connection_failed_shift).execute();
+                      return;
                     } else if (is_http_retryable(code)) {
                       id(immich_api_retries)++;
                       if (id(immich_api_retries) < MAX_ERROR_RETRIES) {
                         id(immich_fetch_retry).execute();
                         return;
                       }
-                      lv_label_set_text(id(connection_failed_title), "Immich server error");
-                      lv_label_set_text(id(connection_failed_subtitle), "Your Immich server returned an error.\nIt may be restarting or under heavy load.");
-                    } else {
-                      lv_label_set_text(id(connection_failed_title), "Unable to connect to Immich");
-                      lv_label_set_text(id(connection_failed_subtitle), "Check your internet connection and\nthe health of your Immich server.");
                     }
-                    if (id(last_photo_displayed_ms) == 0) {
-                      id(last_photo_displayed_ms) = millis();
-                    }
-                    lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
-                    id(connection_failed_dim).execute();
-                    id(connection_failed_shift).execute();
+                    id(immich_diag_reason) = "api http status";
+                    id(log_immich_diag).execute();
+                    id(immich_register_fetch_failure).execute();
                     return;
                   }
                   id(immich_fetch_started) = true;
                   id(immich_last_http_status) = 0;
+                  id(immich_consecutive_failures) = 0;
+                  id(immich_failure_window_started_ms) = 0;
+                  id(immich_retry_cooldown_until_ms) = 0;
                   std::string orientation = id(photo_orientation_filter).current_option();
                   std::string img_url = parse_immich_asset_and_fill_slot(
                     body, id(immich_url).state, id(target_slot), id(slot0), id(slot1), id(slot2),
@@ -351,9 +601,9 @@ script:
                       return;
                     }
                     ESP_LOGW("immich", "No valid asset in response");
-                    id(immich_api_retries) = 0;
-                    id(immich_retry_cooldown_until_ms) = millis() + 30000;
-                    ESP_LOGW("immich", "No usable Immich asset; pausing fetches for 30s");
+                    id(immich_diag_reason) = "no valid asset in response";
+                    id(log_immich_diag).execute();
+                    id(immich_register_fetch_failure).execute();
                     return;
                   }
                   id(immich_api_retries) = 0;
@@ -388,22 +638,23 @@ script:
                     - script.execute: immich_fetch_retry
                   else:
                     - lambda: |-
-                        id(immich_api_retries) = 0;
-                        if (id(last_photo_displayed_ms) == 0) {
-                          id(last_photo_displayed_ms) = millis();
-                        }
-                        lv_label_set_text(id(connection_failed_title), "Unable to connect to Immich");
-                        lv_label_set_text(id(connection_failed_subtitle), "Check your internet connection and\nthe health of your Immich server.");
-                        lv_obj_clear_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
-                        id(immich_retry_cooldown_until_ms) = millis() + 30000;
-                        ESP_LOGW("immich", "API retries exhausted; pausing Immich fetches for 30s");
-                    - script.execute: connection_failed_dim
-                    - script.execute: connection_failed_shift
+                        id(immich_diag_reason) = "api retries exhausted";
+                        id(log_immich_diag).execute();
+                    - script.execute: immich_register_fetch_failure
 
   - id: immich_fetch_retry
     mode: restart
     then:
-      - delay: 5s
+      - lambda: |-
+          uint32_t delay_ms = 2000;
+          if (id(immich_api_retries) >= 2) delay_ms = 5000;
+          if (id(immich_api_retries) >= 3) delay_ms = 10000;
+          if (id(immich_consecutive_failures) >= 5 && delay_ms < 10000) delay_ms = 10000;
+          id(immich_api_retry_delay_ms) = delay_ms;
+          ESP_LOGW("immich", "Retrying Immich fetch in %us (attempt=%d, consecutive failures=%d)",
+                   (unsigned) (delay_ms / 1000), id(immich_api_retries) + 1,
+                   id(immich_consecutive_failures));
+      - delay: !lambda 'return id(immich_api_retry_delay_ms);'
       - script.execute: immich_fetch_into_slot
 
   # ---------------------------------------------------------------------------

@@ -39,6 +39,12 @@ enum HorizontalAlignment {
   HORIZONTAL_ALIGN_END,
 };
 
+enum VerticalAlignment {
+  VERTICAL_ALIGN_CENTER,
+  VERTICAL_ALIGN_START,
+  VERTICAL_ALIGN_END,
+};
+
 /**
  * @brief Download an image from a given URL, and decode it using the specified decoder.
  * The image will then be stored in a buffer, so that it can be re-displayed without the
@@ -115,12 +121,14 @@ class OnlineImage : public PollingComponent,
 
   void set_fill_mode(bool fill) { this->fill_mode_ = fill; }
   bool is_fill_mode() const { return this->fill_mode_; }
+  void set_target_size(int width, int height);
   void set_horizontal_align(HorizontalAlignment align) { this->horizontal_align_ = align; }
+  void set_vertical_align(VerticalAlignment align) { this->vertical_align_ = align; }
   bool is_downloading() const { return this->downloader_ != nullptr || this->decoder_ != nullptr; }
 
   bool is_big_endian() const { return this->is_big_endian_; }
-  int get_fixed_width() const { return this->fixed_width_; }
-  int get_fixed_height() const { return this->fixed_height_; }
+  int get_fixed_width() const { return this->target_width_ > 0 ? this->target_width_ : this->fixed_width_; }
+  int get_fixed_height() const { return this->target_height_ > 0 ? this->target_height_ : this->fixed_height_; }
   image::ImageType image_type() const { return this->type_; }
 
  protected:
@@ -195,6 +203,8 @@ class OnlineImage : public PollingComponent,
   const int fixed_width_;
   /** height requested on configuration, or 0 if non specified. */
   const int fixed_height_;
+  int target_width_{0};
+  int target_height_{0};
   /**
    * Whether the image is stored in big-endian format.
    * This is used to determine how to store 16 bit colors in the buffer.
@@ -202,6 +212,7 @@ class OnlineImage : public PollingComponent,
   bool is_big_endian_;
   bool fill_mode_{false};
   HorizontalAlignment horizontal_align_{HORIZONTAL_ALIGN_CENTER};
+  VerticalAlignment vertical_align_{VERTICAL_ALIGN_CENTER};
   /**
    * Actual width of the current image. If fixed_width_ is specified,
    * this will be equal to it; otherwise it will be set once the decoding

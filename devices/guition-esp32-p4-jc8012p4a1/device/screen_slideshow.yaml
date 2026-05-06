@@ -147,6 +147,50 @@ lvgl:
                   text: ""
                   text_color: 0xFFFFFF
                   text_font: noto_location_400_36_font
+              - label:
+                  id: portrait_metadata_location_label_shadow
+                  hidden: true
+                  x: 2
+                  y: 197
+                  width: ${portrait_metadata_width}
+                  text: ""
+                  long_mode: DOT
+                  text_align: left
+                  text_color: 0x000000
+                  text_opa: 20%
+                  text_font: noto_location_400_36_font
+              - label:
+                  id: portrait_metadata_location_label
+                  hidden: true
+                  x: 0
+                  y: 195
+                  width: ${portrait_metadata_width}
+                  text: ""
+                  long_mode: DOT
+                  text_align: left
+                  text_color: 0xFFFFFF
+                  text_font: noto_location_400_36_font
+              - label:
+                  id: portrait_metadata_date_label_shadow
+                  hidden: true
+                  x: 2
+                  y: 250
+                  width: ${portrait_metadata_width}
+                  text: ""
+                  text_align: left
+                  text_color: 0x000000
+                  text_opa: 20%
+                  text_font: noto_location_400_36_font
+              - label:
+                  id: portrait_metadata_date_label
+                  hidden: true
+                  x: 0
+                  y: 248
+                  width: ${portrait_metadata_width}
+                  text: ""
+                  text_align: left
+                  text_color: 0xFFFFFF
+                  text_font: noto_location_400_36_font
         - obj:
             id: info_overlay
             align: BOTTOM_RIGHT
@@ -306,6 +350,130 @@ lvgl:
                         text_font: noto_400_30_font
                         text_color: 0x888888
                         text_align: center
+        - obj:
+            id: photo_source_menu_overlay
+            align: CENTER
+            width: ${display_width}
+            height: ${display_height}
+            radius: 0
+            bg_color: 0x000000
+            bg_opa: 100%
+            border_width: 0
+            pad_all: 0
+            scrollable: false
+            clickable: true
+            hidden: true
+            widgets:
+              - label:
+                  id: photo_source_menu_close_label
+                  text: "X"
+                  align: TOP_RIGHT
+                  x: -32
+                  y: 24
+                  width: 80
+                  height: 80
+                  text_align: center
+                  text_color: 0xFFFFFF
+                  text_font: noto_400_46_font
+                  clickable: true
+                  on_click:
+                    then:
+                      - script.execute: close_photo_source_menu
+              - obj:
+                  align: CENTER
+                  width: 700
+                  height: SIZE_CONTENT
+                  bg_opa: 0%
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: COLUMN
+                    flex_align_main: center
+                    flex_align_cross: center
+                    pad_row: 14
+                  widgets:
+                    - label:
+                        id: photo_source_menu_title
+                        text: "Photo Source"
+                        width: 640
+                        text_align: center
+                        text_color: 0xFFFFFF
+                        text_font: noto_400_46_font
+                    - label:
+                        id: photo_source_menu_message
+                        text: ""
+                        hidden: true
+                        width: 640
+                        text_align: center
+                        text_color: 0xFFD166
+                        text_font: noto_400_28_font
+                    - label:
+                        id: photo_source_all_label
+                        text: "All Photos"
+                        width: 640
+                        height: 58
+                        text_align: center
+                        text_color: 0xFFFFFF
+                        text_font: noto_400_30_font
+                        clickable: true
+                        on_click:
+                          then:
+                            - lambda: 'id(photo_source_menu_selection_index) = 0;'
+                            - script.execute: select_photo_source_from_menu
+                    - label:
+                        id: photo_source_favorites_label
+                        text: "Favorites"
+                        width: 640
+                        height: 58
+                        text_align: center
+                        text_color: 0xFFFFFF
+                        text_font: noto_400_30_font
+                        clickable: true
+                        on_click:
+                          then:
+                            - lambda: 'id(photo_source_menu_selection_index) = 1;'
+                            - script.execute: select_photo_source_from_menu
+                    - label:
+                        id: photo_source_album_label
+                        text: "Album"
+                        width: 640
+                        height: 58
+                        text_align: center
+                        text_color: 0xFFFFFF
+                        text_font: noto_400_30_font
+                        clickable: true
+                        on_click:
+                          then:
+                            - lambda: 'id(photo_source_menu_selection_index) = 2;'
+                            - script.execute: select_photo_source_from_menu
+                    - label:
+                        id: photo_source_person_label
+                        text: "Person"
+                        width: 640
+                        height: 58
+                        text_align: center
+                        text_color: 0xFFFFFF
+                        text_font: noto_400_30_font
+                        clickable: true
+                        on_click:
+                          then:
+                            - lambda: 'id(photo_source_menu_selection_index) = 3;'
+                            - script.execute: select_photo_source_from_menu
+                    - label:
+                        id: photo_source_memories_label
+                        text: "Memories"
+                        width: 640
+                        height: 58
+                        text_align: center
+                        text_color: 0xFFFFFF
+                        text_font: noto_400_30_font
+                        clickable: true
+                        on_click:
+                          then:
+                            - lambda: 'id(photo_source_menu_selection_index) = 4;'
+                            - script.execute: select_photo_source_from_menu
 
 # =============================================================================
 # CONNECTION FAILED DIM TIMER
@@ -370,6 +538,8 @@ script:
           }
           lv_obj_add_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN);
           id(last_photo_displayed_ms) = millis();
+          id(immich_failure_window_started_ms) = 0;
+          id(immich_consecutive_failures) = 0;
           id(immich_last_http_status) = 0;
 
   - id: connection_failed_dim
@@ -416,7 +586,7 @@ globals:
     initial_value: '120'
   - id: connection_timeout_sec
     type: uint32_t
-    initial_value: '120'
+    initial_value: '600'
 
 # =============================================================================
 # USER-CONFIGURABLE SETTINGS
@@ -463,7 +633,7 @@ select:
       - "15 minutes"
       - "20 minutes"
       - "30 minutes"
-    initial_option: "2 minutes"
+    initial_option: "10 minutes"
     optimistic: true
     restore_value: true
     icon: "mdi:connection"
@@ -488,6 +658,7 @@ interval:
             lambda: |-
               if (!id(immich_fetch_started)) return false;
               if (id(backlight_paused)) return false;
+              if (id(photo_source_menu_open)) return false;
               if (id(active_slot_displayed)) {
                 bool image_busy = id(immich_img_0).is_downloading() ||
                                   id(immich_img_1).is_downloading() ||
@@ -508,6 +679,7 @@ interval:
             lambda: |-
               if (!id(immich_fetch_started)) return false;
               if (id(backlight_paused)) return false;
+              if (id(photo_source_menu_open)) return false;
               if (!id(active_slot_displayed)) return false;
               bool any_inflight = any_slot_fetch_in_flight(id(slot_flags));
               if (any_inflight || id(portrait).workflow_busy || id(preload_noncritical_in_flight) ||
@@ -522,9 +694,23 @@ interval:
       - if:
           condition:
             lambda: |-
-              if (id(last_photo_displayed_ms) == 0) return false;
               if (id(backlight_paused)) return false;
-              return (millis() - id(last_photo_displayed_ms)) >= (id(connection_timeout_sec) * 1000);
+              if (id(photo_source_menu_open)) return false;
+              if (id(active_slot_displayed)) return false;
+              uint32_t failure_start_ms = id(immich_failure_window_started_ms);
+              if (failure_start_ms == 0) return false;
+              if (id(immich_consecutive_failures) <= 0 && id(immich_last_http_status) == 0) return false;
+              bool image_busy = id(immich_img_0).is_downloading() ||
+                                id(immich_img_1).is_downloading() ||
+                                id(immich_img_2).is_downloading() ||
+                                id(immich_portrait_left).is_downloading() ||
+                                id(immich_portrait_right).is_downloading() ||
+                                id(immich_portrait_preload_left).is_downloading() ||
+                                id(immich_portrait_preload_right).is_downloading();
+              if (any_slot_fetch_in_flight(id(slot_flags)) || image_busy ||
+                  id(portrait).workflow_busy || id(preload_noncritical_in_flight) ||
+                  id(noncritical_remote_updates_in_flight) > 0) return false;
+              return (millis() - failure_start_ms) >= (id(connection_timeout_sec) * 1000);
           then:
             - lambda: |-
                 if (lv_obj_has_flag(id(connection_failed_overlay), LV_OBJ_FLAG_HIDDEN)) {

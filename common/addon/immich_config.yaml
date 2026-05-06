@@ -56,8 +56,11 @@ text:
             return;
           }
           id(immich_url).publish_state(url);
+          global_preferences->sync();
           ESP_LOGI("immich", "Immich URL configured: %s", url.c_str());
-          id(immich_connection_config_changed).execute();
+      # Delay reconnect logic so settings are committed before any network crash path.
+      - delay: 15s
+      - script.execute: immich_connection_config_changed
 
   - platform: template
     name: "Connection: API Key"
@@ -77,8 +80,11 @@ text:
       - lambda: |-
           if (x.empty()) return;
           id(immich_api_key_text).publish_state(x);
+          global_preferences->sync();
           ESP_LOGI("immich", "Immich API key configured (%d chars)", x.length());
-          id(immich_connection_config_changed).execute();
+      # Delay reconnect logic so settings are committed before any network crash path.
+      - delay: 15s
+      - script.execute: immich_connection_config_changed
 
 # -----------------------------------------------------------------------------
 # Display mode: Fill (crop-to-cover) vs Fit (letterbox, no cropping)
@@ -109,6 +115,9 @@ script:
           id(immich_fetch_started) = false;
           id(immich_api_retries) = 0;
           id(immich_download_retries) = 0;
+          id(immich_consecutive_failures) = 0;
+          id(immich_failure_window_started_ms) = 0;
+          id(immich_api_retry_delay_ms) = 2000;
           id(immich_last_http_status) = 0;
           id(immich_retry_cooldown_until_ms) = 0;
           id(immich_memory_fallback) = false;
