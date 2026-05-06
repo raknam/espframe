@@ -519,6 +519,61 @@ script:
     then:
       - script.stop: backlight_hold_timer
 
+  - id: debug_layout_apply
+    mode: single
+    then:
+      - lambda: |-
+          bool on = id(developer_features_enabled).state;
+          auto set_bg = [](lv_obj_t* obj, uint32_t color, bool show) {
+            lv_obj_set_style_bg_color(obj, lv_color_hex(color), LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(obj, show ? LV_OPA_60 : LV_OPA_TRANSP, LV_PART_MAIN);
+          };
+          // Show/hide parent containers
+          if (on) {
+            lv_obj_clear_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(photo_metadata_overlay), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            if (!id(show_clock).state || !id(active_slot_displayed))
+              lv_obj_add_flag(id(clock_container), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(photo_metadata_overlay), LV_OBJ_FLAG_HIDDEN);
+          }
+          // Placeholder text when enabling
+          if (on) {
+            if (lv_label_get_text(id(time_label))[0] == '\0')
+              lv_label_set_text(id(time_label), "00:00");
+            if (lv_label_get_text(id(date_label))[0] == '\0')
+              lv_label_set_text(id(date_label), "1er Janv. 2025");
+            if (lv_label_get_text(id(portrait_metadata_location_label))[0] == '\0')
+              lv_label_set_text(id(portrait_metadata_location_label), "Paris, France");
+            if (lv_label_get_text(id(portrait_metadata_date_label))[0] == '\0')
+              lv_label_set_text(id(portrait_metadata_date_label), "1er Janv. 2025");
+            if (lv_label_get_text(id(photo_metadata_location_label))[0] == '\0')
+              lv_label_set_text(id(photo_metadata_location_label), "Paris, France");
+            if (lv_label_get_text(id(photo_metadata_date_label_shadow))[0] == '\0')
+              lv_label_set_text(id(photo_metadata_date_label_shadow), "1er Janv. 2025");
+            if (lv_label_get_text(id(photo_metadata_date_label))[0] == '\0')
+              lv_label_set_text(id(photo_metadata_date_label), "1er Janv. 2025");
+            lv_obj_clear_flag(id(portrait_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(portrait_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(photo_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(photo_metadata_date_label_shadow), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(id(photo_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_obj_add_flag(id(portrait_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(portrait_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(photo_metadata_location_label), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(photo_metadata_date_label_shadow), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(id(photo_metadata_date_label), LV_OBJ_FLAG_HIDDEN);
+          }
+          // Colors
+          set_bg(id(time_label),                        0x1040A0, on);
+          set_bg(id(date_label),                        0x6010A0, on);
+          set_bg(id(portrait_metadata_location_label),  0x107070, on);
+          set_bg(id(portrait_metadata_date_label),      0x107040, on);
+          set_bg(id(photo_metadata_location_label),     0xA05010, on);
+          set_bg(id(photo_metadata_date_label_shadow),  0x404040, on);
+          set_bg(id(photo_metadata_date_label),         0xA01030, on);
+
   - id: set_clock_container_y
     mode: single
     then:
