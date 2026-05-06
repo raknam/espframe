@@ -11,7 +11,6 @@
 # Build and log
 # -----------------------------------------------------------------------------
 substitutions:
-  package_ref: "main"
   log_level: "INFO"
 
 esp32:
@@ -86,7 +85,9 @@ web_server:
   port: 80
   version: 3
   include_internal: true
-  js_url: "https://jtenniswood.github.io/espframe/webserver/app.js"
+  js_url: ""
+  css_include: "espframe/docs/public/webserver/style.css"
+  js_include: "espframe/docs/public/webserver/app.js"
   sorting_groups:
     - id: sg_connection
       name: "Connection"
@@ -124,10 +125,8 @@ ota:
 # -----------------------------------------------------------------------------
 external_components:
   - source:
-      type: git
-      url: https://github.com/jtenniswood/espframe
-      ref: ${package_ref}
-      path: components
+      type: local
+      path: espframe/components
     components: [gsl3680, remote_image, espframe]
     refresh: 0s
 

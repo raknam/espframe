@@ -14,13 +14,15 @@ substitutions:
   portrait_metadata_width: "510"
   portrait_half_width: "512"
   screen_rotation: "0"
+  clock_font_size: "150"
+  clock_font_weight: "325"
   screen_rotation_0: "0"
   screen_rotation_90: "90"
   screen_rotation_180: "180"
   screen_rotation_270: "270"
   captive_portal_ip: "192.168.4.1"
-  firmware_manifest_url: "https://jtenniswood.github.io/espframe/firmware/manifest-7inch.json"
-  firmware_beta_manifest_url: "https://jtenniswood.github.io/espframe/firmware/beta/manifest-7inch.json"
+  firmware_manifest_url: "https://raw.githubusercontent.com/raknam/espframe/main/firmware/manifest-7inch.json"
+  firmware_beta_manifest_url: "https://raw.githubusercontent.com/raknam/espframe/main/firmware/beta/manifest-7inch.json"
 
 packages:
   # ---------------------------------------------------------------------------

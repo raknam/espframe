@@ -3,7 +3,6 @@
 
   var TIMEZONES = __ESPFRAME_TIMEZONES__;
   var TIMEZONE_LABELS = __ESPFRAME_TIMEZONE_LABELS__;
-  var SCREEN_ROTATION_OPTIONS = ["0", "90", "180", "270"];
 
   var S = {
     clock_options: ["24 Hour", "12 Hour"],
@@ -14,7 +13,7 @@
       "10 seconds", "15 seconds", "20 seconds", "30 seconds", "45 seconds",
       "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes"
     ],
-    conn_timeout: "10 minutes",
+    conn_timeout: "2 minutes",
     conn_timeout_options: [
       "30 seconds", "45 seconds", "1 minute", "2 minutes", "3 minutes",
       "5 minutes", "10 minutes", "15 minutes", "20 minutes", "30 minutes"
@@ -129,19 +128,6 @@
     }
     els.root = root;
     switchTab("immich");
-    addSupportButton();
-  }
-
-  function addSupportButton() {
-    if (document.querySelector(".sp-support-btn")) return;
-    var link = document.createElement("a");
-    link.className = "sp-support-btn";
-    link.href = "https://www.buymeacoffee.com/jtenniswood";
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.setAttribute("aria-label", "Buy Me A Coffee");
-    link.innerHTML = '<span>Buy Me A Coffee</span><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" style="border-radius:999px;">';
-    document.body.appendChild(link);
   }
 
   function buildHeader(parent) {
@@ -350,17 +336,6 @@
     });
   }
 
-  function delayMs(ms) {
-    return new Promise(function (resolve) { setTimeout(resolve, ms); });
-  }
-
-  function saveConnectionValue(path, value, useQueryFallback) {
-    return postTextValueSet(path + "/set", value, useQueryFallback).then(function (r) {
-      if (!r || !r.ok) throw new Error("save_failed");
-      return delayMs(1200);
-    });
-  }
-
   function normalizeNtpServer(value) {
     return String(value == null ? "" : value).trim();
   }
@@ -386,19 +361,6 @@
     } catch (_) {
       return false;
     }
-  }
-
-  function isPortraitScreenRotation(value) {
-    return value === "90" || value === "270";
-  }
-
-  function screenRotationOptionsForUi() {
-    return S.developer_features_enabled ? SCREEN_ROTATION_OPTIONS.slice() : ["0", "180"];
-  }
-
-  function effectiveScreenRotationForUi() {
-    var current = String(S.screen_rotation || "0");
-    return screenRotationOptionsForUi().indexOf(current) !== -1 ? current : "0";
   }
 
   function extractUrlAuthority(value) {
@@ -580,7 +542,7 @@
     "text/Clock: NTP Server 2": { key: "ntp_server_2", default: "1.pool.ntp.org" },
     "text/Clock: NTP Server 3": { key: "ntp_server_3", default: "2.pool.ntp.org" },
     "select/Photos: Slideshow Interval": { key: "interval", optionsKey: "interval_options", default: "2 minutes" },
-    "select/Screen: Connection Timeout": { key: "conn_timeout", optionsKey: "conn_timeout_options", default: "10 minutes" },
+    "select/Screen: Connection Timeout": { key: "conn_timeout", optionsKey: "conn_timeout_options", default: "2 minutes" },
     "switch/Clock: Show": { key: "show_clock", boolFromState: true },
     "text_sensor/Firmware: Version": { key: "firmware" },
     "switch/Firmware: Auto Update": { key: "auto_update", boolFromState: true },
@@ -899,34 +861,23 @@
       var nextBtn = el("button", "btn btn-primary");
       nextBtn.textContent = "Connect";
       nextBtn.onclick = function () {
-        var u = normalizeImmichUrl(urlInput.value);
+        var u = urlInput.value.trim();
         var k = keyInput.value.trim();
         if (!u || !k) return;
         nextBtn.disabled = true;
         nextBtn.textContent = "Saving\u2026";
-        saveConnectionValue(endpoints.immich_url, u, true)
+        post(endpoints.immich_url + "/set", { value: u })
           .then(function () {
-            return saveConnectionValue(endpoints.api_key, k, false);
+            return new Promise(function (r) { setTimeout(r, 500); });
           })
           .then(function () {
-            return Promise.all([
-              safeGet(endpoints.immich_url),
-              safeGet(endpoints.api_key)
-            ]);
+            return post(endpoints.api_key + "/set", { value: k });
           })
-          .then(function (res) {
-            var savedUrl = normalizeImmichUrl((res[0] && (res[0].value || res[0].state)) || "");
-            var savedKey = (res[1] && (res[1].value || res[1].state)) || "";
-            if (savedUrl !== u || !savedKey) throw new Error("verify_failed");
+          .then(function () {
             S.immich_url = u;
             S.api_key = k;
             step = 2;
             showStep();
-          })
-          .catch(function () {
-            nextBtn.disabled = false;
-            nextBtn.textContent = "Connect";
-            showBanner("Failed to save connection. Please try again.", "error");
           });
       };
       nav.appendChild(nextBtn);
@@ -1014,16 +965,8 @@
     var f1 = field("Immich Server URL");
     var urlInput = input("url", S.immich_url, "http://192.168.0.1:2283");
     urlInput.onchange = function () {
-      var normalized = normalizeImmichUrl(urlInput.value);
-      postTextValueSet(endpoints.immich_url + "/set", normalized, true).then(function (r) {
-        if (r && r.ok) {
-          S.immich_url = normalized;
-          urlInput.value = normalized;
-          showSaved("URL saved");
-        } else {
-          showConnectionError("Failed to save URL");
-        }
-      });
+      post(endpoints.immich_url + "/set", { value: urlInput.value.trim() });
+      showSaved("URL saved");
     };
     f1.appendChild(urlInput);
     connBody.appendChild(f1);
@@ -1061,21 +1004,10 @@
         if (!v) return;
         saveBtn.disabled = true;
         saveBtn.textContent = "Saving\u2026";
-        saveConnectionValue(endpoints.api_key, v, false)
-          .then(function () {
-            return safeGet(endpoints.api_key);
-          })
-          .then(function (resp) {
-            var saved = (resp && (resp.value || resp.state)) || "";
-            if (!saved) throw new Error("verify_failed");
-            showSaved("API key saved");
-            showKeyMasked();
-          })
-          .catch(function () {
-            saveBtn.disabled = false;
-            saveBtn.textContent = "Save";
-            showConnectionError("Failed to save API key");
-          });
+        post(endpoints.api_key + "/set", { value: v }).then(function () {
+          showSaved("API key saved");
+          showKeyMasked();
+        });
       };
       grp.appendChild(keyInput);
       grp.appendChild(saveBtn);
@@ -1381,18 +1313,10 @@
     var photoBody = el("div");
 
     var fPairToggle = field("");
-    var portraitRotationActive = isPortraitScreenRotation(effectiveScreenRotationForUi());
-    var pairingEnabled = S.portrait_pairing && !portraitRotationActive;
     var pairTr = el("div", "toggle-row");
     pairTr.innerHTML = "<span>Portrait Pairing</span>";
-    var pairTog = el("div", pairingEnabled ? "toggle on" : "toggle");
-    if (portraitRotationActive) {
-      pairTog.style.opacity = ".35";
-      pairTog.style.cursor = "not-allowed";
-      pairTog.title = "Portrait pairing is disabled while the screen is in portrait rotation";
-    }
+    var pairTog = el("div", S.portrait_pairing ? "toggle on" : "toggle");
     pairTog.onclick = function () {
-      if (portraitRotationActive) return;
       S.portrait_pairing = !S.portrait_pairing;
       pairTog.className = S.portrait_pairing ? "toggle on" : "toggle";
       post(endpoints.portrait_pairing + (S.portrait_pairing ? "/turn_on" : "/turn_off"));
@@ -1874,14 +1798,10 @@
     // Rotation
     var rotationBody = el("div");
     var fRotation = field("Rotation");
-    var rotationOptions = screenRotationOptionsForUi();
     fRotation.appendChild(
-      selectFromOptions(rotationOptions, effectiveScreenRotationForUi(), function (v) {
+      selectFromOptions(S.screen_rotation_options, S.screen_rotation, function (v) {
         S.screen_rotation = v;
         post(endpoints.screen_rotation + "/set", { option: v });
-        S.portrait_pairing = !isPortraitScreenRotation(v);
-        post(endpoints.portrait_pairing + (S.portrait_pairing ? "/turn_on" : "/turn_off"));
-        renderSettings();
       }, function (v) {
         return v + " degrees";
       })
@@ -2067,13 +1987,6 @@
         devToggle.className = S.developer_features_enabled ? "toggle on" : "toggle";
         devBadge.className = "on-badge" + (S.developer_features_enabled ? " active" : "");
         post(endpoints.developer_features_enabled + (S.developer_features_enabled ? "/turn_on" : "/turn_off"));
-        if (!S.developer_features_enabled && isPortraitScreenRotation(S.screen_rotation)) {
-          S.screen_rotation = "0";
-          S.portrait_pairing = true;
-          post(endpoints.screen_rotation + "/set", { option: "0" });
-          post(endpoints.portrait_pairing + "/turn_on");
-        }
-        renderSettings();
       };
       devRow.appendChild(devToggle);
       devField.appendChild(devRow);
@@ -2106,9 +2019,6 @@
     } else if (id === "text_sensor/Screen: Sunset") {
       S.sunset = d.value || d.state || "";
       updateSunInfoElement(document.getElementById("sun-info"));
-    } else if (ENTITY_STATE_MAP[id] && ["screen_rotation", "portrait_pairing", "developer_features_enabled"].indexOf(ENTITY_STATE_MAP[id].key) !== -1) {
-      applyEntityToState(d);
-      if (!isEditingSetting()) renderSettings();
     } else if (ENTITY_STATE_MAP[id] && ENTITY_STATE_MAP[id].key.indexOf("photo_metadata_") === 0) {
       if (!isEditingSetting()) renderSettings();
     } else if (ENTITY_STATE_MAP[id] && ENTITY_STATE_MAP[id].key.indexOf("schedule_") === 0) {
@@ -2604,7 +2514,7 @@
         }
         if (scr.rotation !== undefined) {
           var importedRotation = String(scr.rotation);
-          if (screenRotationOptionsForUi().indexOf(importedRotation) !== -1) {
+          if (S.screen_rotation_options.indexOf(importedRotation) !== -1) {
             S.screen_rotation = importedRotation;
             post(endpoints.screen_rotation + "/set", { option: S.screen_rotation });
           }
