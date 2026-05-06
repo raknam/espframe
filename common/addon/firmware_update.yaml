@@ -17,7 +17,7 @@ substitutions:
 
 esphome:
   project:
-    name: jtenniswood.immich-frame
+    name: raknam.espframe
     version: "${firmware_version}"
   on_boot:
     priority: -100

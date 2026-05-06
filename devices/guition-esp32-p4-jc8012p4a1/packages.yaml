@@ -21,8 +21,8 @@ substitutions:
   screen_rotation_180: "270"
   screen_rotation_270: "0"
   captive_portal_ip: "192.168.4.1"
-  firmware_manifest_url: "https://jtenniswood.github.io/espframe/firmware/manifest.json"
-  firmware_beta_manifest_url: "https://jtenniswood.github.io/espframe/firmware/beta/manifest.json"
+  firmware_manifest_url: "https://raw.githubusercontent.com/raknam/espframe/main/firmware/manifest.json"
+  firmware_beta_manifest_url: "https://raw.githubusercontent.com/raknam/espframe/main/firmware/beta/manifest.json"
 
 packages:
   # ---------------------------------------------------------------------------
